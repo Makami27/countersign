@@ -8,7 +8,7 @@
   },
   "scripts": {
     "gate": "node scripts/gate.mjs",
-    "typecheck": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json && tsc -p apps/web/client/tsconfig.json",
     "test": "node --test --test-reporter=spec \"packages/*/test/*.test.ts\" \"apps/*/test/*.test.ts\"",
     "test:core": "node --test --test-reporter=spec \"packages/core/test/*.test.ts\"",
     "test:live": "node --env-file=.env --test --test-reporter=spec --test-concurrency=1 \"packages/*/test/live/*.live.test.ts\"",
@@ -19,10 +19,12 @@
     "agent": "node --env-file=.env apps/agent/src/main.ts",
     "web": "node --env-file=.env apps/web/src/main.ts",
     "testnet:pay": "node --env-file=.env apps/agent/src/testnetPayment.ts",
-    "act1": "node --env-file=.env apps/agent/src/act1.ts"
+    "act1": "node --env-file=.env apps/agent/src/act1.ts",
+    "build:web": "node scripts/build-web.mjs"
   },
   "devDependencies": {
     "@types/node": "26.6.5",
+    "esbuild": "0.28.2",
     "playwright": "1.64.1",
     "subset-font": "2.9.0",
     "typescript": "5.9.3"

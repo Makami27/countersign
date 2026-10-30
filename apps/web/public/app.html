@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Countersign: your agent</title>
+  <meta name="robots" content="noindex">
+  <meta name="theme-color" content="#E9F0EA" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0E1626" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preload" href="/fonts/familjen-grotesk-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/styles.css">
+  <link rel="stylesheet" href="/app.css">
+  <script type="module" src="/build/app.js"></script>
+</head>
+<body>
+  <div class="app">
+    <a class="skip" href="#app">Skip to content</a>
+    <header class="bar">
+      <a class="wordmark" href="/" aria-label="Countersign home"><svg viewBox="0 0 40 24" aria-hidden="true"><path d="M2 17c5-1 7-13 11-12s-4 14 1 13 5-9 8-9-1 8 2 8 6-6 9-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M2 21h36" stroke="currentColor" stroke-width="1"/></svg><span>Countersign</span></a>
+      <span class="netlabel" id="netlabel"></span>
+      <nav aria-label="Owner" id="nav">
+        <a href="/app" data-link data-section="payees">Payees</a>
+        <a href="/app/activity" data-link data-section="activity">Activity</a>
+        <a href="/app/settings" data-link data-section="settings">Settings</a>
+      </nav>
+    </header>
+    <div class="banner" id="banner" role="alert" hidden></div>
+    <main id="app" tabindex="-1"><p class="narrow">Loading your agent…</p></main>
+  </div>
+</body>
+</html>

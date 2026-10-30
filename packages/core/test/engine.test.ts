@@ -151,7 +151,7 @@ test("C13 a verified change whose memory write is UNKNOWN does not become payabl
   const text = messageFor(s, "landlord");
   memory.failNextWrite = true;
   const r = await agent.completeChange(s.nonce, { kind: "signature", signature: landlord.sign(text) }, { kind: "signature", signature: next.sign(text) });
-  assert.equal(r.verdict === "REFUSED" && r.reason, "MEMORY_INCOMPLETE");
+  assert.equal(r.verdict === "REFUSED" && r.reason, "MEMORY_WRITE_UNCONFIRMED");
   const paid = await agent.handle(message("pay rent"), pay);
   assert.equal(paid.verdict === "PAY_RESERVED" && paid.address, landlord.address);
 });

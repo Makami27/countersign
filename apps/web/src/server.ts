@@ -5,6 +5,7 @@ import { labRoute } from "./labRoutes.ts";
 import { readProof } from "./proof.ts";
 import { problem, send, serveFile } from "./http.ts";
 import { ownerRoute, sessionRoute } from "./ownerRoutes.ts";
+import { signRoute } from "./signRoutes.ts";
 import type { OwnerContext } from "./ownerContext.ts";
 
 export const PUBLIC_DIR = fileURLToPath(new URL("../public/", import.meta.url));
@@ -28,6 +29,7 @@ export function startWebServer(options: WebServerOptions): Server {
       if (path.startsWith("/api/lab/") && req.method === "POST") return labRoute(lab, req, res, path);
       if (path === "/api/session" && options.owner) return sessionRoute(options.owner, req, res);
       if (path.startsWith("/api/app/") && options.owner) return ownerRoute(options.owner, req, res, path);
+      if (path.startsWith("/api/sign/") && options.owner) return signRoute(options.owner, req, res, path);
       if (path.startsWith("/api/")) return problem(res, 404, "Not found.");
       if (path.startsWith("/build/") && (await serveFile(res, DIST_DIR, path.slice("/build/".length), 200, "no-cache"))) return;
       if ((path === "/app" || path.startsWith("/app/")) && (await serveFile(res, PUBLIC_DIR, "app.html", 200, "no-cache"))) return;

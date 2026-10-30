@@ -37,7 +37,7 @@ export async function requestOnboarding(d: EngineDeps, name: string, address: st
   const expires = new Date(d.clock.now().getTime() + CHANGE_REQUEST_LIFETIME_MS).toISOString();
   const stated = payeeVersion(d, payeeId, name.trim(), 1, parsed, "STATED", null, { kind: "onboarding_requested", ownerConfirmationId, nonce, expires });
   const written = await writeRecord(d, payeeNamespace(d.ownerId, payeeId), stated, `onboard:${nonce}:requested`);
-  if (written.status !== "WRITTEN") return refuse(d, "REFUSED", "MEMORY_INCOMPLETE", subject, trail);
+  if (written.status !== "WRITTEN") return refuse(d, "REFUSED", "MEMORY_WRITE_UNCONFIRMED", subject, trail);
   d.index.putPayeeVersion(stated);
   d.index.insertPendingOnboarding({ nonce, payeeId, name: stated.name, address: parsed, expires });
   return { verdict: "ONBOARDING_STARTED", payeeId, nonce, expires, address: parsed };
@@ -61,7 +61,7 @@ export async function completeOnboarding(d: EngineDeps, nonce: string, control: 
   const evidence = { kind: "payee_onboarding" as const, ownerConfirmationId: requested.evidence.ownerConfirmationId, nonce, control, verifications };
   const record = payeeVersion(d, pending.payeeId, pending.name, requested.version + 1, pending.address, "VERIFIED", null, evidence);
   const written = await writeRecord(d, payeeNamespace(d.ownerId, pending.payeeId), record, `onboard:${nonce}:verified`);
-  if (written.status !== "WRITTEN") return refuse(d, "CHANGE_REJECTED", "MEMORY_INCOMPLETE", subject, trail);
+  if (written.status !== "WRITTEN") return refuse(d, "CHANGE_REJECTED", "MEMORY_WRITE_UNCONFIRMED", subject, trail);
   if (!d.index.consumePendingOnboarding(nonce)) return refuse(d, "CHANGE_REJECTED", "NONCE_REUSED", subject, trail);
   d.index.putPayeeVersion(record);
   const receipt = await writeReceipt(d, "CHANGE_VERIFIED", null, subject, trail, [written.blobId], null);
