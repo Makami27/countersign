@@ -90,6 +90,15 @@ export class InMemoryIndex implements IndexStore {
     entry.used = true;
     return true;
   }
+  receiptsFor(payeeId: string | null, limit: number): readonly ReceiptRecord[] {
+    return this.#receipts.filter((r) => payeeId === null || r.payeeId === payeeId).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit);
+  }
+  pendingChangesFor(payeeId: string): readonly PendingChange[] {
+    return [...this.#pending.values()].filter((e) => !e.used && e.change.payeeId === payeeId).map((e) => e.change);
+  }
+  pendingOnboardingFor(payeeId: string): PendingOnboarding | null {
+    return [...this.#onboardings.values()].find((e) => !e.used && e.onboarding.payeeId === payeeId)?.onboarding ?? null;
+  }
   clearIndex(): void {
     this.#versions = [];
     this.#receipts = [];
@@ -130,6 +139,10 @@ export class InMemoryPaymentLedger implements PaymentLedger {
 
   unresolvedPayments(): readonly PaymentIntent[] {
     return [...this.#payments.values()].filter((p) => p.state === "SENDING" || p.state === "SENT" || p.state === "UNKNOWN");
+  }
+
+  recentPayments(limit: number, payeeId: string | null): readonly PaymentIntent[] {
+    return [...this.#payments.values()].filter((p) => payeeId === null || p.payeeId === payeeId).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit);
   }
 
   reservedFor(period: string): bigint {

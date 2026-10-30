@@ -1,8 +1,8 @@
 import { z } from "zod";
-import type { Proposal } from "@countersign/core";
+import { usdcToBaseUnits, type Proposal } from "@countersign/core";
 
-const USDC_DECIMALS = 6;
-const USDC_AMOUNT = /^(0|[1-9]\d*)(?:\.(\d{1,6}))?$/;
+export { usdcToBaseUnits } from "@countersign/core";
+
 const MAX_QUOTE_CHARS = 500;
 
 export const ModelOutput = z
@@ -14,15 +14,6 @@ export const ModelOutput = z
     reasonQuote: z.string().max(MAX_QUOTE_CHARS).optional(),
   })
   .strict();
-
-export function usdcToBaseUnits(amountText: string): string | null {
-  const match = USDC_AMOUNT.exec(amountText);
-  if (!match) return null;
-  const whole = BigInt(match[1] ?? "0");
-  const fraction = BigInt((match[2] ?? "").padEnd(USDC_DECIMALS, "0"));
-  const baseUnits = whole * 10n ** BigInt(USDC_DECIMALS) + fraction;
-  return baseUnits > 0n ? baseUnits.toString() : null;
-}
 
 export function amountStandsAloneIn(amountText: string, sourceText: string): boolean {
   const escaped = amountText.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");

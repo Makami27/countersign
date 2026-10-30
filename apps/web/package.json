@@ -4,5 +4,15 @@
   "type": "module",
   "dependencies": {
     "@countersign/core": "workspace:*"
+  },
+  "exports": {
+    "./server": "./src/server.ts",
+    "./ownerAuth": "./src/ownerAuth.ts",
+    "./ownerSettings": "./src/ownerSettings.ts",
+    "./ownerContext": "./src/ownerContext.ts",
+    "./addressGroups": "./client/addressGroups.ts"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.2"
   }
 }

@@ -1,68 +1,89 @@
 import { randomBytes } from "node:crypto";
-import { Bot } from "grammy";
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { decodeSuiPrivateKey } from "@mysten/sui/cryptography";
-import { Countersign, type SuiAddress } from "@countersign/core";
+import { Countersign, isRealUseNamespace, type EngineDeps, type PaymentIntent, type SuiAddress } from "@countersign/core";
 import { SqliteIndex, SqlitePaymentLedger } from "@countersign/adapters/sqlite";
 import { MemWalMemory } from "@countersign/adapters/memwal";
-import { SqliteRateGate, TATUM_FREE_TIER_INTERVAL_MS, TATUM_GRAPHQL_URL, TatumGraphql, TatumRoundTripChecker, TatumSignatureVerifier, USDC_COIN_TYPE, tatumGrpcClient, tatumPaymentChain, tatumRateGateName } from "@countersign/adapters/tatum";
-import { extractProposal } from "@countersign/adapters/gemini";
 import { PaymentRunner } from "@countersign/adapters/payments";
+import { SqliteRateGate, TATUM_FREE_TIER_INTERVAL_MS, TATUM_GRAPHQL_URL, TatumGraphql, TatumRoundTripChecker, TatumSignatureVerifier, USDC_COIN_TYPE, readAgentBalances, tatumGrpcClient, tatumPaymentChain, tatumRateGateName } from "@countersign/adapters/tatum";
+import { extractProposal } from "@countersign/adapters/gemini";
 import { recordSignerFromSeed } from "@countersign/adapters/signer";
+import { startWebServer } from "@countersign/web/server";
+import { OwnerAuth } from "@countersign/web/ownerAuth";
+import { OwnerSettings } from "@countersign/web/ownerSettings";
+import type { BalancesView, MemoryView, OwnerContext } from "@countersign/web/ownerContext";
 import { loadConfig } from "./config.ts";
-import { MODEL_UNREADABLE_REPLY, RECEIPT_PENDING_REPLY, paymentPendingReply, paymentReply, receiptReply, replyFor } from "./replies.ts";
+import { startBot } from "./telegram.ts";
+
+const RECONCILE_EVERY_MS = 60_000;
+const BALANCE_CACHE_MS = 30_000;
 
 const config = loadConfig(process.env);
-const tatumGate = new SqliteRateGate(config.databasePath, tatumRateGateName(config.network), TATUM_FREE_TIER_INTERVAL_MS);
-const grpc = tatumGrpcClient(config.network, config.tatumApiKey, tatumGate);
-const graphql = new TatumGraphql(TATUM_GRAPHQL_URL[config.network], config.tatumApiKey, tatumGate);
+const gate = new SqliteRateGate(config.databasePath, tatumRateGateName(config.network), TATUM_FREE_TIER_INTERVAL_MS);
+const grpc = tatumGrpcClient(config.network, config.tatumApiKey, gate);
+const graphql = new TatumGraphql(TATUM_GRAPHQL_URL[config.network], config.tatumApiKey, gate);
 const wallet = Ed25519Keypair.fromSecretKey(decodeSuiPrivateKey(config.agentWalletKey).secretKey);
 const agentAddress = wallet.toSuiAddress() as SuiAddress;
-
+const memory = new MemWalMemory(config.memwal);
+const index = new SqliteIndex(config.databasePath);
+const ledger = new SqlitePaymentLedger(config.databasePath);
+const settings = new OwnerSettings(config.databasePath, { perPaymentBaseUnits: config.caps.perPaymentBaseUnits, perDayBaseUnits: config.caps.perDayBaseUnits, cooldownSeconds: config.cooldownMs / 1000 });
+const auth = new OwnerAuth(config.databasePath);
 const clock = { now: () => new Date() };
-const payments = new SqlitePaymentLedger(config.databasePath);
-const runner = new PaymentRunner({ ledger: payments, chain: tatumPaymentChain(grpc, wallet, config.network), clock });
 
-const engine = new Countersign({
-  ownerId: config.ownerId,
-  network: config.network,
-  memory: new MemWalMemory(config.memwal),
-  index: new SqliteIndex(config.databasePath),
-  payments,
+const deps: EngineDeps = {
+  ownerId: config.ownerId, network: config.network, memory, index, payments: ledger, clock,
   signer: recordSignerFromSeed(config.recordSigningKey),
   signatures: new TatumSignatureVerifier(grpc),
   roundTrips: new TatumRoundTripChecker(graphql, agentAddress, USDC_COIN_TYPE[config.network]),
-  clock,
   nonces: { next: () => randomBytes(16).toString("hex") },
-  caps: config.caps,
-  cooldownMs: config.cooldownMs,
-});
+  caps: settings.caps(),
+  get cooldownMs() {
+    return settings.values().cooldownSeconds * 1000;
+  },
+};
+const engine = new Countersign(deps);
+const runner = new PaymentRunner({ ledger, chain: tatumPaymentChain(grpc, wallet, config.network), clock });
 
 const restored = await engine.restore();
-if (!restored.ok) throw new Error("Walrus Memory could not be read completely at startup. Nothing was started; no payment can be made.");
-for (const payment of await runner.recoverInterrupted()) await engine.recordPaymentOutcome(payment);
+const memoryView: MemoryView = { relayer: memory.environment, restored: restored.ok, restoredAt: restored.ok ? clock.now().toISOString() : null, legacyRecords: restored.ok ? restored.legacy : 0, ignoredRecords: restored.ok ? restored.ignored : 0 };
+console.log(restored.ok ? `Walrus Memory (${memory.environment}) restored: ${restored.payees} payee namespaces, ${restored.legacy} legacy and ${restored.ignored} ignored records.` : "Walrus Memory could not be read completely. Payments stay blocked until it can.");
 
-const bot = new Bot(config.telegram.token);
+async function recordFinished(payments: readonly PaymentIntent[]): Promise<void> {
+  for (const payment of payments) await engine.recordPaymentOutcome(payment);
+}
 
-bot.on("message:text", async (ctx) => {
-  if (ctx.from.id !== config.telegram.ownerUserId) return;
-  const inbound = { id: `tg:${ctx.message.message_id}`, channel: "telegram" as const, from: String(ctx.from.id), text: ctx.message.text, receivedAt: new Date(ctx.message.date * 1000).toISOString() };
-  const extraction = await extractProposal(config.gemini, inbound.text, engine.payeeIds());
-  if (extraction.status === "UNKNOWN") {
-    await ctx.reply(MODEL_UNREADABLE_REPLY);
-    return;
-  }
-  const outcome = await engine.handle(inbound, extraction.proposal);
-  if (outcome.verdict === "PAY_RESERVED") {
-    await ctx.reply(paymentPendingReply(outcome.amountBaseUnits, outcome.address, config.network));
-    const payment = await runner.send(outcome.paymentId);
-    await ctx.reply(paymentReply(payment, config.network));
-    if (payment.state !== "SETTLED" && payment.state !== "FAILED") return;
-    await ctx.reply(RECEIPT_PENDING_REPLY);
-    await ctx.reply(receiptReply(await engine.recordPaymentOutcome(payment)));
-    return;
-  }
-  await ctx.reply(replyFor(outcome));
+await recordFinished(await runner.recoverInterrupted());
+setInterval(() => void runner.reconcileOpen().then(recordFinished), RECONCILE_EVERY_MS).unref();
+
+let balanceCache: { at: number; view: BalancesView } | null = null;
+async function balances(): Promise<BalancesView> {
+  if (balanceCache && Date.now() - balanceCache.at < BALANCE_CACHE_MS) return balanceCache.view;
+  const read = await readAgentBalances(grpc, config.network, agentAddress);
+  const view: BalancesView = read.status === "KNOWN" ? { status: "KNOWN", suiBaseUnits: read.sui.totalBaseUnits, usdcBaseUnits: read.usdc.totalBaseUnits } : { status: "UNKNOWN", detail: read.detail };
+  balanceCache = { at: Date.now(), view };
+  return view;
+}
+
+const owner: OwnerContext = {
+  ownerId: config.ownerId, network: config.network, agentAddress, publicUrl: config.publicUrl, engine, index, ledger, auth, settings, balances,
+  memory: () => memoryView,
+  memoryCounts: async () => {
+    const counts = await memory.namespaceCounts(`countersign:${config.ownerId}:`);
+    if (!counts) return null;
+    const real = counts.filter((c) => isRealUseNamespace(config.ownerId, c.name));
+    return { realUseMemories: real.reduce((sum, c) => sum + c.count, 0), namespaces: real.length };
+  },
+  sendPayment: async (paymentId) => {
+    const payment = await runner.send(paymentId);
+    await recordFinished([payment].filter((p) => p.state === "SETTLED" || p.state === "FAILED"));
+    return payment;
+  },
+};
+
+startWebServer({ port: config.port, network: config.network, proofDatabasePath: config.databasePath, version: process.env["GIT_SHA"] ?? null, owner });
+startBot({
+  token: config.telegram.token, ownerUserId: config.telegram.ownerUserId, network: config.network, publicUrl: config.publicUrl, engine, index, auth,
+  extract: (text, payeeIds) => extractProposal(config.gemini, text, payeeIds),
+  sendPayment: (paymentId) => runner.send(paymentId),
 });
-
-await bot.start();

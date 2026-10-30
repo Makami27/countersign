@@ -89,3 +89,14 @@ export function formatUsdc(baseUnits: bigint): string {
   const fraction = (baseUnits % scale).toString().padStart(Number(USDC_DECIMALS), "0").replace(/0+$/, "");
   return fraction === "" ? `${whole}.00` : `${whole}.${fraction.length === 1 ? `${fraction}0` : fraction}`;
 }
+
+const USDC_AMOUNT = /^(0|[1-9]\d*)(?:\.(\d{1,6}))?$/;
+
+export function usdcToBaseUnits(amountText: string): string | null {
+  const match = USDC_AMOUNT.exec(amountText);
+  if (!match) return null;
+  const whole = BigInt(match[1] ?? "0");
+  const fraction = BigInt((match[2] ?? "").padEnd(Number(USDC_DECIMALS), "0"));
+  const baseUnits = whole * 10n ** USDC_DECIMALS + fraction;
+  return baseUnits > 0n ? baseUnits.toString() : null;
+}

@@ -82,6 +82,23 @@ export class SqliteIndex implements IndexStore {
     return Number(this.#db.prepare("UPDATE pending_onboardings SET used = 1 WHERE nonce = ? AND used = 0").run(nonce).changes) === 1;
   }
 
+  receiptsFor(payeeId: string | null, limit: number): readonly ReceiptRecord[] {
+    const rows = payeeId === null
+      ? this.#db.prepare("SELECT record FROM receipts ORDER BY json_extract(record, '$.createdAt') DESC LIMIT ?").all(limit)
+      : this.#db.prepare("SELECT record FROM receipts WHERE json_extract(record, '$.payeeId') = ? ORDER BY json_extract(record, '$.createdAt') DESC LIMIT ?").all(payeeId, limit);
+    return rows.map((row) => JSON.parse(String(row["record"])) as ReceiptRecord);
+  }
+
+  pendingChangesFor(payeeId: string): readonly PendingChange[] {
+    return this.#db.prepare("SELECT * FROM pending_changes WHERE payee_id = ? AND used = 0 ORDER BY expires DESC").all(payeeId)
+      .map((row) => ({ nonce: String(row["nonce"]), payeeId: String(row["payee_id"]), fromAddress: String(row["from_address"]) as SuiAddress, toAddress: String(row["to_address"]) as SuiAddress, expires: String(row["expires"]) }));
+  }
+
+  pendingOnboardingFor(payeeId: string): PendingOnboarding | null {
+    const row = this.#db.prepare("SELECT nonce FROM pending_onboardings WHERE payee_id = ? AND used = 0 ORDER BY expires DESC LIMIT 1").get(payeeId);
+    return row ? this.pendingOnboarding(String(row["nonce"])) : null;
+  }
+
   consumePendingChange(nonce: string): boolean {
     return Number(this.#db.prepare("UPDATE pending_changes SET used = 1 WHERE nonce = ? AND used = 0").run(nonce).changes) === 1;
   }

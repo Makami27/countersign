@@ -5,6 +5,7 @@
   "dependencies": {
     "@countersign/adapters": "workspace:*",
     "@countersign/core": "workspace:*",
+    "@countersign/web": "workspace:*",
     "@mysten/sui": "2.37.0",
     "grammy": "1.46.0"
   }
