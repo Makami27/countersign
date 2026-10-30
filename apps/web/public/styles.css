@@ -1,10 +1,16 @@
+@font-face { font-family: "Familjen Grotesk"; src: url("/fonts/familjen-grotesk-latin.woff2") format("woff2"); font-weight: 400 700; font-display: swap; }
+@font-face { font-family: "Martian Mono"; src: url("/fonts/martian-mono-latin.woff2") format("woff2"); font-weight: 100 800; font-stretch: 75% 112.5%; font-display: swap; }
+
 :root {
   --paper: #E9F0EA;
   --paper-deep: #DCE7DF;
   --paper-raised: #F4F8F4;
   --ink: #18233D;
   --ink-soft: #4A5670;
+  --ink-faint: #8792A6;
   --line: #B9C8BD;
+  --stated: #8A5A00;
+  --stated-wash: #F4E8CF;
   --void: #B3261E;
   --void-wash: #F6E3DF;
   --seal: #0F6B5C;
@@ -29,7 +35,10 @@
     --paper-raised: #1A2740;
     --ink: #E4ECE6;
     --ink-soft: #A9B6C9;
+    --ink-faint: #6F7E97;
     --line: #2E3D59;
+    --stated: #F2B95C;
+    --stated-wash: #3A2E17;
     --void: #FF7A6B;
     --void-wash: #3A1E22;
     --seal: #6FD1BC;
@@ -46,7 +55,10 @@
   --paper-raised: #1A2740;
   --ink: #E4ECE6;
   --ink-soft: #A9B6C9;
+  --ink-faint: #6F7E97;
   --line: #2E3D59;
+  --stated: #F2B95C;
+  --stated-wash: #3A2E17;
   --void: #FF7A6B;
   --void-wash: #3A1E22;
   --seal: #6FD1BC;
