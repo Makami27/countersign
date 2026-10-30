@@ -36,3 +36,11 @@ Consequence: spike S12 is load-bearing.
 ## D7: Tatum gRPC through native transport
 Decision: `@protobuf-ts/grpc-transport` + `@grpc/grpc-js` for `SuiGrpcClient`; GraphQL over fetch for address history.
 Pins (from working entrants, to confirm on install): `@mysten/sui` 2.37.0, `@mysten-incubation/memwal` 0.1.12, `@protobuf-ts/grpc-transport` 2.11.1, `@grpc/grpc-js` 1.13.6, `@mysten/seal` 1.4.19, `@mysten/walrus` 1.2.34.
+
+## D8: Toolchain is Node 26.13.0 + pnpm 10.34.9, one lockfile
+Context: the owner's machine runs Node v26.13.0; CI pinned 22.23.4 and `engines` said `>=22.23.4`, so CI and local runs used different runtimes. An earlier `npm i` left `package-lock.json` files, and `spikes/` was a separate npm package with its own lockfile. Node 26 ships without corepack.
+Decision: run and test on Node 26.13.0 everywhere (`engines: >=26.13.0`, CI `node-version: 26.13.0`, deploy image to match). pnpm 10.34.9 is installed with `npm i -g pnpm@10.34.9` (it exists on the registry; the `packageManager` pin is unchanged). `spikes/` joins the pnpm workspace as `@countersign/spikes`; `pnpm-lock.yaml` is the only lockfile and npm/yarn lockfiles are gitignored. `@types/node` moves to 26.6.5 to match the runtime.
+Verified on 2026-10-30 with Node v26.13.0: `node:sqlite` opens a database (SQLite 3.54.0); native `.ts` imports work (`process.features.typescript` = `strip`); `@grpc/grpc-js` 1.13.6, `@protobuf-ts/grpc-transport` 2.11.1, `@mysten-incubation/memwal` 0.1.12 and `@mysten/sui` 2.37.0 (`/grpc`, `/verify`) all import. Live calls are verified by the spikes and `pnpm test:live`, not by this entry.
+Rejected: staying on Node 22 in CI (tests would not cover the runtime we ship); corepack (removed from Node 26); keeping npm for `spikes/` (two lockfiles, two dependency trees).
+Consequence: the hosting choice in Phase 5 must offer Node 26.13.0 or a Docker image of it.
+Where: `package.json`, `.github/workflows/gate.yml`, `pnpm-workspace.yaml`, `.gitignore`, `spikes/package.json`

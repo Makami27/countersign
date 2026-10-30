@@ -4,3 +4,6 @@ node_modules/
 *.sqlite-*
 spikes/evidence/
 .DS_Store
+package-lock.json
+npm-shrinkwrap.json
+yarn.lock
