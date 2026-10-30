@@ -44,11 +44,19 @@ export type LabView = {
 
 export type LabReply = { readonly outcome: Outcome; readonly trace: readonly TraceStep[]; readonly view: LabView; readonly note: string | null };
 
+class LabIndex extends InMemoryIndex {
+  readonly refusals: ReceiptRecord[] = [];
+
+  override putReceipt(record: ReceiptRecord): void {
+    if (isRefusal(record)) this.refusals.unshift(record);
+    super.putReceipt(record);
+  }
+}
+
 class LabSession {
   readonly wallets = new Map<SuiAddress, Wallet>();
   readonly memory = new InMemoryMemory();
-  readonly index = new InMemoryIndex();
-  readonly refusals: ReceiptRecord[] = [];
+  readonly index = new LabIndex();
   readonly engine: Countersign;
   readonly current = new Map<LabPayeeId, Wallet>();
   touched = Date.now();
@@ -56,32 +64,12 @@ class LabSession {
 
   constructor() {
     const records = generateKeyPairSync("ed25519");
-    const index = this.index;
-    const refusals = this.refusals;
     const wallets = this.wallets;
     this.engine = new Countersign({
       ownerId: "lab",
       network: "testnet",
       memory: this.memory,
-      index: {
-        putPayeeVersion: (r) => index.putPayeeVersion(r),
-        payeeVersions: (id) => index.payeeVersions(id),
-        payeeIds: () => index.payeeIds(),
-        verifiedAddresses: () => index.verifiedAddresses(),
-        putReceipt: (r) => {
-          if (isRefusal(r)) refusals.unshift(r);
-          index.putReceipt(r);
-        },
-        receipt: (id) => index.receipt(id),
-        earlierRefusalFor: (a) => index.earlierRefusalFor(a),
-        insertPendingChange: (c) => index.insertPendingChange(c),
-        pendingChange: (n) => index.pendingChange(n),
-        consumePendingChange: (n) => index.consumePendingChange(n),
-        insertPendingOnboarding: (o) => index.insertPendingOnboarding(o),
-        pendingOnboarding: (n) => index.pendingOnboarding(n),
-        consumePendingOnboarding: (n) => index.consumePendingOnboarding(n),
-        clearIndex: () => index.clearIndex(),
-      },
+      index: this.index,
       payments: new InMemoryPaymentLedger(),
       signer: {
         sign: (c) => sign(null, Buffer.from(c), records.privateKey).toString("base64"),
@@ -117,7 +105,7 @@ class LabSession {
         const head = headOf(versions);
         return { id: p.id, name: p.name, payableAddress: head.kind === "verified" ? head.version.address : null, versions };
       }),
-      refusals: this.refusals.slice(0, 12),
+      refusals: this.index.refusals.slice(0, 12),
       memoryRecords: [...this.memory.spaces.values()].reduce((n, texts) => n + texts.length, 0),
     };
   }

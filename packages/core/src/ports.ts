@@ -56,6 +56,9 @@ export interface IndexStore {
   insertPendingOnboarding(onboarding: PendingOnboarding): void;
   pendingOnboarding(nonce: string): PendingOnboarding | null;
   consumePendingOnboarding(nonce: string): boolean;
+  receiptsFor(payeeId: string | null, limit: number): readonly ReceiptRecord[];
+  pendingChangesFor(payeeId: string): readonly PendingChange[];
+  pendingOnboardingFor(payeeId: string): PendingOnboarding | null;
   clearIndex(): void;
 }
 
@@ -64,6 +67,7 @@ export interface PaymentLedger {
   movePayment(id: string, move: PaymentMove): boolean;
   payment(id: string): PaymentIntent | null;
   unresolvedPayments(): readonly PaymentIntent[];
+  recentPayments(limit: number, payeeId: string | null): readonly PaymentIntent[];
 }
 
 export interface Clock {

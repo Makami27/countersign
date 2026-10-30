@@ -4,16 +4,19 @@ import { checkContinuity, checkControl } from "./changeProofs.ts";
 import { headOf, nextVersionNumber, payeeNamespace } from "./payeeBook.ts";
 import { restoreIndex, versionsFrom, type RestoreResult } from "./memoryBook.ts";
 import { CheckTrail, paymentOutcome } from "./receipts.ts";
-import { payeeVersion, refuse, writeReceipt, writeRecord, type ReceiptWrite } from "./engineWrites.ts";
+import { payeeVersion, refuse, writeReceipt, writeRecord, type ReceiptWrite, type Subject } from "./engineWrites.ts";
 import { completeOnboarding, requestOnboarding } from "./onboarding.ts";
 import type { PaymentIntent } from "./payments.ts";
 import type { EngineDeps } from "./engineDeps.ts";
-import type { ContinuityProof, ControlProof, Evidence, InboundMessage, Outcome, PayeeHead, Proposal, ReceiptRecord } from "./types.ts";
+import type { ContinuityProof, ControlProof, Evidence, InboundMessage, Outcome, PayeeHead, Proposal, ReceiptRecord, Refused, SuiAddress } from "./types.ts";
 
 export type { RoundTripChecker, RoundTripResult } from "./changeProofs.ts";
 export type { RestoreResult } from "./memoryBook.ts";
 export type { Caps, EngineDeps } from "./engineDeps.ts";
 export type { ReceiptWrite } from "./engineWrites.ts";
+
+export type PaymentPreview = { readonly verdict: "PAY_PREVIEW"; readonly payeeId: string; readonly name: string; readonly address: SuiAddress; readonly amountBaseUnits: bigint };
+type CheckedPayment = { readonly name: string; readonly version: number; readonly address: SuiAddress; readonly amount: bigint; readonly payeeBlobId: string | null; readonly subject: Subject; readonly trail: CheckTrail };
 
 export class Countersign {
   readonly #d: EngineDeps;
@@ -115,7 +118,23 @@ export class Countersign {
     return { verdict: "CHANGE_STARTED", nonce, expires, fromAddress: head.version.address, toAddress };
   }
 
+  async previewPayment(message: InboundMessage, proposal: Extract<Proposal, { kind: "pay" }>): Promise<PaymentPreview | Refused> {
+    const checked = await this.#checkPayment(message, proposal);
+    if (!("payeeBlobId" in checked)) return checked;
+    return { verdict: "PAY_PREVIEW", payeeId: proposal.payeeId, name: checked.name, address: checked.address, amountBaseUnits: checked.amount };
+  }
+
   async #reservePayment(message: InboundMessage, proposal: Extract<Proposal, { kind: "pay" }>): Promise<Outcome> {
+    const d = this.#d;
+    const checked = await this.#checkPayment(message, proposal);
+    if (!("payeeBlobId" in checked)) return checked;
+    const now = d.clock.now().toISOString();
+    const intent = { id: `pay_${d.nonces.next()}`, payeeId: proposal.payeeId, payeeVersion: checked.version, payeeBlobId: checked.payeeBlobId, address: checked.address, amountBaseUnits: checked.amount, period: now.slice(0, 10), createdAt: now };
+    if (!d.payments.reservePayment(intent, d.caps.perDayBaseUnits)) return refuse(d, "REFUSED", "CAP_EXCEEDED", checked.subject, checked.trail, "WITHIN_CAPS");
+    return { verdict: "PAY_RESERVED", paymentId: intent.id, address: intent.address, amountBaseUnits: checked.amount };
+  }
+
+  async #checkPayment(message: InboundMessage, proposal: Extract<Proposal, { kind: "pay" }>): Promise<CheckedPayment | Refused> {
     const d = this.#d;
     const trail = new CheckTrail();
     const subject = { ref: message.id, payeeId: proposal.payeeId, address: null, amountBaseUnits: proposal.amountBaseUnits };
@@ -133,10 +152,7 @@ export class Countersign {
     trail.pass("AMOUNT_VALID");
     const amount = BigInt(proposal.amountBaseUnits);
     if (amount > d.caps.perPaymentBaseUnits) return refuse(d, "REFUSED", "CAP_EXCEEDED", payee, trail, "WITHIN_CAPS");
-    const now = d.clock.now().toISOString();
     const payeeBlobId = stored.find((s) => s.record.version === head.version.version)?.blobId ?? null;
-    const intent = { id: `pay_${d.nonces.next()}`, payeeId: proposal.payeeId, payeeVersion: head.version.version, payeeBlobId, address: head.version.address, amountBaseUnits: amount, period: now.slice(0, 10), createdAt: now };
-    if (!d.payments.reservePayment(intent, d.caps.perDayBaseUnits)) return refuse(d, "REFUSED", "CAP_EXCEEDED", payee, trail, "WITHIN_CAPS");
-    return { verdict: "PAY_RESERVED", paymentId: intent.id, address: intent.address, amountBaseUnits: amount };
+    return { name: head.version.name, version: head.version.version, address: head.version.address, amount, payeeBlobId, subject: payee, trail };
   }
 }

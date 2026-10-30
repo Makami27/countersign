@@ -97,6 +97,13 @@ export class SqlitePaymentLedger implements PaymentLedger {
     return this.#db.prepare("SELECT * FROM payment_intents WHERE state IN ('SENDING','SENT','UNKNOWN') ORDER BY created_at").all().map(toIntent);
   }
 
+  recentPayments(limit: number, payeeId: string | null): readonly PaymentIntent[] {
+    const rows = payeeId === null
+      ? this.#db.prepare("SELECT * FROM payment_intents ORDER BY created_at DESC LIMIT ?").all(limit)
+      : this.#db.prepare("SELECT * FROM payment_intents WHERE payee_id = ? ORDER BY created_at DESC LIMIT ?").all(payeeId, limit);
+    return rows.map(toIntent);
+  }
+
   reservedFor(period: string): bigint {
     return this.#reserved(period);
   }

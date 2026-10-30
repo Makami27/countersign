@@ -87,6 +87,22 @@ export class MemWalMemory implements MemoryPort {
     return null;
   }
 
+  async namespaceCounts(prefix: string): Promise<readonly { readonly name: string; readonly count: number }[] | null> {
+    const found: { name: string; count: number }[] = [];
+    let cursor: string | undefined;
+    try {
+      for (let page = 0; page < MAX_LIST_PAGES; page++) {
+        const result = await this.#client.listNamespaces(cursor ? { cursor } : {});
+        found.push(...result.namespaces.filter((n) => n.name.startsWith(prefix)).map((n) => ({ name: n.name, count: n.memory_count })));
+        if (!result.has_more || !result.next_cursor) return found;
+        cursor = result.next_cursor;
+      }
+    } catch {
+      return null;
+    }
+    return null;
+  }
+
   async countIn(namespace: string): Promise<number | null> {
     let cursor: string | undefined;
     try {

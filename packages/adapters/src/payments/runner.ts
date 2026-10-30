@@ -56,6 +56,16 @@ export class PaymentRunner {
     return decision.kind === "MOVE" ? this.#require(paymentId) : this.#require(paymentId);
   }
 
+  async reconcileOpen(): Promise<readonly PaymentIntent[]> {
+    const finished: PaymentIntent[] = [];
+    for (const intent of this.#d.ledger.unresolvedPayments()) {
+      if (intent.state !== "SENT" && intent.state !== "UNKNOWN") continue;
+      const after = await this.reconcile(intent.id);
+      if (after.state === "SETTLED" || after.state === "FAILED") finished.push(after);
+    }
+    return finished;
+  }
+
   async recoverInterrupted(): Promise<readonly PaymentIntent[]> {
     for (const intent of this.#d.ledger.unresolvedPayments()) {
       if (intent.state === "SENDING") this.#move(intent.id, "UNKNOWN", INTERRUPTED_WHILE_SENDING);

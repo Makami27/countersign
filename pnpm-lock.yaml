@@ -32,6 +32,9 @@ importers:
       '@countersign/core':
         specifier: workspace:*
         version: link:../../packages/core
+      '@countersign/web':
+        specifier: workspace:*
+        version: link:../web
       '@mysten/sui':
         specifier: 2.37.0
         version: 2.37.0(typescript@5.9.3)
@@ -44,6 +47,10 @@ importers:
       '@countersign/core':
         specifier: workspace:*
         version: link:../../packages/core
+    devDependencies:
+      esbuild:
+        specifier: 0.28.2
+        version: 0.28.2
 
   packages/adapters:
     dependencies:
