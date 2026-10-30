@@ -1,34 +1,22 @@
 import { appearsVerbatim, imitatesAny, parseSuiAddress } from "./address.ts";
 import { CHANGE_REQUEST_LIFETIME_MS, changeMessage } from "./changeMessage.ts";
-import { headOf, nextVersionNumber, payeeIdFromNamespace, payeeNamespace, refusalsNamespace } from "./payeeBook.ts";
-import { openRecord, sealRecord } from "./records.ts";
-import type { Clock, IndexStore, MemoryPort, NonceSource, PaymentLedger, RecordSigner, SignatureVerifier } from "./ports.ts";
-import type { ContinuityProof, ControlProof, Evidence, InboundMessage, MemoryRecord, Outcome, PayeeVersionRecord, Proposal, Refused, SuiAddress } from "./types.ts";
-import { REASONS, type ReasonCode } from "./vocabulary.ts";
+import { checkContinuity, checkControl } from "./changeProofs.ts";
+import { headOf, nextVersionNumber, payeeNamespace, receiptsNamespace } from "./payeeBook.ts";
+import { indexRecord, restoreIndex, versionsFrom, type RestoreResult } from "./memoryBook.ts";
+import { sealRecord } from "./records.ts";
+import { CheckTrail, paymentOutcome } from "./receipts.ts";
+import type { PaymentIntent } from "./payments.ts";
+import type { EngineDeps } from "./engineDeps.ts";
+import type { ContinuityProof, ControlProof, Evidence, InboundMessage, MemoryRecord, Outcome, PayeeHead, PayeeVersionRecord, Proposal, ReceiptRecord, ReceiptVerdict, Refused, SuiAddress } from "./types.ts";
+import type { ReasonCode } from "./vocabulary.ts";
 
-export type RoundTripResult = "PROVEN" | "NOT_PROVEN" | "UNKNOWN";
+export type { RoundTripChecker, RoundTripResult } from "./changeProofs.ts";
+export type { RestoreResult } from "./memoryBook.ts";
+export type { Caps, EngineDeps } from "./engineDeps.ts";
 
-export interface RoundTripChecker {
-  check(proof: Extract<ControlProof, { kind: "round_trip" }>, toAddress: SuiAddress): Promise<RoundTripResult>;
-}
+export type ReceiptWrite = { readonly receipt: string; readonly blobId: string | null };
 
-export type Caps = { readonly perPaymentBaseUnits: bigint; readonly perDayBaseUnits: bigint };
-
-export type EngineDeps = {
-  readonly ownerId: string;
-  readonly memory: MemoryPort & { listNamespaces(prefix: string): Promise<readonly string[] | null> };
-  readonly index: IndexStore;
-  readonly payments: PaymentLedger;
-  readonly signer: RecordSigner;
-  readonly signatures: SignatureVerifier;
-  readonly roundTrips: RoundTripChecker;
-  readonly clock: Clock;
-  readonly nonces: NonceSource;
-  readonly caps: Caps;
-  readonly cooldownMs: number;
-};
-
-export type RestoreResult = { readonly ok: true; readonly ignored: number; readonly payees: number } | { readonly ok: false; readonly reason: "MEMORY_INCOMPLETE" };
+type Subject = { readonly ref: string; readonly payeeId: string | null; readonly address: SuiAddress | null; readonly amountBaseUnits?: string };
 
 export class Countersign {
   readonly #d: EngineDeps;
@@ -38,19 +26,31 @@ export class Countersign {
   }
 
   async onboardPayee(payeeId: string, address: string, ownerConfirmationId: string): Promise<Outcome> {
+    const trail = new CheckTrail();
     const parsed = parseSuiAddress(address);
-    if (!parsed) return this.#refuse("ADDRESS_NOT_IN_MESSAGE", payeeId, payeeId, null);
+    const subject = { ref: payeeId, payeeId, address: parsed };
+    if (!parsed) return this.#refuse("REFUSED", "ADDRESS_NOT_IN_MESSAGE", subject, trail);
     const versions = this.#d.index.payeeVersions(payeeId);
-    if (headOf(versions).kind !== "none") return this.#refuse("CONFLICT", payeeId, payeeId, null);
+    if (headOf(versions).kind !== "none") return this.#refuse("REFUSED", "CONFLICT", subject, trail);
+    trail.pass("OWNER_CONFIRMED");
     const record = this.#payeeVersion(payeeId, nextVersionNumber(versions), parsed, "VERIFIED", null, { kind: "owner_onboarding", ownerConfirmationId });
     const written = await this.#write(payeeNamespace(this.#d.ownerId, payeeId), record, `onboard:${payeeId}:${parsed}`);
-    if (written.status !== "WRITTEN") return this.#refuse("MEMORY_INCOMPLETE", payeeId, payeeId, null);
+    if (written.status !== "WRITTEN") return this.#refuse("REFUSED", "MEMORY_INCOMPLETE", subject, trail);
     this.#d.index.putPayeeVersion(record);
-    return { verdict: "CHANGE_VERIFIED", version: record.version, blobId: written.blobId };
+    const receipt = await this.#receipt("CHANGE_VERIFIED", null, subject, trail, [written.blobId], null);
+    return { verdict: "CHANGE_VERIFIED", version: record.version, blobId: written.blobId, receipt: receipt.receipt };
   }
 
   payeeIds(): readonly string[] {
     return this.#d.index.payeeIds();
+  }
+
+  payeeHead(payeeId: string): PayeeHead {
+    return headOf(this.#d.index.payeeVersions(payeeId));
+  }
+
+  receiptRecord(id: string): ReceiptRecord | null {
+    return this.#d.index.receipt(id);
   }
 
   async handle(message: InboundMessage, proposal: Proposal): Promise<Outcome> {
@@ -60,66 +60,60 @@ export class Countersign {
   }
 
   async completeChange(nonce: string, continuity: ContinuityProof, control: ControlProof): Promise<Outcome> {
+    const trail = new CheckTrail();
     const change = this.#d.index.pendingChange(nonce);
-    if (!change) return this.#refuse("NONCE_REUSED", nonce, null, null);
-    if (new Date(change.expires) < this.#d.clock.now()) return this.#refuse("EXPIRED", nonce, change.payeeId, change.toAddress);
+    if (!change) return this.#refuse("CHANGE_REJECTED", "NONCE_REUSED", { ref: nonce, payeeId: null, address: null }, trail);
+    const subject = { ref: nonce, payeeId: change.payeeId, address: change.toAddress };
+    if (new Date(change.expires) < this.#d.clock.now()) return this.#refuse("CHANGE_REJECTED", "EXPIRED", subject, trail);
     const head = headOf(this.#d.index.payeeVersions(change.payeeId));
-    if (head.kind !== "verified" || head.version.address !== change.fromAddress) return this.#refuse("CONFLICT", nonce, change.payeeId, null);
+    if (head.kind !== "verified" || head.version.address !== change.fromAddress) return this.#refuse("CHANGE_REJECTED", "CONFLICT", subject, trail);
     const message = changeMessage(change);
+    const continuityStep = await checkContinuity(continuity, message, change.fromAddress, { signatures: this.#d.signatures, nowMs: this.#d.clock.now().getTime(), cooldownMs: this.#d.cooldownMs }, trail);
+    if (!continuityStep.ok) return this.#refuse("CHANGE_REJECTED", continuityStep.reason, subject, trail);
+    const controlStep = await checkControl(control, message, change.toAddress, { signatures: this.#d.signatures, roundTrips: this.#d.roundTrips }, trail);
+    if (!controlStep.ok) return this.#refuse("CHANGE_REJECTED", controlStep.reason, subject, trail);
 
-    const continuityReason = await this.#checkContinuity(continuity, message, change.fromAddress);
-    if (continuityReason) return this.#refuse(continuityReason, nonce, change.payeeId, change.toAddress);
-    const controlReason = await this.#checkControl(control, message, change.toAddress);
-    if (controlReason) return this.#refuse(controlReason, nonce, change.payeeId, change.toAddress);
-
-    const versions = this.#d.index.payeeVersions(change.payeeId);
+    const verifications = [continuityStep.verification, controlStep.verification].filter((v) => v !== null);
     const evidence: Evidence = continuity.kind === "signature"
-      ? { kind: "continuity_signature", nonce, signature: continuity.signature, control }
-      : { kind: "owner_confirmed_change", nonce, ownerConfirmationId: continuity.ownerConfirmationId, control };
-    const record = this.#payeeVersion(change.payeeId, nextVersionNumber(versions), change.toAddress, "VERIFIED", head.version.version, evidence);
+      ? { kind: "continuity_signature", nonce, signature: continuity.signature, control, verifications }
+      : { kind: "owner_confirmed_change", nonce, ownerConfirmationId: continuity.ownerConfirmationId, control, verifications };
+    const record = this.#payeeVersion(change.payeeId, nextVersionNumber(this.#d.index.payeeVersions(change.payeeId)), change.toAddress, "VERIFIED", head.version.version, evidence);
     const written = await this.#write(payeeNamespace(this.#d.ownerId, change.payeeId), record, `change:${nonce}:verified`);
-    if (written.status !== "WRITTEN") return this.#refuse("MEMORY_INCOMPLETE", nonce, change.payeeId, null);
-    if (!this.#d.index.consumePendingChange(nonce)) return this.#refuse("NONCE_REUSED", nonce, change.payeeId, null);
+    if (written.status !== "WRITTEN") return this.#refuse("CHANGE_REJECTED", "MEMORY_INCOMPLETE", subject, trail);
+    if (!this.#d.index.consumePendingChange(nonce)) return this.#refuse("CHANGE_REJECTED", "NONCE_REUSED", subject, trail);
     this.#d.index.putPayeeVersion(record);
-    return { verdict: "CHANGE_VERIFIED", version: record.version, blobId: written.blobId };
+    const receipt = await this.#receipt("CHANGE_VERIFIED", null, subject, trail, [written.blobId], null);
+    return { verdict: "CHANGE_VERIFIED", version: record.version, blobId: written.blobId, receipt: receipt.receipt };
   }
 
-  async restore(): Promise<RestoreResult> {
-    const prefix = `countersign:${this.#d.ownerId}:`;
-    const namespaces = await this.#d.memory.listNamespaces(prefix);
-    if (!namespaces) return { ok: false, reason: "MEMORY_INCOMPLETE" };
-    const reads = await Promise.all(namespaces.map(async (ns) => ({ ns, read: await this.#d.memory.readAll(ns) })));
-    if (reads.some((r) => !r.read.complete)) return { ok: false, reason: "MEMORY_INCOMPLETE" };
-    this.#d.index.clearIndex();
-    let ignored = 0;
-    let payees = 0;
-    for (const { ns, read } of reads) {
-      if (!read.complete) continue;
-      const payeeId = payeeIdFromNamespace(this.#d.ownerId, ns);
-      if (payeeId) payees += 1;
-      for (const text of read.texts) {
-        const opened = openRecord(this.#d.signer, text);
-        if (!opened.ok || !this.#belongs(opened.record, ns, payeeId)) {
-          ignored += 1;
-          continue;
-        }
-        this.#index(opened.record);
-      }
-    }
-    return { ok: true, ignored, payees };
+  async recordPaymentOutcome(intent: PaymentIntent): Promise<ReceiptWrite | null> {
+    if (intent.state !== "SETTLED" && intent.state !== "FAILED") return null;
+    const { verdict, reason, trail } = paymentOutcome(intent.state, intent.reason);
+    const subject = { ref: intent.id, payeeId: intent.payeeId, address: intent.address, amountBaseUnits: intent.amountBaseUnits.toString() };
+    return this.#receipt(verdict, reason, subject, trail, intent.payeeBlobId ? [intent.payeeBlobId] : [], intent.digest, `rcpt_${intent.id.replace(/^pay_/, "")}`, intent.updatedAt);
+  }
+
+  restore(): Promise<RestoreResult> {
+    return restoreIndex(this.#d);
   }
 
   async #requestChange(message: InboundMessage, proposal: Extract<Proposal, { kind: "change_address" }>): Promise<Outcome> {
+    const trail = new CheckTrail();
     const toAddress = parseSuiAddress(proposal.newAddress);
-    if (!toAddress || !appearsVerbatim(toAddress, message.text)) return this.#refuse("ADDRESS_NOT_IN_MESSAGE", message.id, proposal.payeeId, null);
+    const subject = { ref: message.id, payeeId: proposal.payeeId, address: toAddress };
+    if (!toAddress || !appearsVerbatim(toAddress, message.text)) return this.#refuse("REFUSED", "ADDRESS_NOT_IN_MESSAGE", { ...subject, address: null }, trail, "ADDRESS_IN_MESSAGE");
+    trail.pass("ADDRESS_IN_MESSAGE");
     const versions = this.#d.index.payeeVersions(proposal.payeeId);
     const head = headOf(versions);
-    if (head.kind === "none") return this.#refuse("PAYEE_NOT_VERIFIED", message.id, proposal.payeeId, toAddress);
-    if (head.kind === "conflict") return this.#refuse("CONFLICT", message.id, proposal.payeeId, toAddress);
+    if (head.kind === "none") return this.#refuse("REFUSED", "PAYEE_NOT_VERIFIED", subject, trail, "PAYEE_VERIFIED");
+    if (head.kind === "conflict") return this.#refuse("REFUSED", "CONFLICT", subject, trail, "PAYEE_VERIFIED");
+    trail.pass("PAYEE_VERIFIED");
     if (toAddress === head.version.address) return { verdict: "NONE" };
     const earlier = this.#d.index.earlierRefusalFor(toAddress);
-    if (earlier) return this.#refuse("KNOWN_ATTACK_PATTERN", message.id, proposal.payeeId, toAddress, earlier.receipt);
-    if (imitatesAny(toAddress, this.#d.index.verifiedAddresses())) return this.#refuse("LOOKALIKE_ADDRESS", message.id, proposal.payeeId, toAddress);
+    if (earlier) return this.#refuse("REFUSED", "KNOWN_ATTACK_PATTERN", subject, trail, "NOT_KNOWN_ATTACK", earlier.receipt);
+    trail.pass("NOT_KNOWN_ATTACK");
+    if (imitatesAny(toAddress, this.#d.index.verifiedAddresses())) return this.#refuse("REFUSED", "LOOKALIKE_ADDRESS", subject, trail, "NOT_LOOKALIKE");
+    trail.pass("NOT_LOOKALIKE");
 
     const nonce = this.#d.nonces.next();
     const expires = new Date(this.#d.clock.now().getTime() + CHANGE_REQUEST_LIFETIME_MS).toISOString();
@@ -131,47 +125,43 @@ export class Countersign {
   }
 
   async #reservePayment(message: InboundMessage, proposal: Extract<Proposal, { kind: "pay" }>): Promise<Outcome> {
+    const trail = new CheckTrail();
+    const subject = { ref: message.id, payeeId: proposal.payeeId, address: null, amountBaseUnits: proposal.amountBaseUnits };
     const read = await this.#d.memory.readAll(payeeNamespace(this.#d.ownerId, proposal.payeeId));
-    if (!read.complete) return this.#refuse("MEMORY_INCOMPLETE", message.id, proposal.payeeId, null);
-    const versions = this.#versionsFrom(read.texts, proposal.payeeId);
-    if (versions.length === 0) return this.#refuse("UNKNOWN_PAYEE", message.id, proposal.payeeId, null);
-    const head = headOf(versions);
-    if (head.kind === "none") return this.#refuse("PAYEE_NOT_VERIFIED", message.id, proposal.payeeId, null);
-    if (head.kind === "conflict") return this.#refuse("CONFLICT", message.id, proposal.payeeId, null);
-    if (!/^[1-9]\d*$/.test(proposal.amountBaseUnits)) return this.#refuse("AMOUNT_INVALID", message.id, proposal.payeeId, null);
+    if (!read.complete) return this.#refuse("REFUSED", "MEMORY_INCOMPLETE", subject, trail, "MEMORY_COMPLETE");
+    trail.pass("MEMORY_COMPLETE");
+    const stored = versionsFrom(this.#d.signer, read.records, proposal.payeeId);
+    if (stored.length === 0) return this.#refuse("REFUSED", "UNKNOWN_PAYEE", subject, trail, "PAYEE_VERIFIED");
+    const head = headOf(stored.map((s) => s.record));
+    if (head.kind === "none") return this.#refuse("REFUSED", "PAYEE_NOT_VERIFIED", subject, trail, "PAYEE_VERIFIED");
+    if (head.kind === "conflict") return this.#refuse("REFUSED", "CONFLICT", subject, trail, "PAYEE_VERIFIED");
+    trail.pass("PAYEE_VERIFIED");
+    const payee = { ...subject, address: head.version.address };
+    if (!/^[1-9]\d*$/.test(proposal.amountBaseUnits)) return this.#refuse("REFUSED", "AMOUNT_INVALID", payee, trail, "AMOUNT_VALID");
+    trail.pass("AMOUNT_VALID");
     const amount = BigInt(proposal.amountBaseUnits);
-    if (amount > this.#d.caps.perPaymentBaseUnits) return this.#refuse("CAP_EXCEEDED", message.id, proposal.payeeId, null);
+    if (amount > this.#d.caps.perPaymentBaseUnits) return this.#refuse("REFUSED", "CAP_EXCEEDED", payee, trail, "WITHIN_CAPS");
     const now = this.#d.clock.now().toISOString();
-    const intent = { id: `pay_${this.#d.nonces.next()}`, payeeId: proposal.payeeId, payeeVersion: head.version.version, address: head.version.address, amountBaseUnits: amount, period: now.slice(0, 10), createdAt: now };
-    if (!this.#d.payments.reservePayment(intent, this.#d.caps.perDayBaseUnits)) return this.#refuse("CAP_EXCEEDED", message.id, proposal.payeeId, null);
+    const payeeBlobId = stored.find((s) => s.record.version === head.version.version)?.blobId ?? null;
+    const intent = { id: `pay_${this.#d.nonces.next()}`, payeeId: proposal.payeeId, payeeVersion: head.version.version, payeeBlobId, address: head.version.address, amountBaseUnits: amount, period: now.slice(0, 10), createdAt: now };
+    if (!this.#d.payments.reservePayment(intent, this.#d.caps.perDayBaseUnits)) return this.#refuse("REFUSED", "CAP_EXCEEDED", payee, trail, "WITHIN_CAPS");
     return { verdict: "PAY_RESERVED", paymentId: intent.id, address: intent.address, amountBaseUnits: amount };
   }
 
-  async #checkContinuity(proof: ContinuityProof, message: string, fromAddress: SuiAddress): Promise<ReasonCode | null> {
-    if (proof.kind === "owner_confirmed") {
-      const readyAt = new Date(proof.confirmedAt).getTime() + this.#d.cooldownMs;
-      return Number.isFinite(readyAt) && readyAt <= this.#d.clock.now().getTime() ? null : "COOLDOWN_ACTIVE";
-    }
-    const result = await this.#d.signatures.verifyPersonalMessage(message, proof.signature, fromAddress);
-    return result === "VALID" ? null : result === "UNKNOWN" ? "CHAIN_UNKNOWN" : "NO_CONTINUITY";
+  async #refuse(verdict: "REFUSED" | "CHANGE_REJECTED", reason: ReasonCode, subject: Subject, trail: CheckTrail, failed: Parameters<CheckTrail["fail"]>[0] | null = null, cites: string | null = null): Promise<Refused> {
+    if (failed) trail.fail(failed);
+    const written = await this.#receipt(verdict, reason, subject, trail, [], null);
+    return { verdict: "REFUSED", reason, receipt: written.receipt, cites };
   }
 
-  async #checkControl(proof: ControlProof, message: string, toAddress: SuiAddress): Promise<ReasonCode | null> {
-    if (proof.kind === "round_trip") {
-      const result = await this.#d.roundTrips.check(proof, toAddress);
-      return result === "PROVEN" ? null : result === "UNKNOWN" ? "CHAIN_UNKNOWN" : "CONTROL_NOT_PROVEN";
-    }
-    const result = await this.#d.signatures.verifyPersonalMessage(message, proof.signature, toAddress);
-    return result === "VALID" ? null : result === "UNKNOWN" ? "CHAIN_UNKNOWN" : "CONTROL_NOT_PROVEN";
-  }
-
-  async #refuse(reason: ReasonCode, ref: string, payeeId: string | null, address: SuiAddress | null, cites: string | null = null): Promise<Refused> {
-    const receipt = `rcpt_${this.#d.nonces.next()}`;
-    const remembersAddress = !REASONS[reason].retryable && reason !== "KNOWN_ATTACK_PATTERN";
-    const record: MemoryRecord = { type: "refusal", receipt, reason, ref, payeeId, address: remembersAddress ? address : null, createdAt: this.#d.clock.now().toISOString() };
-    await this.#write(refusalsNamespace(this.#d.ownerId), record, `refusal:${receipt}`);
-    this.#index(record);
-    return { verdict: "REFUSED", reason, receipt, cites };
+  async #receipt(verdict: ReceiptVerdict, reason: ReasonCode | null, subject: Subject, trail: CheckTrail, memoryBlobIds: readonly string[], suiDigest: string | null, id: string = `rcpt_${this.#d.nonces.next()}`, at: string = this.#d.clock.now().toISOString()): Promise<ReceiptWrite> {
+    const record: ReceiptRecord = {
+      type: "receipt", receipt: id, verdict, reason, ref: subject.ref, payeeId: subject.payeeId, address: subject.address, amountBaseUnits: subject.amountBaseUnits ?? null,
+      checks: trail.checks, memoryBlobIds, suiDigest, network: this.#d.network, createdAt: at,
+    };
+    const written = await this.#write(receiptsNamespace(this.#d.ownerId), record, `receipt:${id}`);
+    indexRecord(this.#d.index, record);
+    return { receipt: id, blobId: written.status === "WRITTEN" ? written.blobId : null };
   }
 
   #payeeVersion(payeeId: string, version: number, address: SuiAddress, status: PayeeVersionRecord["status"], supersedes: number | null, evidence: Evidence): PayeeVersionRecord {
@@ -180,24 +170,5 @@ export class Countersign {
 
   async #write(namespace: string, record: MemoryRecord, idempotencyKey: string) {
     return this.#d.memory.remember(namespace, sealRecord(this.#d.signer, record), idempotencyKey);
-  }
-
-  #index(record: MemoryRecord): void {
-    if (record.type === "payee_version") this.#d.index.putPayeeVersion(record);
-    else this.#d.index.putRefusal(record);
-  }
-
-  #versionsFrom(texts: readonly string[], payeeId: string): PayeeVersionRecord[] {
-    const versions: PayeeVersionRecord[] = [];
-    for (const text of texts) {
-      const opened = openRecord(this.#d.signer, text);
-      if (opened.ok && opened.record.type === "payee_version" && opened.record.payeeId === payeeId) versions.push(opened.record);
-    }
-    return versions;
-  }
-
-  #belongs(record: MemoryRecord, namespace: string, payeeId: string | null): boolean {
-    if (record.type === "payee_version") return payeeId !== null && record.payeeId === payeeId;
-    return namespace === refusalsNamespace(this.#d.ownerId);
   }
 }

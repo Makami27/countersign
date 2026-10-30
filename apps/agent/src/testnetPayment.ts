@@ -37,7 +37,7 @@ const runner = new PaymentRunner({ ledger, chain: tatumPaymentChain(client, sign
 const runId = new Date().toISOString().replace(/[:.]/g, "-");
 const paymentId = `pay_testnet_${randomBytes(6).toString("hex")}`;
 const before = await readAgentBalances(client, "testnet", agentAddress);
-if (!ledger.reservePayment({ id: paymentId, payeeId: "testnet-check", payeeVersion: 1, address: recipient, amountBaseUnits, period: clock.now().toISOString().slice(0, 10), createdAt: clock.now().toISOString() }, MAX_TEST_PAYMENT_BASE_UNITS)) fail("The test reservation was refused.");
+if (!ledger.reservePayment({ id: paymentId, payeeId: "testnet-check", payeeVersion: 1, payeeBlobId: null, address: recipient, amountBaseUnits, period: clock.now().toISOString().slice(0, 10), createdAt: clock.now().toISOString() }, MAX_TEST_PAYMENT_BASE_UNITS)) fail("The test reservation was refused.");
 console.log(`Nothing has been sent yet. Sending ${formatUsdc(amountBaseUnits)} test USDC to ${recipient} on Sui testnet through Tatum…`);
 const started = Date.now();
 const final = await runner.send(paymentId);

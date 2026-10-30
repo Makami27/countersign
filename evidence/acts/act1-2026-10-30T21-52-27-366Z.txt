@@ -1,0 +1,7 @@
+2026-10-30T21:52:27.524Z  Act 1 (testnet demo). Money: Sui testnet, test USDC. Memory: Walrus Memory mainnet relayer, demo owner "makami-testnet" (not counted as real use).
+2026-10-30T21:52:27.525Z  Rebuilding the payee book from Walrus Memory…
+2026-10-30T21:52:32.525Z  Restored 1 payee namespace(s); 0 record(s) ignored.
+2026-10-30T21:52:32.525Z  Payee "rent" is already verified at 0x68f21c9f3d876c7115d8bea271a6fdb53a139f97cae8bfc5bca45b88262b023b (version 1).
+2026-10-30T21:52:32.526Z  Owner: "pay rent 0.01"
+2026-10-30T21:52:36.058Z  Model (gemini-3.6-flash) answered {"kind":"pay","payeeId":"rent","reasonQuote":"pay rent 0.01"}; after code checks: {"kind":"none"}.
+2026-10-30T21:52:36.059Z  No payment or payee change found in that message. Nothing was changed.

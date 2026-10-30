@@ -1,4 +1,5 @@
 import type { SuiAddress } from "./types.ts";
+import type { ReasonCode } from "./vocabulary.ts";
 
 export const PAYMENT_STATES = ["RESERVED", "SENDING", "SENT", "SETTLED", "FAILED", "UNKNOWN"] as const;
 export type PaymentState = (typeof PAYMENT_STATES)[number];
@@ -24,6 +25,7 @@ export type NewPaymentIntent = {
   readonly id: string;
   readonly payeeId: string;
   readonly payeeVersion: number;
+  readonly payeeBlobId: string | null;
   readonly address: SuiAddress;
   readonly amountBaseUnits: bigint;
   readonly period: string;
@@ -35,6 +37,7 @@ export type PaymentIntent = NewPaymentIntent & {
   readonly digest: string | null;
   readonly validUntilEpoch: string | null;
   readonly detail: string | null;
+  readonly reason: ReasonCode | null;
   readonly updatedAt: string;
 };
 
@@ -42,6 +45,7 @@ export type PaymentMove = {
   readonly to: PaymentState;
   readonly at: string;
   readonly detail: string | null;
+  readonly reason?: ReasonCode;
   readonly digest?: string;
   readonly validUntilEpoch?: string | null;
 };
@@ -52,7 +56,8 @@ export type ChainSighting =
   | { readonly kind: "UNKNOWN"; readonly detail: string };
 
 export type Reconciliation =
-  | { readonly kind: "MOVE"; readonly to: "SETTLED" | "FAILED"; readonly detail: string }
+  | { readonly kind: "MOVE"; readonly to: "SETTLED"; readonly detail: string }
+  | { readonly kind: "MOVE"; readonly to: "FAILED"; readonly reason: ReasonCode; readonly detail: string }
   | { readonly kind: "HOLD"; readonly detail: string };
 
 const RECONCILABLE: readonly PaymentState[] = ["SENT", "UNKNOWN"];
@@ -64,14 +69,14 @@ export function reconcilePayment(intent: PaymentIntent, sighting: ChainSighting)
   if (!RECONCILABLE.includes(intent.state) || intent.digest === null) return { kind: "HOLD", detail: `A ${intent.state} payment is not reconciled by digest.` };
   if (sighting.kind === "UNKNOWN") return { kind: "HOLD", detail: `The chain gave no definite answer: ${sighting.detail}` };
   if (sighting.kind === "FOUND") {
-    if (!sighting.success) return { kind: "MOVE", to: "FAILED", detail: "The transaction executed and failed on chain, so no USDC moved." };
+    if (!sighting.success) return { kind: "MOVE", to: "FAILED", reason: "PAYMENT_FAILED_ON_CHAIN", detail: "The transaction executed and failed on chain, so no USDC moved." };
     return sighting.creditedPayee
       ? { kind: "MOVE", to: "SETTLED", detail: "The transaction executed and credited the payee the exact amount." }
       : { kind: "HOLD", detail: "The transaction executed but the payee credit was not seen. The owner must check it." };
   }
   if (intent.state === "SENT") return { kind: "HOLD", detail: "The gateway reported this payment as sent but it can't be found yet." };
   if (intent.validUntilEpoch !== null && sighting.currentEpoch > BigInt(intent.validUntilEpoch)) {
-    return { kind: "MOVE", to: "FAILED", detail: `Not on chain, and it could only execute until epoch ${intent.validUntilEpoch}; it can never execute now.` };
+    return { kind: "MOVE", to: "FAILED", reason: "PAYMENT_EXPIRED", detail: `Not on chain, and it could only execute until epoch ${intent.validUntilEpoch}; it can never execute now.` };
   }
   return { kind: "HOLD", detail: "Not on chain yet and it could still execute, so it stays UNKNOWN and is never resent." };
 }

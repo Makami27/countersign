@@ -1,0 +1,6 @@
+2026-10-30T21:50:13.325Z  Act 1 (testnet demo). Money: Sui testnet, test USDC. Memory: Walrus Memory mainnet relayer, demo owner "makami-testnet" (not counted as real use).
+2026-10-30T21:50:13.327Z  Rebuilding the payee book from Walrus Memory…
+2026-10-30T21:50:15.198Z  Restored 0 payee namespace(s); 0 record(s) ignored.
+2026-10-30T21:50:15.199Z  Adding payee "rent" at 0x68f21c9f3d876c7115d8bea271a6fdb53a139f97cae8bfc5bca45b88262b023b. Nothing has been paid. Writing the payee record and its receipt to Walrus Memory (about 40 seconds)…
+2026-10-30T21:50:58.059Z  Payee "rent" verified (version 1, blob XGH0PQhNJC1fagbUQDJlAb4j9PRfljHl5iotrOPRGQk, receipt rcpt_49c3243465d32c8adfcb9c975c8fe046).
+2026-10-30T21:50:58.060Z  Owner: "pay rent 0.01"

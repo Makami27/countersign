@@ -64,7 +64,7 @@ test("V18 D9 agent-signed records written to Walrus Memory come back complete th
   const evidence = {
     runId, relayer: writer.environment, namespace, classification: "live test data, signed by a throwaway test key, excluded from real-use counts",
     writes, listedCount, listedBlobIds, recalledBlobIds: recalled.blobIds, droppedCount: recalled.droppedCount,
-    readAll: read.complete ? { complete: true, records: read.texts.length } : read,
+    readAll: read.complete ? { complete: true, records: read.records.length } : read,
     retry: { sameKey: firstWrite.key, result: retried, countAfterRetry }, countedAsRealUse: isRealUseNamespace(realUseOwner, namespace),
   };
   mkdirSync("evidence/live", { recursive: true });
@@ -72,8 +72,9 @@ test("V18 D9 agent-signed records written to Walrus Memory come back complete th
 
   assert.equal(read.complete, true);
   if (!read.complete) return;
-  assert.equal(read.texts.length, RECORDS);
-  assert.ok(read.texts.every((text) => openRecord(signer, text).ok));
+  assert.equal(read.records.length, RECORDS);
+  assert.ok(read.records.every(({ text }) => openRecord(signer, text).ok));
+  assert.deepEqual(new Set(read.records.map((r) => r.blobId)), new Set(writes.map((w) => w.blobId)));
   assert.equal(listedCount, RECORDS);
   assert.deepEqual(new Set(listedBlobIds), new Set(writes.map((w) => w.blobId)));
   assert.deepEqual(new Set(recalled.blobIds), new Set(writes.map((w) => w.blobId)));

@@ -15,10 +15,10 @@ function answer(json: unknown) {
   return { candidates: [{ content: { parts: [{ text: JSON.stringify(json) }] } }], modelVersion: "test-model-001" };
 }
 
-test("X04 a model outage, rate limit or empty answer is UNKNOWN, never read as 'no proposal'", async () => {
+test("X04 a model outage, rate limit or empty answer is UNKNOWN after bounded retries, never read as 'no proposal'", async () => {
   for (const [status, body, problem] of [[503, { error: "high demand" }, "UNAVAILABLE"], [429, { error: "quota" }, "RATE_LIMITED"], [200, { candidates: [] }, "NO_ANSWER"]] as const) {
     const { server, config } = await fakeModel(status, body);
-    const result = await extractProposal(config, "pay rent 0.10", ["rent"]);
+    const result = await extractProposal(config, "pay rent 0.10", ["rent"], async () => undefined);
     server.close();
     assert.deepEqual(result, { status: "UNKNOWN", problem });
   }
@@ -30,12 +30,12 @@ test("X05 a readable answer is checked by code and reports the model version tha
   const { server, config } = await fakeModel(200, answer({ kind: "pay", payeeId: "rent", amountText: "0.10", reasonQuote: "pay rent 0.10" }));
   const result = await extractProposal(config, "pay rent 0.10", ["rent"]);
   server.close();
-  assert.deepEqual(result, { status: "READ", proposal: { kind: "pay", payeeId: "rent", amountBaseUnits: "100000", reasonQuote: "pay rent 0.10" }, modelVersion: "test-model-001" });
+  assert.deepEqual(result, { status: "READ", proposal: { kind: "pay", payeeId: "rent", amountBaseUnits: "100000", reasonQuote: "pay rent 0.10" }, modelVersion: "test-model-001", modelText: JSON.stringify({ kind: "pay", payeeId: "rent", amountText: "0.10", reasonQuote: "pay rent 0.10" }) });
 });
 
 test("X06 malformed model text is refused as no proposal, not repaired", async () => {
   const { server, config } = await fakeModel(200, { candidates: [{ content: { parts: [{ text: "{kind: pay, amount: 0.10" }] } }] });
   const result = await extractProposal(config, "pay rent 0.10", ["rent"]);
   server.close();
-  assert.deepEqual(result, { status: "READ", proposal: { kind: "none" }, modelVersion: null });
+  assert.deepEqual(result, { status: "READ", proposal: { kind: "none" }, modelVersion: null, modelText: "{kind: pay, amount: 0.10" });
 });

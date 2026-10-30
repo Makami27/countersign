@@ -1,4 +1,11 @@
-import { REASONS, formatUsdc, type Outcome, type PaymentIntent, type SuiAddress } from "@countersign/core";
+import { REASONS, formatUsdc, type Outcome, type PaymentIntent, type ReceiptWrite, type SuiAddress } from "@countersign/core";
+
+export const RECEIPT_PENDING_REPLY = "Writing the receipt to Walrus Memory. This takes about 20 seconds; the payment outcome above is already final.";
+
+export function receiptReply(written: ReceiptWrite | null): string {
+  if (!written) return "No receipt was written because the payment has no final outcome yet.";
+  return written.blobId ? `Receipt ${written.receipt} is stored on Walrus Memory (blob ${written.blobId}).` : `Receipt ${written.receipt} is saved here, but Walrus Memory has not confirmed it yet. The payment outcome above does not change.`;
+}
 
 type Network = "mainnet" | "testnet";
 

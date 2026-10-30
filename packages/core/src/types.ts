@@ -1,10 +1,10 @@
-import type { PayeeStatus, ReasonCode } from "./vocabulary.ts";
+import type { CheckCode, PayeeStatus, ReasonCode } from "./vocabulary.ts";
 
 export type SuiAddress = string & { readonly __brand: "SuiAddress" };
 
 export type InboundMessage = {
   readonly id: string;
-  readonly channel: "telegram" | "web" | "lab";
+  readonly channel: "telegram" | "web" | "lab" | "cli";
   readonly from: string;
   readonly text: string;
   readonly receivedAt: string;
@@ -23,10 +23,18 @@ export type ContinuityProof =
   | { readonly kind: "signature"; readonly signature: string }
   | { readonly kind: "owner_confirmed"; readonly ownerConfirmationId: string; readonly confirmedAt: string };
 
+export type SignatureVerification = {
+  readonly role: "continuity" | "control";
+  readonly signer: SuiAddress;
+  readonly scheme: "ED25519" | "ZKLOGIN";
+  readonly maxEpoch: string | null;
+  readonly checkedAtEpoch: string;
+};
+
 export type Evidence =
   | { readonly kind: "owner_onboarding"; readonly ownerConfirmationId: string }
-  | { readonly kind: "continuity_signature"; readonly nonce: string; readonly signature: string; readonly control: ControlProof }
-  | { readonly kind: "owner_confirmed_change"; readonly nonce: string; readonly ownerConfirmationId: string; readonly control: ControlProof }
+  | { readonly kind: "continuity_signature"; readonly nonce: string; readonly signature: string; readonly control: ControlProof; readonly verifications: readonly SignatureVerification[] }
+  | { readonly kind: "owner_confirmed_change"; readonly nonce: string; readonly ownerConfirmationId: string; readonly control: ControlProof; readonly verifications: readonly SignatureVerification[] }
   | { readonly kind: "stated"; readonly sourceMessageId: string; readonly nonce: string };
 
 export type PayeeVersionRecord = {
@@ -40,23 +48,34 @@ export type PayeeVersionRecord = {
   readonly createdAt: string;
 };
 
-export type RefusalRecord = {
-  readonly type: "refusal";
+export type ReceiptCheck = { readonly check: CheckCode; readonly result: "PASS" | "FAIL" };
+
+export type ReceiptVerdict = "PAID" | "PAYMENT_FAILED" | "REFUSED" | "CHANGE_VERIFIED" | "CHANGE_REJECTED";
+
+export type ReceiptRecord = {
+  readonly type: "receipt";
   readonly receipt: string;
-  readonly reason: ReasonCode;
+  readonly verdict: ReceiptVerdict;
+  readonly reason: ReasonCode | null;
   readonly ref: string;
   readonly payeeId: string | null;
   readonly address: SuiAddress | null;
+  readonly amountBaseUnits: string | null;
+  readonly checks: readonly ReceiptCheck[];
+  readonly memoryBlobIds: readonly string[];
+  readonly suiDigest: string | null;
+  readonly network: "mainnet" | "testnet";
   readonly createdAt: string;
 };
 
-export type MemoryRecord = PayeeVersionRecord | RefusalRecord;
+
+export type MemoryRecord = PayeeVersionRecord | ReceiptRecord;
 
 export type Envelope = { readonly record: MemoryRecord; readonly sig: string };
 
 export type Refused = { readonly verdict: "REFUSED"; readonly reason: ReasonCode; readonly receipt: string; readonly cites: string | null };
 export type ChangeStarted = { readonly verdict: "CHANGE_STARTED"; readonly nonce: string; readonly expires: string; readonly fromAddress: SuiAddress; readonly toAddress: SuiAddress };
-export type ChangeVerified = { readonly verdict: "CHANGE_VERIFIED"; readonly version: number; readonly blobId: string };
+export type ChangeVerified = { readonly verdict: "CHANGE_VERIFIED"; readonly version: number; readonly blobId: string; readonly receipt: string };
 export type PayReserved = { readonly verdict: "PAY_RESERVED"; readonly paymentId: string; readonly address: SuiAddress; readonly amountBaseUnits: bigint };
 export type Nothing = { readonly verdict: "NONE" };
 

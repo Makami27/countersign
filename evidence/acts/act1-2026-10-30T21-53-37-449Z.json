@@ -1,0 +1,77 @@
+{
+  "runId": "2026-10-30T21-53-37-449Z",
+  "act": 1,
+  "classification": "testnet demo: test USDC from our own agent wallet to the owner's demo wallet; memory on the Walrus Memory mainnet relayer under a demo owner excluded from real-use counts",
+  "network": "testnet",
+  "relayer": "mainnet relayer",
+  "ownerId": "makami-testnet",
+  "text": "pay rent 0.01",
+  "modelVersion": "gemini-3.6-flash",
+  "modelText": "{\"kind\":\"pay\",\"payeeId\":\"rent\",\"amountText\":\"0.01\",\"newAddress\":\"\",\"reasonQuote\":\"pay rent 0.01\"}",
+  "proposal": {
+    "kind": "pay",
+    "payeeId": "rent",
+    "amountBaseUnits": "10000",
+    "reasonQuote": "pay rent 0.01"
+  },
+  "payment": {
+    "id": "pay_4419f84383b64f6d4b30b2564e77d4e0",
+    "payeeId": "rent",
+    "payeeVersion": 1,
+    "payeeBlobId": "XGH0PQhNJC1fagbUQDJlAb4j9PRfljHl5iotrOPRGQk",
+    "address": "0x68f21c9f3d876c7115d8bea271a6fdb53a139f97cae8bfc5bca45b88262b023b",
+    "amountBaseUnits": "10000",
+    "period": "2026-10-30",
+    "createdAt": "2026-10-30T21:53:48.587Z",
+    "state": "SETTLED",
+    "digest": "CmiPkm81QmuiruyCNbVF27mPwLUy6JdGWUAfWt5CgdWN",
+    "validUntilEpoch": "1270",
+    "detail": "The transaction executed and credited the payee the exact amount.",
+    "reason": null,
+    "updatedAt": "2026-10-30T21:53:52.546Z"
+  },
+  "receipt": {
+    "receipt": "rcpt_4419f84383b64f6d4b30b2564e77d4e0",
+    "blobId": "jaw9jaAQY7dCF3WRdvNJb64AxEy0P9313YNpaaXCdFw"
+  },
+  "receiptRecord": {
+    "type": "receipt",
+    "receipt": "rcpt_4419f84383b64f6d4b30b2564e77d4e0",
+    "verdict": "PAID",
+    "reason": null,
+    "ref": "pay_4419f84383b64f6d4b30b2564e77d4e0",
+    "payeeId": "rent",
+    "address": "0x68f21c9f3d876c7115d8bea271a6fdb53a139f97cae8bfc5bca45b88262b023b",
+    "amountBaseUnits": "10000",
+    "checks": [
+      {
+        "check": "MEMORY_COMPLETE",
+        "result": "PASS"
+      },
+      {
+        "check": "PAYEE_VERIFIED",
+        "result": "PASS"
+      },
+      {
+        "check": "AMOUNT_VALID",
+        "result": "PASS"
+      },
+      {
+        "check": "WITHIN_CAPS",
+        "result": "PASS"
+      },
+      {
+        "check": "SETTLED_ON_CHAIN",
+        "result": "PASS"
+      }
+    ],
+    "memoryBlobIds": [
+      "XGH0PQhNJC1fagbUQDJlAb4j9PRfljHl5iotrOPRGQk"
+    ],
+    "suiDigest": "CmiPkm81QmuiruyCNbVF27mPwLUy6JdGWUAfWt5CgdWN",
+    "network": "testnet",
+    "createdAt": "2026-10-30T21:53:52.546Z"
+  },
+  "reasons": null,
+  "transcript": "evidence/acts/act1-2026-10-30T21-53-37-449Z.txt"
+}

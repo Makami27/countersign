@@ -66,5 +66,5 @@ test("C08 the Tatum signature verifier reports UNKNOWN, never INVALID, when the 
   const { signature } = await keypair.signPersonalMessage(new TextEncoder().encode(message));
   const unreachable = tatumGrpcClient("testnet", "test-key", OPEN_GATE, "127.0.0.1:1");
   const verifier = new TatumSignatureVerifier(unreachable);
-  assert.equal(await verifier.verifyPersonalMessage(message, signature, keypair.toSuiAddress() as SuiAddress), "UNKNOWN");
+  assert.deepEqual(await verifier.verifyPersonalMessage(message, signature, keypair.toSuiAddress() as SuiAddress), { result: "UNKNOWN" });
 });

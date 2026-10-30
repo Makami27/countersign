@@ -1,0 +1,11 @@
+2026-10-30T21:53:37.591Z  Act 1 (testnet demo). Money: Sui testnet, test USDC. Memory: Walrus Memory mainnet relayer, demo owner "makami-testnet" (not counted as real use).
+2026-10-30T21:53:37.592Z  Rebuilding the payee book from Walrus Memory…
+2026-10-30T21:53:42.467Z  Restored 1 payee namespace(s); 0 record(s) ignored.
+2026-10-30T21:53:42.468Z  Payee "rent" is already verified at 0x68f21c9f3d876c7115d8bea271a6fdb53a139f97cae8bfc5bca45b88262b023b (version 1).
+2026-10-30T21:53:42.468Z  Owner: "pay rent 0.01"
+2026-10-30T21:53:46.307Z  Model (gemini-3.6-flash) answered {"kind":"pay","payeeId":"rent","amountText":"0.01","newAddress":"","reasonQuote":"pay rent 0.01"}; after code checks: {"kind":"pay","payeeId":"rent","amountBaseUnits":"10000","reasonQuote":"pay rent 0.01"}.
+2026-10-30T21:53:48.590Z  Nothing has been sent yet. Sending 0.01 USDC to 0x68f21c9f3d876c7115d8bea271a6fdb53a139f97cae8bfc5bca45b88262b023b on Sui testnet (test USDC, no real money); this takes a few seconds.
+2026-10-30T21:53:52.548Z  Sent 0.01 USDC to 0x68f21c9f3d876c7115d8bea271a6fdb53a139f97cae8bfc5bca45b88262b023b on Sui testnet (test USDC, no real money). Transaction CmiPkm81QmuiruyCNbVF27mPwLUy6JdGWUAfWt5CgdWN.
+2026-10-30T21:53:52.548Z  Writing the receipt to Walrus Memory. This takes about 20 seconds; the payment outcome above is already final.
+2026-10-30T21:54:14.813Z  Receipt rcpt_4419f84383b64f6d4b30b2564e77d4e0 is stored on Walrus Memory (blob jaw9jaAQY7dCF3WRdvNJb64AxEy0P9313YNpaaXCdFw).
+2026-10-30T21:54:14.815Z  Evidence: evidence/acts/act1-2026-10-30T21-53-37-449Z.json

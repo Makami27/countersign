@@ -18,7 +18,8 @@
     "spikes": "pnpm --filter @countersign/spikes spikes",
     "agent": "node --env-file=.env apps/agent/src/main.ts",
     "web": "node --env-file=.env apps/web/src/main.ts",
-    "testnet:pay": "node --env-file=.env apps/agent/src/testnetPayment.ts"
+    "testnet:pay": "node --env-file=.env apps/agent/src/testnetPayment.ts",
+    "act1": "node --env-file=.env apps/agent/src/act1.ts"
   },
   "devDependencies": {
     "@types/node": "26.6.5",

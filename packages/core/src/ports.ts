@@ -1,4 +1,4 @@
-import type { PayeeVersionRecord, RefusalRecord, SuiAddress } from "./types.ts";
+import type { PayeeVersionRecord, ReceiptRecord, SignatureVerification, SuiAddress } from "./types.ts";
 import type { SignatureResult } from "./vocabulary.ts";
 import type { NewPaymentIntent, PaymentIntent, PaymentMove } from "./payments.ts";
 
@@ -9,15 +9,21 @@ export interface RecordSigner {
 
 export type MemoryWrite = { readonly status: "WRITTEN"; readonly blobId: string } | { readonly status: "UNKNOWN" };
 
-export type MemoryRead = { readonly complete: true; readonly texts: readonly string[] } | { readonly complete: false; readonly why: "DROPPED" | "COUNT_MISMATCH" | "UNREACHABLE" };
+export type StoredText = { readonly text: string; readonly blobId: string };
+
+export type MemoryRead = { readonly complete: true; readonly records: readonly StoredText[] } | { readonly complete: false; readonly why: "DROPPED" | "COUNT_MISMATCH" | "UNREACHABLE" };
 
 export interface MemoryPort {
   remember(namespace: string, text: string, idempotencyKey: string): Promise<MemoryWrite>;
   readAll(namespace: string): Promise<MemoryRead>;
 }
 
+export type SignatureCheck =
+  | { readonly result: "VALID"; readonly scheme: SignatureVerification["scheme"]; readonly maxEpoch: string | null; readonly checkedAtEpoch: string }
+  | { readonly result: Exclude<SignatureResult, "VALID"> };
+
 export interface SignatureVerifier {
-  verifyPersonalMessage(message: string, signature: string, address: SuiAddress): Promise<SignatureResult>;
+  verifyPersonalMessage(message: string, signature: string, address: SuiAddress): Promise<SignatureCheck>;
 }
 
 export type PendingChange = {
@@ -33,8 +39,9 @@ export interface IndexStore {
   payeeVersions(payeeId: string): readonly PayeeVersionRecord[];
   payeeIds(): readonly string[];
   verifiedAddresses(): readonly SuiAddress[];
-  putRefusal(record: RefusalRecord): void;
-  earlierRefusalFor(address: SuiAddress): RefusalRecord | null;
+  putReceipt(record: ReceiptRecord): void;
+  receipt(id: string): ReceiptRecord | null;
+  earlierRefusalFor(address: SuiAddress): ReceiptRecord | null;
   insertPendingChange(change: PendingChange): void;
   pendingChange(nonce: string): PendingChange | null;
   consumePendingChange(nonce: string): boolean;

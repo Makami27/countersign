@@ -17,8 +17,8 @@ export function payeeNamespace(ownerId: string, payeeId: string): string {
   return `countersign:${ownerId}:payee:${payeeId}`;
 }
 
-export function refusalsNamespace(ownerId: string): string {
-  return `countersign:${ownerId}:refusals`;
+export function receiptsNamespace(ownerId: string): string {
+  return `countersign:${ownerId}:receipts`;
 }
 
 export function payeeIdFromNamespace(ownerId: string, namespace: string): string | null {

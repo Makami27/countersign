@@ -28,7 +28,7 @@ class FakeChain implements PaymentChain {
 function setup(amount = 100_000n) {
   const ledger = new InMemoryPaymentLedger();
   const chain = new FakeChain();
-  const intent: NewPaymentIntent = { id: "pay_1", payeeId: "rent", payeeVersion: 1, address: PAYEE, amountBaseUnits: amount, period: "2026-10-30", createdAt: "2026-10-30T10:00:00Z" };
+  const intent: NewPaymentIntent = { id: "pay_1", payeeId: "rent", payeeVersion: 1, payeeBlobId: null, address: PAYEE, amountBaseUnits: amount, period: "2026-10-30", createdAt: "2026-10-30T10:00:00Z" };
   assert.ok(ledger.reservePayment(intent, 1_000_000n));
   return { ledger, chain, runner: new PaymentRunner({ ledger, chain, clock, sleep: noWait }) };
 }

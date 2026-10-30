@@ -1,12 +1,15 @@
 import { DatabaseSync } from "node:sqlite";
-import type { IndexStore, PayeeVersionRecord, PendingChange, RefusalRecord, SuiAddress } from "@countersign/core";
+import { remembersAttack, type IndexStore, type PayeeVersionRecord, type PendingChange, type ReceiptRecord, type SuiAddress } from "@countersign/core";
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS payee_versions (
   payee_id TEXT NOT NULL, version INTEGER NOT NULL, address TEXT NOT NULL,
   status TEXT NOT NULL CHECK (status IN ('VERIFIED','STATED','REVOKED')),
   record TEXT NOT NULL, PRIMARY KEY (payee_id, version));
-CREATE TABLE IF NOT EXISTS refusals (receipt TEXT PRIMARY KEY, address TEXT, record TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS receipts (
+  receipt TEXT PRIMARY KEY,
+  verdict TEXT NOT NULL CHECK (verdict IN ('PAID','PAYMENT_FAILED','REFUSED','CHANGE_VERIFIED','CHANGE_REJECTED')),
+  attack_address TEXT, record TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS pending_changes (
   nonce TEXT PRIMARY KEY, payee_id TEXT NOT NULL, from_address TEXT NOT NULL, to_address TEXT NOT NULL,
   expires TEXT NOT NULL, used INTEGER NOT NULL DEFAULT 0 CHECK (used IN (0,1)));
@@ -38,13 +41,18 @@ export class SqliteIndex implements IndexStore {
     return this.#db.prepare("SELECT DISTINCT address FROM payee_versions WHERE status = 'VERIFIED'").all().map((row) => String(row["address"]) as SuiAddress);
   }
 
-  putRefusal(record: RefusalRecord): void {
-    this.#db.prepare("INSERT OR IGNORE INTO refusals VALUES (?,?,?)").run(record.receipt, record.address, JSON.stringify(record));
+  putReceipt(record: ReceiptRecord): void {
+    this.#db.prepare("INSERT OR REPLACE INTO receipts VALUES (?,?,?,?)").run(record.receipt, record.verdict, remembersAttack(record) ? record.address : null, JSON.stringify(record));
   }
 
-  earlierRefusalFor(address: SuiAddress): RefusalRecord | null {
-    const row = this.#db.prepare("SELECT record FROM refusals WHERE address = ? LIMIT 1").get(address);
-    return row ? (JSON.parse(String(row["record"])) as RefusalRecord) : null;
+  receipt(id: string): ReceiptRecord | null {
+    const row = this.#db.prepare("SELECT record FROM receipts WHERE receipt = ?").get(id);
+    return row ? (JSON.parse(String(row["record"])) as ReceiptRecord) : null;
+  }
+
+  earlierRefusalFor(address: SuiAddress): ReceiptRecord | null {
+    const row = this.#db.prepare("SELECT record FROM receipts WHERE attack_address = ? ORDER BY json_extract(record, '$.createdAt') LIMIT 1").get(address);
+    return row ? (JSON.parse(String(row["record"])) as ReceiptRecord) : null;
   }
 
   insertPendingChange(change: PendingChange): void {
@@ -62,6 +70,6 @@ export class SqliteIndex implements IndexStore {
   }
 
   clearIndex(): void {
-    this.#db.exec("DELETE FROM payee_versions; DELETE FROM refusals;");
+    this.#db.exec("DELETE FROM payee_versions; DELETE FROM receipts;");
   }
 }

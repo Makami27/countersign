@@ -1,4 +1,4 @@
-import { INTERRUPTED_WHILE_SENDING, reconcilePayment, type Clock, type PaymentIntent, type PaymentLedger } from "@countersign/core";
+import { INTERRUPTED_WHILE_SENDING, reconcilePayment, type Clock, type PaymentIntent, type PaymentLedger, type ReasonCode } from "@countersign/core";
 import type { PaymentChain } from "../tatum/payments.ts";
 
 export const SETTLE_POLL_DELAYS_MS = [1_000, 2_000, 4_000, 8_000] as const;
@@ -22,14 +22,17 @@ export class PaymentRunner {
     if (intent.state !== "RESERVED") return intent;
     const prepared = await this.#d.chain.prepare(intent.address, intent.amountBaseUnits);
     if (!prepared.ok) {
-      this.#move(paymentId, "FAILED", `Nothing was sent: the transfer could not be built (${prepared.detail}).`);
+      this.#move(paymentId, "FAILED", `Nothing was sent: the transfer could not be built (${prepared.detail}).`, "PAYMENT_NOT_BUILT");
       return this.#require(paymentId);
     }
     const { digest, validUntilEpoch } = prepared.payment;
     if (!this.#d.ledger.movePayment(paymentId, { to: "SENDING", at: this.#now(), detail: null, digest, validUntilEpoch })) return this.#require(paymentId);
     const submitted = await this.#d.chain.submit(prepared.payment);
     if (submitted.state === "SENT") this.#move(paymentId, "SENT", "The gateway executed the transfer.");
-    else this.#move(paymentId, submitted.state, submitted.detail);
+    else if (submitted.state === "FAILED") {
+      this.#move(paymentId, "FAILED", submitted.detail, "PAYMENT_FAILED_ON_CHAIN");
+      return this.#require(paymentId);
+    } else this.#move(paymentId, "UNKNOWN", submitted.detail);
     return this.settleSoon(paymentId);
   }
 
@@ -48,8 +51,9 @@ export class PaymentRunner {
     if (intent.digest === null || (intent.state !== "SENT" && intent.state !== "UNKNOWN")) return intent;
     const sighting = await this.#d.chain.sight(intent.digest, intent.address, intent.amountBaseUnits);
     const decision = reconcilePayment(intent, sighting);
-    if (decision.kind === "MOVE") this.#move(paymentId, decision.to, decision.detail);
-    return this.#require(paymentId);
+    if (decision.kind === "MOVE" && decision.to === "FAILED") this.#move(paymentId, "FAILED", decision.detail, decision.reason);
+    else if (decision.kind === "MOVE") this.#move(paymentId, "SETTLED", decision.detail);
+    return decision.kind === "MOVE" ? this.#require(paymentId) : this.#require(paymentId);
   }
 
   async recoverInterrupted(): Promise<readonly PaymentIntent[]> {
@@ -61,9 +65,10 @@ export class PaymentRunner {
     return results;
   }
 
-  #move(paymentId: string, to: PaymentIntent["state"], detail: string): void {
-    this.#d.ledger.movePayment(paymentId, { to, at: this.#now(), detail });
+  #move(paymentId: string, to: PaymentIntent["state"], detail: string, reason?: ReasonCode): void {
+    this.#d.ledger.movePayment(paymentId, reason === undefined ? { to, at: this.#now(), detail } : { to, at: this.#now(), detail, reason });
   }
+
 
   #require(paymentId: string): PaymentIntent {
     const intent = this.#d.ledger.payment(paymentId);
