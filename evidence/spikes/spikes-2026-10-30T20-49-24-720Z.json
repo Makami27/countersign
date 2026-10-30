@@ -1,0 +1,67 @@
+{
+  "runId": "2026-10-30T20-49-24-720Z",
+  "network": "mainnet",
+  "sdk": "@mysten/sui 2.37.0, memwal 0.1.12",
+  "results": [
+    {
+      "id": "S6",
+      "claim": "Tatum GraphQL serves transactions(filter:{affectedAddress}) with balanceChanges; report retention window",
+      "outcome": "CONFIRMED",
+      "observed": {
+        "outcome": "CONFIRMED",
+        "config": {
+          "status": 200,
+          "body": {
+            "data": {
+              "serviceConfig": {
+                "maxPageSize": 50,
+                "availableRange": {
+                  "first": {
+                    "sequenceNumber": 305685174
+                  },
+                  "last": {
+                    "sequenceNumber": 339900792
+                  }
+                }
+              }
+            }
+          }
+        },
+        "firstAt": "2026-08-01T22:28:34.435Z",
+        "lastAt": "2026-10-30T20:49:25.525Z",
+        "retentionDays": 89.931146875,
+        "history": {
+          "status": 200,
+          "body": {
+            "data": {
+              "transactions": {
+                "nodes": []
+              }
+            }
+          }
+        },
+        "latestWithBalanceChanges": {
+          "status": 200,
+          "body": {
+            "data": {
+              "transactions": {
+                "nodes": [
+                  {
+                    "digest": "He9SGt7BTWyFLwiFv6tPF2GTA53ugitaQvgpQ5A2JWg9",
+                    "effects": {
+                      "status": "SUCCESS",
+                      "balanceChanges": {
+                        "nodes": []
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      "ms": 6085
+    }
+  ]
+}

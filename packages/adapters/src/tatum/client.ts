@@ -11,7 +11,7 @@ export const TATUM_GRPC_HOST: Record<Network, string> = {
 
 export const TATUM_GRAPHQL_URL: Record<Network, string | null> = {
   mainnet: "https://sui-mainnet.gateway.tatum.io/graphql",
-  testnet: null,
+  testnet: "https://sui-testnet.gateway.tatum.io/graphql",
 };
 
 export const GRPC_TIMEOUT_MS = 20_000;

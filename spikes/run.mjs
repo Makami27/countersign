@@ -25,20 +25,27 @@ if (missing.length > 0) {
 }
 const env = Object.fromEntries(REQUIRED.map((name) => [name, process.env[name]]));
 const runPayment = process.argv.includes("--pay");
+const onlyArg = process.argv.find((arg) => arg.startsWith("--only="));
+const onlyIds = onlyArg ? new Set(onlyArg.slice("--only=".length).split(",")) : null;
 const runId = new Date().toISOString().replace(/[:.]/g, "-");
+const FREE_TIER_SPACING_MS = 1_000;
 
 mkdirSync("evidence", { recursive: true });
 const results = [];
 
 function redact(value) {
-  let text = typeof value === "string" ? value : JSON.stringify(value);
+  let text = typeof value === "string" ? value : JSON.stringify(value, (_key, v) => (typeof v === "bigint" ? v.toString() : v));
   for (const secret of [env.TATUM_API_KEY, env.MEMWAL_PRIVATE_KEY, env.WALLET_A_PRIVATE_KEY]) {
     text = text.split(secret).join("[redacted]");
   }
   return text;
 }
 
+const pause = () => new Promise((resolve) => setTimeout(resolve, FREE_TIER_SPACING_MS));
+
 async function spike(id, claim, fn) {
+  if (onlyIds && !onlyIds.has(id)) return;
+  await pause();
   const started = Date.now();
   try {
     const observed = await fn();
@@ -50,6 +57,7 @@ async function spike(id, claim, fn) {
 }
 
 async function graphql(query, variables = {}) {
+  await pause();
   const response = await fetch(GRAPHQL_URL, {
     method: "POST",
     headers: { "content-type": "application/json", "x-api-key": env.TATUM_API_KEY },
@@ -96,25 +104,36 @@ await spike("S6", "Tatum GraphQL serves transactions(filter:{affectedAddress}) w
   const history = await graphql(`query ($a: SuiAddress!) { transactions(last: 5, filter: { affectedAddress: $a }) {
     nodes { digest effects { status timestamp checkpoint { sequenceNumber } balanceChanges { nodes { owner { address } amount coinType { repr } } } } }
   } }`, { a: addressA });
-  const ok = !config.body?.errors && !history.body?.errors;
-  return { outcome: ok ? "CONFIRMED" : "WRONG", config, history };
+  const range = config.body?.data?.serviceConfig?.availableRange;
+  const timestampOf = async (sequenceNumber) => (await graphql(`query ($n: UInt53!) { checkpoint(sequenceNumber: $n) { timestamp } }`, { n: sequenceNumber })).body?.data?.checkpoint?.timestamp ?? null;
+  const firstAt = range ? await timestampOf(range.first.sequenceNumber) : null;
+  const lastAt = range ? await timestampOf(range.last.sequenceNumber) : null;
+  const retentionDays = firstAt && lastAt ? (Date.parse(lastAt) - Date.parse(firstAt)) / 86_400_000 : null;
+  const latestWithBalanceChanges = await graphql(`{ transactions(last: 1) { nodes { digest effects { status balanceChanges { nodes { owner { address } amount coinType { repr } } } } } } }`);
+  const answered = (call) => call.status === 200 && !call.body?.errors && call.body?.data;
+  const ok = [config, history, latestWithBalanceChanges].every(answered) && retentionDays !== null;
+  return { outcome: ok ? "CONFIRMED" : "WRONG", config, firstAt, lastAt, retentionDays, history, latestWithBalanceChanges };
 });
 
 await spike("S10", "Tatum gRPC SignatureVerificationService verifies a Sui PersonalMessage and enforces the address", async () => {
   const text = `Countersign spike ${runId}\npayee:spike\nfrom:${addressA}\nto:${env.WALLET_B_ADDRESS}\nnonce:${createHash("sha256").update(runId).digest("hex").slice(0, 32)}`;
   const message = new TextEncoder().encode(text);
   const { signature } = await walletA.signPersonalMessage(message);
-  const request = (address) => ({
-    message: { name: "PersonalMessage", value: bcs.byteVector().serialize(message).toBytes() },
+  const tampered = new TextEncoder().encode(text.replace("payee:spike", "payee:other"));
+  const request = (address, bytes = message) => ({
+    message: { name: "PersonalMessage", value: bcs.byteVector().serialize(bytes).toBytes() },
     signature: { bcs: { value: fromBase64(signature) }, signature: { oneofKind: undefined } },
     address,
     jwks: [],
   });
   const good = (await grpc.signatureVerificationService.verifySignature(request(addressA))).response;
+  await pause();
   const wrong = (await grpc.signatureVerificationService.verifySignature(request(env.WALLET_B_ADDRESS))).response;
+  await pause();
+  const altered = (await grpc.signatureVerificationService.verifySignature(request(addressA, tampered))).response;
   const local = await verifyPersonalMessageSignature(message, signature, { address: addressA }).then(() => true, () => false);
-  const outcome = good?.isValid === true && wrong?.isValid === false && local ? "CONFIRMED" : "WRONG";
-  return { outcome, good, wrong, localSdkAgrees: local };
+  const outcome = good?.isValid === true && wrong?.isValid === false && altered?.isValid === false && local ? "CONFIRMED" : "WRONG";
+  return { outcome, good, wrong, tamperedMessage: altered, localSdkAgrees: local };
 });
 
 const namespace = `countersign-spike-${runId}`;
