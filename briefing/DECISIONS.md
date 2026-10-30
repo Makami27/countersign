@@ -51,3 +51,9 @@ Decision: `MEMWAL_DEV_PRIVATE_KEY` / `MEMWAL_DEV_ACCOUNT_ID` (owner to add) with
 Rejected: tests on mainnet for good (pollutes the real-use record and burns the hourly budget); mock-only memory tests (S2/S12 showed the real relayer behaves differently from docs in latency).
 Consequence: the S12 completeness check at ~100 records runs on the dev account once it exists.
 Where: `packages/adapters/src/memwal/*`, `.env.example`, live test suite
+
+## D10: Extraction model and who converts amounts
+Context: G1–G3 in REALITY_SPIKES. The model put a decimal into a base-units field; a pinned model name was answered by a newer version; newer Flash models returned 503 on the free tier.
+Decision: `GEMINI_MODEL=gemini-3.5-flash`. The model returns `amountText` exactly as written; `usdcToBaseUnits` in code converts it (6 decimals, strict pattern, > 0) and the number must stand alone in the message, so "10" can't become "1". Model output is parsed with a zod `.strict()` schema: an unexpected field (e.g. `status`) refuses the whole output as no proposal, where before it was dropped silently. An outage, 429, 503 or empty answer is `UNKNOWN`: nothing changes and the owner is told to resend. Every READ result carries the `modelVersion` that answered.
+Rejected: asking the model for base units (G1); dropping unknown fields (a model that tries to set a status should not have its other fields trusted); the `-latest` aliases (not reproducible).
+Where: `packages/adapters/src/gemini/{proposal,extract}.ts`, tests X01–X06

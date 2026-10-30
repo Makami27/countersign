@@ -9,7 +9,7 @@ import { SqliteRateGate, TATUM_FREE_TIER_INTERVAL_MS, TATUM_GRAPHQL_URL, TatumGr
 import { extractProposal } from "@countersign/adapters/gemini";
 import { recordSignerFromSeed } from "@countersign/adapters/signer";
 import { loadConfig } from "./config.ts";
-import { replyFor } from "./replies.ts";
+import { MODEL_UNREADABLE_REPLY, replyFor } from "./replies.ts";
 
 const config = loadConfig(process.env);
 const tatumGate = new SqliteRateGate(config.databasePath, tatumRateGateName(config.network), TATUM_FREE_TIER_INTERVAL_MS);
@@ -39,8 +39,12 @@ const bot = new Bot(config.telegram.token);
 bot.on("message:text", async (ctx) => {
   if (ctx.from.id !== config.telegram.ownerUserId) return;
   const inbound = { id: `tg:${ctx.message.message_id}`, channel: "telegram" as const, from: String(ctx.from.id), text: ctx.message.text, receivedAt: new Date(ctx.message.date * 1000).toISOString() };
-  const proposal = await extractProposal(config.gemini, inbound.text, engine.payeeIds());
-  const outcome = await engine.handle(inbound, proposal);
+  const extraction = await extractProposal(config.gemini, inbound.text, engine.payeeIds());
+  if (extraction.status === "UNKNOWN") {
+    await ctx.reply(MODEL_UNREADABLE_REPLY);
+    return;
+  }
+  const outcome = await engine.handle(inbound, extraction.proposal);
   if (outcome.verdict === "PAY_RESERVED") {
     const sent = await sendUsdc(grpc, wallet, config.network, outcome.address, outcome.amountBaseUnits);
     await ctx.reply(sent.state === "SENT" ? `Sent. Digest ${sent.digest}.` : sent.state === "FAILED" ? `Payment failed on chain. ${sent.detail}` : "Payment outcome UNKNOWN. It will not be resent; reconciling by digest.");

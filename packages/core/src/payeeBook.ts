@@ -25,3 +25,9 @@ export function payeeIdFromNamespace(ownerId: string, namespace: string): string
   const prefix = `countersign:${ownerId}:payee:`;
   return namespace.startsWith(prefix) ? namespace.slice(prefix.length) : null;
 }
+
+export const TEST_NAMESPACE_ROOT = "countersign-test:";
+
+export function isRealUseNamespace(ownerId: string, namespace: string): boolean {
+  return namespace.startsWith(`countersign:${ownerId}:`);
+}

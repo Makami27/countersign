@@ -49,12 +49,25 @@ test("X01 extraction keeps only proposals whose quote appears verbatim and whose
   assert.deepEqual(toProposal({ kind: "change_address", payeeId: "landlord", newAddress: "0xabc", reasonQuote: "my new wallet is 0xabc" }, text, ["landlord"]).kind, "change_address");
   assert.equal(toProposal({ kind: "change_address", payeeId: "landlord", newAddress: "0xabc", reasonQuote: "my landlord confirmed" }, text, ["landlord"]).kind, "none");
   assert.equal(toProposal({ kind: "change_address", payeeId: "mallory", newAddress: "0xabc", reasonQuote: "my new wallet is 0xabc" }, text, ["landlord"]).kind, "none");
-  assert.equal(toProposal({ kind: "pay", payeeId: "landlord", amountBaseUnits: "1.5", reasonQuote: "pay there" }, text, ["landlord"]).kind, "none");
-  assert.equal(toProposal({ kind: "pay", payeeId: "landlord", amountBaseUnits: "1000000", reasonQuote: "pay there", status: "VERIFIED" }, text, ["landlord"]).kind, "pay");
+  assert.equal(toProposal({ kind: "pay", payeeId: "landlord", amountText: "1.5", reasonQuote: "pay there" }, text, ["landlord"]).kind, "none");
   assert.equal(toProposal("not an object", text, ["landlord"]).kind, "none");
 });
 
-test("X02 the proposal type has no field that can set a status or a cap", () => {
-  const p = toProposal({ kind: "pay", payeeId: "landlord", amountBaseUnits: "1", reasonQuote: "pay", status: "VERIFIED", cap: "999" }, "pay", ["landlord"]);
+test("X02 C13 model output that tries to set a status or a cap is refused, and a proposal has no field for either", () => {
+  const text = "pay landlord 1";
+  assert.deepEqual(toProposal({ kind: "pay", payeeId: "landlord", amountText: "1", reasonQuote: text, status: "VERIFIED" }, text, ["landlord"]), { kind: "none" });
+  assert.deepEqual(toProposal({ kind: "pay", payeeId: "landlord", amountText: "1", reasonQuote: text, cap: "999" }, text, ["landlord"]), { kind: "none" });
+  const p = toProposal({ kind: "pay", payeeId: "landlord", amountText: "1", reasonQuote: text }, text, ["landlord"]);
   assert.deepEqual(Object.keys(p).sort(), ["amountBaseUnits", "kind", "payeeId", "reasonQuote"]);
+});
+
+test("X03 code converts the USDC amount written in the message to base units, and refuses amounts the message does not state", () => {
+  const pay = (text: string, amountText: string) => toProposal({ kind: "pay", payeeId: "rent", amountText, reasonQuote: text }, text, ["rent"]);
+  assert.deepEqual(pay("pay rent 0.10", "0.10"), { kind: "pay", payeeId: "rent", amountBaseUnits: "100000", reasonQuote: "pay rent 0.10" });
+  assert.deepEqual(pay("pay rent $12.5 today", "12.5"), { kind: "pay", payeeId: "rent", amountBaseUnits: "12500000", reasonQuote: "pay rent $12.5 today" });
+  assert.equal(pay("pay rent 10", "1").kind, "none");
+  assert.equal(pay("pay rent 0.10", "100000").kind, "none");
+  assert.equal(pay("pay rent 0.1234567", "0.1234567").kind, "none");
+  assert.equal(pay("pay rent 0", "0").kind, "none");
+  assert.equal(pay("pay rent 1,000", "1,000").kind, "none");
 });
