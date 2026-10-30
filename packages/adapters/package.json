@@ -17,6 +17,7 @@
     "@mysten/sui": "2.37.0",
     "@mysten/walrus": "1.2.34",
     "@protobuf-ts/grpc-transport": "2.11.1",
-    "@protobuf-ts/runtime-rpc": "2.11.1"
+    "@protobuf-ts/runtime-rpc": "2.11.1",
+    "zod": "4.6.7"
   }
 }

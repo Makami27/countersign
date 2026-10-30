@@ -1,0 +1,48 @@
+{
+  "runId": "2026-10-30T21-08-15-263Z",
+  "relayer": "mainnet relayer",
+  "namespace": "countersign-test:2026-10-30T21-08-15-263Z:payee:live",
+  "classification": "live test data, signed by a throwaway test key, excluded from real-use counts",
+  "writes": [
+    {
+      "key": "live:2026-10-30T21-08-15-263Z:1",
+      "blobId": "70xac-ZB_crvS50wRI2I6E4dV2uKq3hQ3wAOT-JFa-U",
+      "ms": 24899
+    },
+    {
+      "key": "live:2026-10-30T21-08-15-263Z:2",
+      "blobId": "vk5xt_E9mLy4CjrMtoGyPrxqX3J6ihrxymgS9_O4Mdw",
+      "ms": 22090
+    },
+    {
+      "key": "live:2026-10-30T21-08-15-263Z:3",
+      "blobId": "3Hfy-GTzsiVrC5uXkjPo-C97OZPsbIM3_b3hs2nvhGg",
+      "ms": 20353
+    }
+  ],
+  "listedCount": 3,
+  "listedBlobIds": [
+    "70xac-ZB_crvS50wRI2I6E4dV2uKq3hQ3wAOT-JFa-U",
+    "vk5xt_E9mLy4CjrMtoGyPrxqX3J6ihrxymgS9_O4Mdw",
+    "3Hfy-GTzsiVrC5uXkjPo-C97OZPsbIM3_b3hs2nvhGg"
+  ],
+  "recalledBlobIds": [
+    "70xac-ZB_crvS50wRI2I6E4dV2uKq3hQ3wAOT-JFa-U",
+    "3Hfy-GTzsiVrC5uXkjPo-C97OZPsbIM3_b3hs2nvhGg",
+    "vk5xt_E9mLy4CjrMtoGyPrxqX3J6ihrxymgS9_O4Mdw"
+  ],
+  "droppedCount": 0,
+  "readAll": {
+    "complete": true,
+    "records": 3
+  },
+  "retry": {
+    "sameKey": "live:2026-10-30T21-08-15-263Z:1",
+    "result": {
+      "status": "WRITTEN",
+      "blobId": "70xac-ZB_crvS50wRI2I6E4dV2uKq3hQ3wAOT-JFa-U"
+    },
+    "countAfterRetry": 3
+  },
+  "countedAsRealUse": false
+}

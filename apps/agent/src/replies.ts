@@ -1,5 +1,7 @@
 import { REASONS, type Outcome } from "@countersign/core";
 
+export const MODEL_UNREADABLE_REPLY = "Nothing was sent and nothing was changed. I couldn't read that message right now because the language model didn't answer. Send it again in a minute.";
+
 export function replyFor(outcome: Outcome): string {
   switch (outcome.verdict) {
     case "PAY_RESERVED":
