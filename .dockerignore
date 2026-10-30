@@ -1,0 +1,10 @@
+node_modules
+**/node_modules
+.env
+**/.env
+evidence
+spikes/evidence
+apps/web/dist
+*.sqlite
+*.sqlite-*
+.git
