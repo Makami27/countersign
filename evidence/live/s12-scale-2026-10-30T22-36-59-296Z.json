@@ -1,0 +1,376 @@
+{
+  "runId": "2026-10-30T22-36-59-296Z",
+  "relayer": "mainnet relayer",
+  "namespace": "countersign-test:s12-scale-2026-10-30T22-36-59-296Z",
+  "classification": "S12 at scale: labelled test data in a countersign-test: namespace, excluded from real-use counts",
+  "countedAsRealUse": false,
+  "records": 100,
+  "spacingMs": 60000,
+  "writes": [
+    {
+      "i": 1,
+      "ms": 46670,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 2,
+      "ms": 38888,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 3,
+      "ms": 46460,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 4,
+      "ms": 41401,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 5,
+      "ms": 42238,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 6,
+      "ms": 38211,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 7,
+      "ms": 37185,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 8,
+      "ms": 43075,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 9,
+      "ms": 37188,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 10,
+      "ms": 38000,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 11,
+      "ms": 37881,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 12,
+      "ms": 39374,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 13,
+      "ms": 42202,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 14,
+      "ms": 39087,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 15,
+      "ms": 39688,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 16,
+      "ms": 41451,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 17,
+      "ms": 45956,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 18,
+      "ms": 41223,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 19,
+      "ms": 37319,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 20,
+      "ms": 41756,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 21,
+      "ms": 42625,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 22,
+      "ms": 38687,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 23,
+      "ms": 45483,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 24,
+      "ms": 44978,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 25,
+      "ms": 39715,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 26,
+      "ms": 43095,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 27,
+      "ms": 38898,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 28,
+      "ms": 39015,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 29,
+      "ms": 37745,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 30,
+      "ms": 38220,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 31,
+      "ms": 38337,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 32,
+      "ms": 37093,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 33,
+      "ms": 38312,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 34,
+      "ms": 40642,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 35,
+      "ms": 43229,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 36,
+      "ms": 46282,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 37,
+      "ms": 44259,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 38,
+      "ms": 48924,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 39,
+      "ms": 37949,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 40,
+      "ms": 45921,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 41,
+      "ms": 42578,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 42,
+      "ms": 46637,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 43,
+      "ms": 36209,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 44,
+      "ms": 41659,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 45,
+      "ms": 39788,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 46,
+      "ms": 50524,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 47,
+      "ms": 47638,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 48,
+      "ms": 46465,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 49,
+      "ms": 45250,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 50,
+      "ms": 40388,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 51,
+      "ms": 39196,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    },
+    {
+      "i": 52,
+      "ms": 43042,
+      "status": "UNKNOWN",
+      "blobId": null,
+      "problem": "JOB_FAILED"
+    }
+  ],
+  "phase": "writing"
+}
