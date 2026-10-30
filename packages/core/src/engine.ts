@@ -2,7 +2,7 @@ import { appearsVerbatim, imitatesAny, parseSuiAddress } from "./address.ts";
 import { CHANGE_REQUEST_LIFETIME_MS, changeMessage } from "./changeMessage.ts";
 import { headOf, nextVersionNumber, payeeIdFromNamespace, payeeNamespace, refusalsNamespace } from "./payeeBook.ts";
 import { openRecord, sealRecord } from "./records.ts";
-import type { Clock, IndexStore, MemoryPort, NonceSource, RecordSigner, SignatureVerifier } from "./ports.ts";
+import type { Clock, IndexStore, MemoryPort, NonceSource, PaymentLedger, RecordSigner, SignatureVerifier } from "./ports.ts";
 import type { ContinuityProof, ControlProof, Evidence, InboundMessage, MemoryRecord, Outcome, PayeeVersionRecord, Proposal, Refused, SuiAddress } from "./types.ts";
 import { REASONS, type ReasonCode } from "./vocabulary.ts";
 
@@ -18,6 +18,7 @@ export type EngineDeps = {
   readonly ownerId: string;
   readonly memory: MemoryPort & { listNamespaces(prefix: string): Promise<readonly string[] | null> };
   readonly index: IndexStore;
+  readonly payments: PaymentLedger;
   readonly signer: RecordSigner;
   readonly signatures: SignatureVerifier;
   readonly roundTrips: RoundTripChecker;
@@ -132,15 +133,18 @@ export class Countersign {
   async #reservePayment(message: InboundMessage, proposal: Extract<Proposal, { kind: "pay" }>): Promise<Outcome> {
     const read = await this.#d.memory.readAll(payeeNamespace(this.#d.ownerId, proposal.payeeId));
     if (!read.complete) return this.#refuse("MEMORY_INCOMPLETE", message.id, proposal.payeeId, null);
-    const head = headOf(this.#versionsFrom(read.texts, proposal.payeeId));
-    if (head.kind === "none") return this.#refuse("UNKNOWN_PAYEE", message.id, proposal.payeeId, null);
+    const versions = this.#versionsFrom(read.texts, proposal.payeeId);
+    if (versions.length === 0) return this.#refuse("UNKNOWN_PAYEE", message.id, proposal.payeeId, null);
+    const head = headOf(versions);
+    if (head.kind === "none") return this.#refuse("PAYEE_NOT_VERIFIED", message.id, proposal.payeeId, null);
     if (head.kind === "conflict") return this.#refuse("CONFLICT", message.id, proposal.payeeId, null);
-    if (!/^(0|[1-9]\d*)$/.test(proposal.amountBaseUnits)) return this.#refuse("CAP_EXCEEDED", message.id, proposal.payeeId, null);
+    if (!/^[1-9]\d*$/.test(proposal.amountBaseUnits)) return this.#refuse("AMOUNT_INVALID", message.id, proposal.payeeId, null);
     const amount = BigInt(proposal.amountBaseUnits);
     if (amount > this.#d.caps.perPaymentBaseUnits) return this.#refuse("CAP_EXCEEDED", message.id, proposal.payeeId, null);
-    const period = this.#d.clock.now().toISOString().slice(0, 10);
-    if (!this.#d.index.reserveBudget(period, amount, this.#d.caps.perDayBaseUnits)) return this.#refuse("CAP_EXCEEDED", message.id, proposal.payeeId, null);
-    return { verdict: "PAY_RESERVED", paymentId: `pay_${this.#d.nonces.next()}`, address: head.version.address, amountBaseUnits: amount };
+    const now = this.#d.clock.now().toISOString();
+    const intent = { id: `pay_${this.#d.nonces.next()}`, payeeId: proposal.payeeId, payeeVersion: head.version.version, address: head.version.address, amountBaseUnits: amount, period: now.slice(0, 10), createdAt: now };
+    if (!this.#d.payments.reservePayment(intent, this.#d.caps.perDayBaseUnits)) return this.#refuse("CAP_EXCEEDED", message.id, proposal.payeeId, null);
+    return { verdict: "PAY_RESERVED", paymentId: intent.id, address: intent.address, amountBaseUnits: amount };
   }
 
   async #checkContinuity(proof: ContinuityProof, message: string, fromAddress: SuiAddress): Promise<ReasonCode | null> {

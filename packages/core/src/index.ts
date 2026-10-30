@@ -6,4 +6,5 @@ export * from "./records.ts";
 export * from "./payeeBook.ts";
 export * from "./changeMessage.ts";
 export * from "./engine.ts";
+export * from "./payments.ts";
 export * from "./testing/inMemory.ts";

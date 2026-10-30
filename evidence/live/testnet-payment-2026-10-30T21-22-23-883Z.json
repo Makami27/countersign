@@ -1,0 +1,53 @@
+{
+  "runId": "2026-10-30T21-22-23-883Z",
+  "network": "testnet",
+  "classification": "testnet check of the payment path, test USDC, paid by our own agent wallet to the owner's demo payee wallet",
+  "agentAddress": "0x189c509d9d58f85f2f8b3549dd36ecb9ec937b9a1967b34d3d179d2193a78691",
+  "recipient": "0x68f21c9f3d876c7115d8bea271a6fdb53a139f97cae8bfc5bca45b88262b023b",
+  "amountBaseUnits": "10000",
+  "payment": {
+    "id": "pay_testnet_62729d75d0f4",
+    "payeeId": "testnet-check",
+    "payeeVersion": 1,
+    "address": "0x68f21c9f3d876c7115d8bea271a6fdb53a139f97cae8bfc5bca45b88262b023b",
+    "amountBaseUnits": "10000",
+    "period": "2026-10-30",
+    "createdAt": "2026-10-30T21:22:24.740Z",
+    "state": "SETTLED",
+    "digest": "A3v1PJCz7BTK6CR26HBsDTAFTuo9ttx1xnRAtiiqRCbJ",
+    "validUntilEpoch": "1269",
+    "detail": "The transaction executed and credited the payee the exact amount.",
+    "updatedAt": "2026-10-30T21:22:28.914Z"
+  },
+  "elapsedMs": 4172,
+  "balancesBefore": {
+    "status": "KNOWN",
+    "sui": {
+      "coinType": "0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI",
+      "totalBaseUnits": "1000000000",
+      "inCoinObjectsBaseUnits": "0",
+      "inAddressBalanceBaseUnits": "1000000000"
+    },
+    "usdc": {
+      "coinType": "0xa1ec7fc00a6f40db9693ad1415d0c193ad3906494428cf252621037bd7117e29::usdc::USDC",
+      "totalBaseUnits": "20000000",
+      "inCoinObjectsBaseUnits": "20000000",
+      "inAddressBalanceBaseUnits": "0"
+    }
+  },
+  "balancesAfter": {
+    "status": "KNOWN",
+    "sui": {
+      "coinType": "0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI",
+      "totalBaseUnits": "997677468",
+      "inCoinObjectsBaseUnits": "0",
+      "inAddressBalanceBaseUnits": "997677468"
+    },
+    "usdc": {
+      "coinType": "0xa1ec7fc00a6f40db9693ad1415d0c193ad3906494428cf252621037bd7117e29::usdc::USDC",
+      "totalBaseUnits": "19990000",
+      "inCoinObjectsBaseUnits": "19990000",
+      "inAddressBalanceBaseUnits": "0"
+    }
+  }
+}

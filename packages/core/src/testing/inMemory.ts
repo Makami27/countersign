@@ -1,4 +1,5 @@
-import type { IndexStore, MemoryPort, MemoryRead, MemoryWrite, PendingChange } from "../ports.ts";
+import type { IndexStore, MemoryPort, MemoryRead, MemoryWrite, PaymentLedger, PendingChange } from "../ports.ts";
+import { statesThatMayMoveTo, type NewPaymentIntent, type PaymentIntent, type PaymentMove } from "../payments.ts";
 import type { PayeeVersionRecord, RefusalRecord, SuiAddress } from "../types.ts";
 
 export class InMemoryMemory implements MemoryPort {
@@ -38,7 +39,6 @@ export class InMemoryIndex implements IndexStore {
   #versions: PayeeVersionRecord[] = [];
   #refusals: RefusalRecord[] = [];
   readonly #pending = new Map<string, { change: PendingChange; used: boolean }>();
-  readonly #budget = new Map<string, bigint>();
 
   putPayeeVersion(record: PayeeVersionRecord): void {
     this.#versions = [...this.#versions.filter((v) => !(v.payeeId === record.payeeId && v.version === record.version)), record];
@@ -71,14 +71,48 @@ export class InMemoryIndex implements IndexStore {
     entry.used = true;
     return true;
   }
-  reserveBudget(period: string, amount: bigint, cap: bigint): boolean {
-    const current = this.#budget.get(period) ?? 0n;
-    if (current + amount > cap) return false;
-    this.#budget.set(period, current + amount);
-    return true;
-  }
   clearIndex(): void {
     this.#versions = [];
     this.#refusals = [];
+  }
+}
+
+export class InMemoryPaymentLedger implements PaymentLedger {
+  readonly #payments = new Map<string, PaymentIntent>();
+  readonly #reserved = new Map<string, bigint>();
+
+  reservePayment(intent: NewPaymentIntent, perDayCapBaseUnits: bigint): boolean {
+    const current = this.#reserved.get(intent.period) ?? 0n;
+    if (this.#payments.has(intent.id) || current + intent.amountBaseUnits > perDayCapBaseUnits) return false;
+    this.#reserved.set(intent.period, current + intent.amountBaseUnits);
+    this.#payments.set(intent.id, { ...intent, state: "RESERVED", digest: null, validUntilEpoch: null, detail: null, updatedAt: intent.createdAt });
+    return true;
+  }
+
+  movePayment(id: string, move: PaymentMove): boolean {
+    const payment = this.#payments.get(id);
+    if (!payment || !statesThatMayMoveTo(move.to).includes(payment.state)) return false;
+    if (move.to === "FAILED") this.#reserved.set(payment.period, (this.#reserved.get(payment.period) ?? 0n) - payment.amountBaseUnits);
+    this.#payments.set(id, {
+      ...payment,
+      state: move.to,
+      detail: move.detail,
+      updatedAt: move.at,
+      digest: move.digest ?? payment.digest,
+      validUntilEpoch: move.validUntilEpoch === undefined ? payment.validUntilEpoch : move.validUntilEpoch,
+    });
+    return true;
+  }
+
+  payment(id: string): PaymentIntent | null {
+    return this.#payments.get(id) ?? null;
+  }
+
+  unresolvedPayments(): readonly PaymentIntent[] {
+    return [...this.#payments.values()].filter((p) => p.state === "SENDING" || p.state === "SENT" || p.state === "UNKNOWN");
+  }
+
+  reservedFor(period: string): bigint {
+    return this.#reserved.get(period) ?? 0n;
   }
 }

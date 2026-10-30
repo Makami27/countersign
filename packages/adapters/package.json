@@ -3,11 +3,12 @@
   "private": true,
   "type": "module",
   "exports": {
-    "./sqlite": "./src/sqlite/indexStore.ts",
+    "./sqlite": "./src/sqlite/index.ts",
     "./memwal": "./src/memwal/memory.ts",
     "./tatum": "./src/tatum/index.ts",
     "./gemini": "./src/gemini/extract.ts",
-    "./signer": "./src/signer.ts"
+    "./signer": "./src/signer.ts",
+    "./payments": "./src/payments/runner.ts"
   },
   "dependencies": {
     "@countersign/core": "workspace:*",

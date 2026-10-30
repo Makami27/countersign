@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
 import { Countersign, InMemoryMemory, changeMessage } from "@countersign/core";
 import { SqliteIndex } from "../src/sqlite/indexStore.ts";
+import { SqlitePaymentLedger } from "../src/sqlite/paymentLedger.ts";
 import { toProposal } from "../src/gemini/extract.ts";
 import { recordSignerFromSeed } from "../src/signer.ts";
 import { FixedClock, StandInVerifier, wallet, message, ONE_USDC } from "../../core/test/fixtures.ts";
@@ -11,7 +12,7 @@ async function sqliteWorld() {
   const memory = new InMemoryMemory();
   const index = new SqliteIndex(":memory:");
   const deps = {
-    ownerId: "owner1", memory, index, signer: recordSignerFromSeed(randomBytes(32).toString("base64")), signatures: new StandInVerifier(),
+    ownerId: "owner1", memory, index, payments: new SqlitePaymentLedger(":memory:"), signer: recordSignerFromSeed(randomBytes(32).toString("base64")), signatures: new StandInVerifier(),
     roundTrips: { check: async () => "NOT_PROVEN" as const }, clock: new FixedClock("2026-10-30T10:00:00Z"),
     nonces: { next: () => randomBytes(8).toString("hex") }, caps: { perPaymentBaseUnits: 50_000_000n, perDayBaseUnits: 100_000_000n }, cooldownMs: 1000,
   };

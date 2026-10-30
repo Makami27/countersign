@@ -1,5 +1,6 @@
 import type { PayeeVersionRecord, RefusalRecord, SuiAddress } from "./types.ts";
 import type { SignatureResult } from "./vocabulary.ts";
+import type { NewPaymentIntent, PaymentIntent, PaymentMove } from "./payments.ts";
 
 export interface RecordSigner {
   sign(canonical: string): string;
@@ -37,8 +38,14 @@ export interface IndexStore {
   insertPendingChange(change: PendingChange): void;
   pendingChange(nonce: string): PendingChange | null;
   consumePendingChange(nonce: string): boolean;
-  reserveBudget(period: string, amount: bigint, cap: bigint): boolean;
   clearIndex(): void;
+}
+
+export interface PaymentLedger {
+  reservePayment(intent: NewPaymentIntent, perDayCapBaseUnits: bigint): boolean;
+  movePayment(id: string, move: PaymentMove): boolean;
+  payment(id: string): PaymentIntent | null;
+  unresolvedPayments(): readonly PaymentIntent[];
 }
 
 export interface Clock {

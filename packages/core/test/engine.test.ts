@@ -162,10 +162,24 @@ test("C14 onboarding an existing payee is refused instead of creating a second v
   assert.equal(r.verdict === "REFUSED" && r.reason, "CONFLICT");
 });
 
-test("C15 a malformed amount or one above the per-payment cap is refused", async () => {
-  const { agent } = await world(DEFAULT_CAPS);
-  for (const amountBaseUnits of ["-1", "1.5", "01", "60000000"]) {
+test("C15 V08 a malformed or zero amount is refused as AMOUNT_INVALID, and one above the per-payment cap as CAP_EXCEEDED", async () => {
+  const { agent, payments } = await world(DEFAULT_CAPS);
+  for (const amountBaseUnits of ["-1", "1.5", "01", "0", ""]) {
     const r = await agent.handle(message("pay"), { ...pay, amountBaseUnits });
-    assert.equal(r.verdict === "REFUSED" && r.reason, "CAP_EXCEEDED", amountBaseUnits);
+    assert.equal(r.verdict === "REFUSED" && r.reason, "AMOUNT_INVALID", amountBaseUnits);
   }
+  const over = await agent.handle(message("pay"), { ...pay, amountBaseUnits: "60000000" });
+  assert.equal(over.verdict === "REFUSED" && over.reason, "CAP_EXCEEDED");
+  assert.equal(payments.unresolvedPayments().length, 0);
+  assert.equal(payments.reservedFor("2026-10-30"), 0n);
+});
+
+test("C16 a payee with records but no verified version is PAYEE_NOT_VERIFIED, and a payee with no records is UNKNOWN_PAYEE", async () => {
+  const { agent, memory, signer } = await world();
+  const stated = wallet();
+  memory.plant(payeeNamespace("owner1", "newcomer"), sealRecord(signer, { type: "payee_version", payeeId: "newcomer", version: 1, address: stated.address, status: "STATED", supersedes: null, evidence: { kind: "stated", sourceMessageId: "m0", nonce: "x" }, createdAt: "2026-10-30T10:00:00Z" }));
+  const notVerified = await agent.handle(message("pay newcomer"), { ...pay, payeeId: "newcomer" });
+  assert.equal(notVerified.verdict === "REFUSED" && notVerified.reason, "PAYEE_NOT_VERIFIED");
+  const unknown = await agent.handle(message("pay nobody"), { ...pay, payeeId: "nobody" });
+  assert.equal(unknown.verdict === "REFUSED" && unknown.reason, "UNKNOWN_PAYEE");
 });

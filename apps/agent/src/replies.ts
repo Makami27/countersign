@@ -1,4 +1,32 @@
-import { REASONS, type Outcome } from "@countersign/core";
+import { REASONS, formatUsdc, type Outcome, type PaymentIntent, type SuiAddress } from "@countersign/core";
+
+type Network = "mainnet" | "testnet";
+
+function onSui(network: Network): string {
+  return network === "mainnet" ? "on Sui mainnet" : "on Sui testnet (test USDC, no real money)";
+}
+
+export function paymentPendingReply(amountBaseUnits: bigint, address: SuiAddress, network: Network): string {
+  return `Nothing has been sent yet. Sending ${formatUsdc(amountBaseUnits)} USDC to ${address} ${onSui(network)}; this takes a few seconds.`;
+}
+
+export function paymentReply(payment: PaymentIntent, network: Network): string {
+  const amount = `${formatUsdc(payment.amountBaseUnits)} USDC`;
+  const digest = payment.digest ? ` Transaction ${payment.digest}.` : "";
+  switch (payment.state) {
+    case "SETTLED":
+      return `Sent ${amount} to ${payment.address} ${onSui(network)}.${digest}`;
+    case "SENT":
+      return `Sent ${amount} to ${payment.address} ${onSui(network)}; the network executed it and I'm still waiting to see it in a checkpoint.${digest}`;
+    case "FAILED":
+      return `No USDC moved. ${payment.detail ?? "The payment failed."} The day's cap was given back.`;
+    case "UNKNOWN":
+      return `I don't know yet whether ${amount} reached ${payment.address}. It will not be sent again. I'm checking the transaction by its digest.${digest}`;
+    case "RESERVED":
+    case "SENDING":
+      return `Nothing is confirmed yet: ${amount} to ${payment.address} is still being sent.`;
+  }
+}
 
 export const MODEL_UNREADABLE_REPLY = "Nothing was sent and nothing was changed. I couldn't read that message right now because the language model didn't answer. Send it again in a minute.";
 
