@@ -1,6 +1,6 @@
 import { createHash, generateKeyPairSync, randomBytes, sign, verify, type KeyObject } from "node:crypto";
 import { Countersign, type Caps, type RoundTripChecker } from "../src/engine.ts";
-import { InMemoryIndex, InMemoryMemory } from "../src/testing/inMemory.ts";
+import { InMemoryIndex, InMemoryMemory, InMemoryPaymentLedger } from "../src/testing/inMemory.ts";
 import type { RecordSigner, SignatureVerifier } from "../src/ports.ts";
 import type { InboundMessage, SuiAddress } from "../src/types.ts";
 import type { SignatureResult } from "../src/vocabulary.ts";
@@ -78,11 +78,12 @@ export async function world(caps: Caps = DEFAULT_CAPS) {
   const clock = new FixedClock("2026-10-30T10:00:00Z");
   let n = 0;
   const roundTrips: RoundTripChecker = { check: async () => "NOT_PROVEN" };
-  const deps = { ownerId: "owner1", memory, index, signer, signatures, roundTrips, clock, nonces: { next: () => `n${++n}${randomBytes(4).toString("hex")}` }, caps, cooldownMs: 24 * 3600 * 1000 };
+  const payments = new InMemoryPaymentLedger();
+  const deps = { ownerId: "owner1", memory, index, payments, signer, signatures, roundTrips, clock, nonces: { next: () => `n${++n}${randomBytes(4).toString("hex")}` }, caps, cooldownMs: 24 * 3600 * 1000 };
   const agent = new Countersign(deps);
   const landlord = wallet();
   const designer = wallet();
   await agent.onboardPayee("landlord", landlord.address, "owner-confirm-1");
   await agent.onboardPayee("designer", designer.address, "owner-confirm-2");
-  return { agent, deps, memory, index, signer, signatures, clock, landlord, designer };
+  return { agent, deps, memory, index, payments, signer, signatures, clock, landlord, designer };
 }

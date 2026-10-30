@@ -10,7 +10,6 @@ CREATE TABLE IF NOT EXISTS refusals (receipt TEXT PRIMARY KEY, address TEXT, rec
 CREATE TABLE IF NOT EXISTS pending_changes (
   nonce TEXT PRIMARY KEY, payee_id TEXT NOT NULL, from_address TEXT NOT NULL, to_address TEXT NOT NULL,
   expires TEXT NOT NULL, used INTEGER NOT NULL DEFAULT 0 CHECK (used IN (0,1)));
-CREATE TABLE IF NOT EXISTS budget (period TEXT PRIMARY KEY, reserved TEXT NOT NULL);
 `;
 
 export class SqliteIndex implements IndexStore {
@@ -60,21 +59,6 @@ export class SqliteIndex implements IndexStore {
 
   consumePendingChange(nonce: string): boolean {
     return Number(this.#db.prepare("UPDATE pending_changes SET used = 1 WHERE nonce = ? AND used = 0").run(nonce).changes) === 1;
-  }
-
-  reserveBudget(period: string, amount: bigint, cap: bigint): boolean {
-    this.#db.exec("BEGIN IMMEDIATE");
-    try {
-      const row = this.#db.prepare("SELECT reserved FROM budget WHERE period = ?").get(period);
-      const current = row ? BigInt(String(row["reserved"])) : 0n;
-      const allowed = current + amount <= cap;
-      if (allowed) this.#db.prepare("INSERT INTO budget VALUES (?, ?) ON CONFLICT(period) DO UPDATE SET reserved = excluded.reserved").run(period, String(current + amount));
-      this.#db.exec("COMMIT");
-      return allowed;
-    } catch (error) {
-      this.#db.exec("ROLLBACK");
-      throw error;
-    }
   }
 
   clearIndex(): void {

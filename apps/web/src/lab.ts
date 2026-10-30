@@ -1,5 +1,5 @@
 import { createHash, generateKeyPairSync, randomBytes, sign, verify, type KeyObject } from "node:crypto";
-import { Countersign, InMemoryIndex, InMemoryMemory, addressesIn, changeMessage, headOf, type Outcome, type PayeeVersionRecord, type RefusalRecord, type SignatureResult, type SuiAddress } from "@countersign/core";
+import { Countersign, InMemoryIndex, InMemoryMemory, InMemoryPaymentLedger, addressesIn, changeMessage, headOf, type Outcome, type PayeeVersionRecord, type RefusalRecord, type SignatureResult, type SuiAddress } from "@countersign/core";
 import { traceFor, type TraceStep } from "./trace.ts";
 
 export const LAB_PAYEES = [
@@ -59,9 +59,9 @@ class LabSession {
         insertPendingChange: (c) => index.insertPendingChange(c),
         pendingChange: (n) => index.pendingChange(n),
         consumePendingChange: (n) => index.consumePendingChange(n),
-        reserveBudget: (p, a, c) => index.reserveBudget(p, a, c),
         clearIndex: () => index.clearIndex(),
       },
+      payments: new InMemoryPaymentLedger(),
       signer: {
         sign: (c) => sign(null, Buffer.from(c), records.privateKey).toString("base64"),
         verify: (c, s) => verify(null, Buffer.from(c), records.publicKey, Buffer.from(s, "base64")),
