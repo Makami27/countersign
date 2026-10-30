@@ -44,3 +44,10 @@ Verified on 2026-10-30 with Node v26.13.0: `node:sqlite` opens a database (SQLit
 Rejected: staying on Node 22 in CI (tests would not cover the runtime we ship); corepack (removed from Node 26); keeping npm for `spikes/` (two lockfiles, two dependency trees).
 Consequence: the hosting choice in Phase 5 must offer Node 26.13.0 or a Docker image of it.
 Where: `package.json`, `.github/workflows/gate.yml`, `pnpm-workspace.yaml`, `.gitignore`, `spikes/package.json`
+
+## D9: Two Walrus Memory environments, labelled everywhere
+Context: R2 showed our delegate key works on the mainnet relayer only. The owner wants tests and the measurement off mainnet, and real use on mainnet, with the environment labelled wherever a record or number appears.
+Decision: `MEMWAL_DEV_PRIVATE_KEY` / `MEMWAL_DEV_ACCOUNT_ID` (owner to add) with `relayer.dev.memwal.ai` for live tests and the measurement; `MEMWAL_PRIVATE_KEY` / `MEMWAL_ACCOUNT_ID` with `relayer.memory.walrus.xyz` for real use only. Until the dev keys exist, live memory tests run on the mainnet relayer in namespaces starting `countersign-test:`, throttled to the relayer budget, and every real-use memory count (A02, `/proof`) counts only `countersign:<OWNER_ID>:` namespaces. Each evidence file, receipt and screen names the relayer it used.
+Rejected: tests on mainnet for good (pollutes the real-use record and burns the hourly budget); mock-only memory tests (S2/S12 showed the real relayer behaves differently from docs in latency).
+Consequence: the S12 completeness check at ~100 records runs on the dev account once it exists.
+Where: `packages/adapters/src/memwal/*`, `.env.example`, live test suite

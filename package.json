@@ -3,12 +3,15 @@
   "private": true,
   "type": "module",
   "packageManager": "pnpm@10.34.9",
-  "engines": { "node": ">=26.13.0" },
+  "engines": {
+    "node": ">=26.13.0"
+  },
   "scripts": {
     "gate": "node scripts/gate.mjs",
     "typecheck": "tsc -p tsconfig.json",
     "test": "node --test --test-reporter=spec \"packages/*/test/*.test.ts\" \"apps/*/test/*.test.ts\"",
     "test:core": "node --test --test-reporter=spec \"packages/core/test/*.test.ts\"",
+    "test:live": "node --env-file=.env --test --test-reporter=spec --test-concurrency=1 \"packages/*/test/live/*.live.test.ts\"",
     "check:comments": "node scripts/check-no-comments.mjs",
     "check:secrets": "node scripts/check-secrets.mjs",
     "check:claims": "node scripts/check-claims.mjs",
@@ -19,5 +22,13 @@
   "devDependencies": {
     "@types/node": "26.6.5",
     "typescript": "5.9.3"
+  },
+  "pnpm": {
+    "overrides": {
+      "@mysten/wallet-standard": "0.21.34"
+    },
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }

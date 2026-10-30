@@ -37,4 +37,5 @@ Base: the existing landing + lab in `apps/web/public/` (built in parallel on 30 
 3. Proof is one tap away: every verdict links to its receipt; every receipt links to Walrus Memory and Sui.
 4. Numbered markers only for real sequences: change signatures (1, 2) and the checks the agent ran, in order. Address history uses version labels (v1, v2) plus "Refused" rows.
 5. Focus visible (2px ring), reduced motion respected, contrast ≥ 4.5:1 in both themes, tap targets ≥ 44px.
+7. **Waiting on memory is visible.** A Walrus Memory write takes about 20–23 s (S2). Every surface that waits on one (Telegram reply, web screen, sign page) first shows a pending state that says nothing has been sent or changed yet, then replaces it with the outcome. It never looks frozen, and a write that times out is shown as "not confirmed yet", never as success.
 6. Avoid: all-caps eyebrows, monospace labels, identical shadowed cards, gradient washes, "→" on buttons, middle-dot meta strings.
