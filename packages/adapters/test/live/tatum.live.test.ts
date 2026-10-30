@@ -24,15 +24,17 @@ test("V19 Tatum GraphQL answers the Sui testnet chain identifier through the ada
   assert.deepEqual(result, { ok: true, data: { chainIdentifier: TESTNET_CHAIN_IDENTIFIER } });
 });
 
-test("V19 C07 Tatum gRPC verifies a fresh Ed25519 change signature through the adapter and rejects another address and an altered message (testnet)", { skip }, async () => {
+test("V19 C07 Tatum gRPC verifies a fresh Ed25519 change signature through the adapter and names a wrong signer, rejects an altered message, and reports scheme and epoch (testnet)", { skip }, async () => {
   const payee = new Ed25519Keypair();
   const other = new Ed25519Keypair();
   const message = ["Countersign payee change v1", "payee:live-test", `from:${payee.toSuiAddress()}`, `to:${other.toSuiAddress()}`, `nonce:${Date.now()}`].join("\n");
   const { signature } = await payee.signPersonalMessage(new TextEncoder().encode(message));
   const verifier = new TatumSignatureVerifier(grpc);
-  assert.equal(await verifier.verifyPersonalMessage(message, signature, payee.toSuiAddress() as SuiAddress), "VALID");
-  assert.equal(await verifier.verifyPersonalMessage(message, signature, other.toSuiAddress() as SuiAddress), "INVALID");
-  assert.equal(await verifier.verifyPersonalMessage(`${message}\naltered`, signature, payee.toSuiAddress() as SuiAddress), "INVALID");
+  const valid = await verifier.verifyPersonalMessage(message, signature, payee.toSuiAddress() as SuiAddress);
+  assert.equal(valid.result, "VALID");
+  assert.ok(valid.result === "VALID" && valid.scheme === "ED25519" && valid.maxEpoch === null && /^\d+$/.test(valid.checkedAtEpoch));
+  assert.deepEqual(await verifier.verifyPersonalMessage(message, signature, other.toSuiAddress() as SuiAddress), { result: "WRONG_SIGNER" });
+  assert.deepEqual(await verifier.verifyPersonalMessage(`${message}\naltered`, signature, payee.toSuiAddress() as SuiAddress), { result: "INVALID" });
 });
 
 test("V02 reads the agent wallet's SUI and USDC through Tatum gRPC, split into coin objects and address balance (testnet)", { skip }, async () => {

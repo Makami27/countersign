@@ -6,8 +6,8 @@ import type { SuiAddress } from "../src/types.ts";
 
 function intent(state: PaymentState, validUntilEpoch: string | null = "100", digest: string | null = "D1"): PaymentIntent {
   return {
-    id: "pay_1", payeeId: "rent", payeeVersion: 1, address: `0x${"a".repeat(64)}` as SuiAddress, amountBaseUnits: 100_000n, period: "2026-10-30",
-    createdAt: "2026-10-30T10:00:00Z", state, digest, validUntilEpoch, detail: null, updatedAt: "2026-10-30T10:00:00Z",
+    id: "pay_1", payeeId: "rent", payeeVersion: 1, payeeBlobId: null, address: `0x${"a".repeat(64)}` as SuiAddress, amountBaseUnits: 100_000n, period: "2026-10-30",
+    createdAt: "2026-10-30T10:00:00Z", state, digest, validUntilEpoch, detail: null, reason: null, updatedAt: "2026-10-30T10:00:00Z",
   };
 }
 

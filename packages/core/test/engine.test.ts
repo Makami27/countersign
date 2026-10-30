@@ -60,13 +60,13 @@ test("C05 continuity from the current address plus control from the new address 
   assert.equal(paid.verdict === "PAY_RESERVED" && paid.address, next.address);
 });
 
-test("C06 control alone never verifies: an attacker signing for their own address gets NO_CONTINUITY", async () => {
+test("C06 V13 control alone never verifies: an attacker signing the continuity step with their own wallet gets WRONG_WALLET", async () => {
   const { agent } = await world();
   const evil = wallet();
   const s = started(await agent.handle(message(`new wallet ${evil.address}`), { kind: "change_address", payeeId: "landlord", newAddress: evil.address, reasonQuote: "x" }));
   const text = messageFor(s, "landlord");
   const r = await agent.completeChange(s.nonce, { kind: "signature", signature: evil.sign(text) }, { kind: "signature", signature: evil.sign(text) });
-  assert.equal(r.verdict === "REFUSED" && r.reason, "NO_CONTINUITY");
+  assert.equal(r.verdict === "REFUSED" && r.reason, "WRONG_WALLET");
 });
 
 test("C07 a used change request cannot be replayed, and an expired one cannot complete", async () => {

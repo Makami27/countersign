@@ -1,5 +1,5 @@
 import { createHash, generateKeyPairSync, randomBytes, sign, verify, type KeyObject } from "node:crypto";
-import { Countersign, InMemoryIndex, InMemoryMemory, InMemoryPaymentLedger, addressesIn, changeMessage, headOf, type Outcome, type PayeeVersionRecord, type RefusalRecord, type SignatureResult, type SuiAddress } from "@countersign/core";
+import { isRefusal, Countersign, InMemoryIndex, InMemoryMemory, InMemoryPaymentLedger, addressesIn, changeMessage, headOf, type Outcome, type PayeeVersionRecord, type ReceiptRecord, type SignatureCheck, type SuiAddress } from "@countersign/core";
 import { traceFor, type TraceStep } from "./trace.ts";
 
 export const LAB_PAYEES = [
@@ -9,6 +9,22 @@ export const LAB_PAYEES = [
 
 type LabPayeeId = (typeof LAB_PAYEES)[number]["id"];
 type Wallet = { readonly address: SuiAddress; readonly key: KeyObject; readonly publicKey: KeyObject };
+
+const LAB_EPOCH = "lab sandbox";
+
+function signedBy(wallet: Wallet, message: string, signature: string): boolean {
+  try {
+    return verify(null, Buffer.from(message), wallet.publicKey, Buffer.from(signature, "base64"));
+  } catch {
+    return false;
+  }
+}
+
+function labVerify(wallets: ReadonlyMap<SuiAddress, Wallet>, message: string, signature: string, address: SuiAddress): SignatureCheck {
+  const expected = wallets.get(address);
+  if (expected && signedBy(expected, message, signature)) return { result: "VALID", scheme: "ED25519", maxEpoch: null, checkedAtEpoch: LAB_EPOCH };
+  return [...wallets.values()].some((w) => signedBy(w, message, signature)) ? { result: "WRONG_SIGNER" } : { result: "INVALID" };
+}
 
 const SESSION_TTL_MS = 30 * 60 * 1000;
 const MAX_SESSIONS = 500;
@@ -22,7 +38,7 @@ function newWallet(): Wallet {
 
 export type LabView = {
   readonly payees: readonly { id: string; name: string; payableAddress: SuiAddress | null; versions: readonly PayeeVersionRecord[] }[];
-  readonly refusals: readonly RefusalRecord[];
+  readonly refusals: readonly ReceiptRecord[];
   readonly memoryRecords: number;
 };
 
@@ -32,7 +48,7 @@ class LabSession {
   readonly wallets = new Map<SuiAddress, Wallet>();
   readonly memory = new InMemoryMemory();
   readonly index = new InMemoryIndex();
-  readonly refusals: RefusalRecord[] = [];
+  readonly refusals: ReceiptRecord[] = [];
   readonly engine: Countersign;
   readonly current = new Map<LabPayeeId, Wallet>();
   touched = Date.now();
@@ -45,16 +61,18 @@ class LabSession {
     const wallets = this.wallets;
     this.engine = new Countersign({
       ownerId: "lab",
+      network: "testnet",
       memory: this.memory,
       index: {
         putPayeeVersion: (r) => index.putPayeeVersion(r),
         payeeVersions: (id) => index.payeeVersions(id),
         payeeIds: () => index.payeeIds(),
         verifiedAddresses: () => index.verifiedAddresses(),
-        putRefusal: (r) => {
-          refusals.unshift(r);
-          index.putRefusal(r);
+        putReceipt: (r) => {
+          if (isRefusal(r)) refusals.unshift(r);
+          index.putReceipt(r);
         },
+        receipt: (id) => index.receipt(id),
         earlierRefusalFor: (a) => index.earlierRefusalFor(a),
         insertPendingChange: (c) => index.insertPendingChange(c),
         pendingChange: (n) => index.pendingChange(n),
@@ -67,15 +85,7 @@ class LabSession {
         verify: (c, s) => verify(null, Buffer.from(c), records.publicKey, Buffer.from(s, "base64")),
       },
       signatures: {
-        verifyPersonalMessage: async (message, signature, address): Promise<SignatureResult> => {
-          const wallet = wallets.get(address);
-          if (!wallet) return "INVALID";
-          try {
-            return verify(null, Buffer.from(message), wallet.publicKey, Buffer.from(signature, "base64")) ? "VALID" : "INVALID";
-          } catch {
-            return "INVALID";
-          }
-        },
+        verifyPersonalMessage: async (message, signature, address) => labVerify(wallets, message, signature, address),
       },
       roundTrips: { check: async () => "NOT_PROVEN" },
       clock: { now: () => new Date() },

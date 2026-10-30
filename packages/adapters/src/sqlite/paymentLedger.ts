@@ -1,5 +1,5 @@
 import { DatabaseSync } from "node:sqlite";
-import { PAYMENT_STATES, PAYMENT_TRANSITIONS, statesThatMayMoveTo, type NewPaymentIntent, type PaymentIntent, type PaymentLedger, type PaymentMove, type PaymentState, type SuiAddress } from "@countersign/core";
+import { PAYMENT_STATES, PAYMENT_TRANSITIONS, statesThatMayMoveTo, type ReasonCode, type NewPaymentIntent, type PaymentIntent, type PaymentLedger, type PaymentMove, type PaymentState, type SuiAddress } from "@countersign/core";
 
 const BUSY_TIMEOUT_MS = 5_000;
 const stateList = PAYMENT_STATES.map((s) => `'${s}'`).join(",");
@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS payment_intents (
   id TEXT PRIMARY KEY,
   payee_id TEXT NOT NULL,
   payee_version INTEGER NOT NULL CHECK (payee_version >= 1),
+  payee_blob_id TEXT,
   address TEXT NOT NULL CHECK (length(address) = 66 AND address GLOB '0x*' AND substr(address, 3) NOT GLOB '*[^0-9a-f]*'),
   amount TEXT NOT NULL CHECK (amount GLOB '[1-9]*' AND amount NOT GLOB '*[^0-9]*'),
   period TEXT NOT NULL,
@@ -20,6 +21,7 @@ CREATE TABLE IF NOT EXISTS payment_intents (
   digest TEXT UNIQUE,
   valid_until_epoch TEXT CHECK (valid_until_epoch IS NULL OR (valid_until_epoch NOT GLOB '*[^0-9]*' AND length(valid_until_epoch) > 0)),
   detail TEXT,
+  reason TEXT,
   created_at TEXT NOT NULL,
   updated_at TEXT NOT NULL,
   CHECK (state IN ('RESERVED','FAILED') OR digest IS NOT NULL));
@@ -35,6 +37,7 @@ function toIntent(row: Row): PaymentIntent {
     id: String(row["id"]),
     payeeId: String(row["payee_id"]),
     payeeVersion: Number(row["payee_version"]),
+    payeeBlobId: row["payee_blob_id"] === null ? null : String(row["payee_blob_id"]),
     address: String(row["address"]) as SuiAddress,
     amountBaseUnits: BigInt(String(row["amount"])),
     period: String(row["period"]),
@@ -43,6 +46,7 @@ function toIntent(row: Row): PaymentIntent {
     digest: row["digest"] === null ? null : String(row["digest"]),
     validUntilEpoch: row["valid_until_epoch"] === null ? null : String(row["valid_until_epoch"]),
     detail: row["detail"] === null ? null : String(row["detail"]),
+    reason: row["reason"] === null ? null : (String(row["reason"]) as ReasonCode),
     updatedAt: String(row["updated_at"]),
   };
 }
@@ -61,8 +65,8 @@ export class SqlitePaymentLedger implements PaymentLedger {
       const reserved = this.#reserved(intent.period);
       if (reserved + intent.amountBaseUnits > perDayCapBaseUnits) return false;
       if (this.#db.prepare("SELECT 1 FROM payment_intents WHERE id = ?").get(intent.id)) return false;
-      this.#db.prepare("INSERT INTO payment_intents (id, payee_id, payee_version, address, amount, period, state, created_at, updated_at) VALUES (?,?,?,?,?,?,'RESERVED',?,?)")
-        .run(intent.id, intent.payeeId, intent.payeeVersion, intent.address, intent.amountBaseUnits.toString(), intent.period, intent.createdAt, intent.createdAt);
+      this.#db.prepare("INSERT INTO payment_intents (id, payee_id, payee_version, payee_blob_id, address, amount, period, state, created_at, updated_at) VALUES (?,?,?,?,?,?,?,'RESERVED',?,?)")
+        .run(intent.id, intent.payeeId, intent.payeeVersion, intent.payeeBlobId, intent.address, intent.amountBaseUnits.toString(), intent.period, intent.createdAt, intent.createdAt);
       this.#setReserved(intent.period, reserved + intent.amountBaseUnits);
       return true;
     });
@@ -76,8 +80,8 @@ export class SqlitePaymentLedger implements PaymentLedger {
       if (!statesThatMayMoveTo(move.to).includes(current.state)) return false;
       const digest = move.digest ?? current.digest;
       const validUntilEpoch = move.validUntilEpoch === undefined ? current.validUntilEpoch : move.validUntilEpoch;
-      const changed = this.#db.prepare("UPDATE payment_intents SET state = ?, digest = ?, valid_until_epoch = ?, detail = ?, updated_at = ? WHERE id = ? AND state = ?")
-        .run(move.to, digest, validUntilEpoch, move.detail, move.at, id, current.state).changes;
+      const changed = this.#db.prepare("UPDATE payment_intents SET state = ?, digest = ?, valid_until_epoch = ?, detail = ?, reason = ?, updated_at = ? WHERE id = ? AND state = ?")
+        .run(move.to, digest, validUntilEpoch, move.detail, move.reason ?? current.reason, move.at, id, current.state).changes;
       if (Number(changed) !== 1) return false;
       if (move.to === "FAILED") this.#setReserved(current.period, this.#reserved(current.period) - current.amountBaseUnits);
       return true;

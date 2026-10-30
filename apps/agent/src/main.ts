@@ -10,7 +10,7 @@ import { extractProposal } from "@countersign/adapters/gemini";
 import { PaymentRunner } from "@countersign/adapters/payments";
 import { recordSignerFromSeed } from "@countersign/adapters/signer";
 import { loadConfig } from "./config.ts";
-import { MODEL_UNREADABLE_REPLY, paymentPendingReply, paymentReply, replyFor } from "./replies.ts";
+import { MODEL_UNREADABLE_REPLY, RECEIPT_PENDING_REPLY, paymentPendingReply, paymentReply, receiptReply, replyFor } from "./replies.ts";
 
 const config = loadConfig(process.env);
 const tatumGate = new SqliteRateGate(config.databasePath, tatumRateGateName(config.network), TATUM_FREE_TIER_INTERVAL_MS);
@@ -25,6 +25,7 @@ const runner = new PaymentRunner({ ledger: payments, chain: tatumPaymentChain(gr
 
 const engine = new Countersign({
   ownerId: config.ownerId,
+  network: config.network,
   memory: new MemWalMemory(config.memwal),
   index: new SqliteIndex(config.databasePath),
   payments,
@@ -39,7 +40,7 @@ const engine = new Countersign({
 
 const restored = await engine.restore();
 if (!restored.ok) throw new Error("Walrus Memory could not be read completely at startup. Nothing was started; no payment can be made.");
-await runner.recoverInterrupted();
+for (const payment of await runner.recoverInterrupted()) await engine.recordPaymentOutcome(payment);
 
 const bot = new Bot(config.telegram.token);
 
@@ -54,7 +55,11 @@ bot.on("message:text", async (ctx) => {
   const outcome = await engine.handle(inbound, extraction.proposal);
   if (outcome.verdict === "PAY_RESERVED") {
     await ctx.reply(paymentPendingReply(outcome.amountBaseUnits, outcome.address, config.network));
-    await ctx.reply(paymentReply(await runner.send(outcome.paymentId), config.network));
+    const payment = await runner.send(outcome.paymentId);
+    await ctx.reply(paymentReply(payment, config.network));
+    if (payment.state !== "SETTLED" && payment.state !== "FAILED") return;
+    await ctx.reply(RECEIPT_PENDING_REPLY);
+    await ctx.reply(receiptReply(await engine.recordPaymentOutcome(payment)));
     return;
   }
   await ctx.reply(replyFor(outcome));

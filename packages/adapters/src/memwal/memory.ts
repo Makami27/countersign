@@ -57,7 +57,7 @@ export class MemWalMemory implements MemoryPort {
   async readAll(namespace: string): Promise<MemoryRead> {
     const expected = await this.countIn(namespace);
     if (expected === null) return { complete: false, why: "UNREACHABLE" };
-    if (expected === 0) return { complete: true, texts: [] };
+    if (expected === 0) return { complete: true, records: [] };
     if (expected > RECALL_CEILING) return { complete: false, why: "COUNT_MISMATCH" };
     let recalled: Recalled;
     try {
@@ -68,7 +68,7 @@ export class MemWalMemory implements MemoryPort {
     if (recalled.droppedCount > 0) return { complete: false, why: "DROPPED" };
     const distinctBlobs = new Set(recalled.blobIds).size;
     if (recalled.texts.length !== expected || distinctBlobs !== expected) return { complete: false, why: "COUNT_MISMATCH" };
-    return { complete: true, texts: recalled.texts };
+    return { complete: true, records: recalled.texts.map((text, i) => ({ text, blobId: recalled.blobIds[i] ?? "" })) };
   }
 
   async listNamespaces(prefix: string): Promise<readonly string[] | null> {

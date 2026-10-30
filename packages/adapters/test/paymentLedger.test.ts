@@ -13,7 +13,7 @@ let counter = 0;
 
 function newIntent(amountBaseUnits = 30n): NewPaymentIntent {
   counter += 1;
-  return { id: `pay_${counter}`, payeeId: "rent", payeeVersion: 1, address: PAYEE, amountBaseUnits, period: "2026-10-30", createdAt: AT };
+  return { id: `pay_${counter}`, payeeId: "rent", payeeVersion: 1, payeeBlobId: null, address: PAYEE, amountBaseUnits, period: "2026-10-30", createdAt: AT };
 }
 
 function tempLedger(): { ledger: SqlitePaymentLedger; path: string } {

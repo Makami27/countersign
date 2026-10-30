@@ -1,9 +1,10 @@
-import type { IndexStore, MemoryPort, MemoryRead, MemoryWrite, PaymentLedger, PendingChange } from "../ports.ts";
+import type { IndexStore, MemoryPort, MemoryRead, MemoryWrite, PaymentLedger, PendingChange, StoredText } from "../ports.ts";
+import { remembersAttack } from "../receipts.ts";
 import { statesThatMayMoveTo, type NewPaymentIntent, type PaymentIntent, type PaymentMove } from "../payments.ts";
-import type { PayeeVersionRecord, RefusalRecord, SuiAddress } from "../types.ts";
+import type { PayeeVersionRecord, ReceiptRecord, SuiAddress } from "../types.ts";
 
 export class InMemoryMemory implements MemoryPort {
-  readonly spaces = new Map<string, string[]>();
+  readonly spaces = new Map<string, StoredText[]>();
   readonly keys = new Map<string, string>();
   failNextWrite = false;
   dropOnRead: string | null = null;
@@ -17,13 +18,13 @@ export class InMemoryMemory implements MemoryPort {
     if (existing) return { status: "WRITTEN", blobId: existing };
     const blobId = `blob_${this.keys.size + 1}`;
     this.keys.set(`${namespace}:${idempotencyKey}`, blobId);
-    this.spaces.set(namespace, [...(this.spaces.get(namespace) ?? []), text]);
+    this.spaces.set(namespace, [...(this.spaces.get(namespace) ?? []), { text, blobId }]);
     return { status: "WRITTEN", blobId };
   }
 
   async readAll(namespace: string): Promise<MemoryRead> {
     if (this.dropOnRead === namespace) return { complete: false, why: "DROPPED" };
-    return { complete: true, texts: this.spaces.get(namespace) ?? [] };
+    return { complete: true, records: this.spaces.get(namespace) ?? [] };
   }
 
   async listNamespaces(prefix: string): Promise<readonly string[]> {
@@ -31,13 +32,14 @@ export class InMemoryMemory implements MemoryPort {
   }
 
   plant(namespace: string, text: string): void {
-    this.spaces.set(namespace, [...(this.spaces.get(namespace) ?? []), text]);
+    const existing = this.spaces.get(namespace) ?? [];
+    this.spaces.set(namespace, [...existing, { text, blobId: `planted_${namespace.length}_${existing.length + 1}` }]);
   }
 }
 
 export class InMemoryIndex implements IndexStore {
   #versions: PayeeVersionRecord[] = [];
-  #refusals: RefusalRecord[] = [];
+  #receipts: ReceiptRecord[] = [];
   readonly #pending = new Map<string, { change: PendingChange; used: boolean }>();
 
   putPayeeVersion(record: PayeeVersionRecord): void {
@@ -52,11 +54,14 @@ export class InMemoryIndex implements IndexStore {
   verifiedAddresses(): readonly SuiAddress[] {
     return [...new Set(this.#versions.filter((v) => v.status === "VERIFIED").map((v) => v.address))];
   }
-  putRefusal(record: RefusalRecord): void {
-    this.#refusals.push(record);
+  putReceipt(record: ReceiptRecord): void {
+    this.#receipts = [...this.#receipts.filter((r) => r.receipt !== record.receipt), record];
   }
-  earlierRefusalFor(address: SuiAddress): RefusalRecord | null {
-    return this.#refusals.find((r) => r.address === address) ?? null;
+  receipt(id: string): ReceiptRecord | null {
+    return this.#receipts.find((r) => r.receipt === id) ?? null;
+  }
+  earlierRefusalFor(address: SuiAddress): ReceiptRecord | null {
+    return this.#receipts.find((r) => remembersAttack(r) && r.address === address) ?? null;
   }
   insertPendingChange(change: PendingChange): void {
     this.#pending.set(change.nonce, { change, used: false });
@@ -73,7 +78,7 @@ export class InMemoryIndex implements IndexStore {
   }
   clearIndex(): void {
     this.#versions = [];
-    this.#refusals = [];
+    this.#receipts = [];
   }
 }
 
@@ -85,7 +90,7 @@ export class InMemoryPaymentLedger implements PaymentLedger {
     const current = this.#reserved.get(intent.period) ?? 0n;
     if (this.#payments.has(intent.id) || current + intent.amountBaseUnits > perDayCapBaseUnits) return false;
     this.#reserved.set(intent.period, current + intent.amountBaseUnits);
-    this.#payments.set(intent.id, { ...intent, state: "RESERVED", digest: null, validUntilEpoch: null, detail: null, updatedAt: intent.createdAt });
+    this.#payments.set(intent.id, { ...intent, state: "RESERVED", digest: null, validUntilEpoch: null, detail: null, reason: null, updatedAt: intent.createdAt });
     return true;
   }
 
@@ -97,6 +102,7 @@ export class InMemoryPaymentLedger implements PaymentLedger {
       ...payment,
       state: move.to,
       detail: move.detail,
+      reason: move.reason ?? payment.reason,
       updatedAt: move.at,
       digest: move.digest ?? payment.digest,
       validUntilEpoch: move.validUntilEpoch === undefined ? payment.validUntilEpoch : move.validUntilEpoch,

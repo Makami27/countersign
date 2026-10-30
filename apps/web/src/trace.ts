@@ -9,13 +9,14 @@ const CHANGE_STEPS: readonly { label: string; failsOn: readonly ReasonCode[] }[]
   { label: "Not a repeat of an attempt already refused", failsOn: ["KNOWN_ATTACK_PATTERN"] },
   { label: "Does not imitate a known address", failsOn: ["LOOKALIKE_ADDRESS"] },
   { label: "Kept as stated, so it can't be paid yet", failsOn: [] },
-  { label: "Signed by the payee's current wallet, or confirmed by you", failsOn: ["NO_CONTINUITY", "COOLDOWN_ACTIVE", "EXPIRED", "NONCE_REUSED", "CHAIN_UNKNOWN"] },
+  { label: "Signed by the payee's current wallet, or confirmed by you", failsOn: ["NO_CONTINUITY", "COOLDOWN_ACTIVE", "EXPIRED", "NONCE_REUSED", "CHAIN_UNKNOWN", "WRONG_WALLET", "SIGNATURE_INVALID"] },
   { label: "The new wallet proves it is in control", failsOn: ["CONTROL_NOT_PROVEN"] },
 ];
 
 const PAY_STEPS: readonly { label: string; failsOn: readonly ReasonCode[] }[] = [
   { label: "Memory read completely", failsOn: ["MEMORY_INCOMPLETE"] },
   { label: "Exactly one verified address for this payee", failsOn: ["UNKNOWN_PAYEE", "CONFLICT", "PAYEE_NOT_VERIFIED"] },
+  { label: "The amount is a valid USDC amount", failsOn: ["AMOUNT_INVALID"] },
   { label: "Within the spending caps", failsOn: ["CAP_EXCEEDED"] },
 ];
 

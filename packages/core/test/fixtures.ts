@@ -1,9 +1,8 @@
 import { createHash, generateKeyPairSync, randomBytes, sign, verify, type KeyObject } from "node:crypto";
 import { Countersign, type Caps, type RoundTripChecker } from "../src/engine.ts";
 import { InMemoryIndex, InMemoryMemory, InMemoryPaymentLedger } from "../src/testing/inMemory.ts";
-import type { RecordSigner, SignatureVerifier } from "../src/ports.ts";
+import type { RecordSigner, SignatureCheck, SignatureVerifier } from "../src/ports.ts";
 import type { InboundMessage, SuiAddress } from "../src/types.ts";
-import type { SignatureResult } from "../src/vocabulary.ts";
 
 export type TestWallet = { readonly address: SuiAddress; sign(message: string): string };
 
@@ -22,15 +21,24 @@ export function lookalikeOf(address: SuiAddress): SuiAddress {
 
 export class StandInVerifier implements SignatureVerifier {
   unreachable = false;
-  async verifyPersonalMessage(message: string, signature: string, address: SuiAddress): Promise<SignatureResult> {
-    if (this.unreachable) return "UNKNOWN";
+  rejectEverything = false;
+  scheme: "ED25519" | "ZKLOGIN" = "ED25519";
+  maxEpoch: string | null = null;
+  epoch = "1296";
+  async verifyPersonalMessage(message: string, signature: string, address: SuiAddress): Promise<SignatureCheck> {
+    if (this.unreachable) return { result: "UNKNOWN" };
+    if (this.rejectEverything) return { result: "INVALID" };
     const key = walletKeys.get(address);
-    if (!key) return "INVALID";
-    try {
-      return verify(null, Buffer.from(message), key, Buffer.from(signature, "base64")) ? "VALID" : "INVALID";
-    } catch {
-      return "INVALID";
-    }
+    if (key && signedWith(key, message, signature)) return { result: "VALID", scheme: this.scheme, maxEpoch: this.maxEpoch, checkedAtEpoch: this.epoch };
+    return [...walletKeys.values()].some((other) => signedWith(other, message, signature)) ? { result: "WRONG_SIGNER" } : { result: "INVALID" };
+  }
+}
+
+function signedWith(key: KeyObject, message: string, signature: string): boolean {
+  try {
+    return verify(null, Buffer.from(message), key, Buffer.from(signature, "base64"));
+  } catch {
+    return false;
   }
 }
 
@@ -79,7 +87,7 @@ export async function world(caps: Caps = DEFAULT_CAPS) {
   let n = 0;
   const roundTrips: RoundTripChecker = { check: async () => "NOT_PROVEN" };
   const payments = new InMemoryPaymentLedger();
-  const deps = { ownerId: "owner1", memory, index, payments, signer, signatures, roundTrips, clock, nonces: { next: () => `n${++n}${randomBytes(4).toString("hex")}` }, caps, cooldownMs: 24 * 3600 * 1000 };
+  const deps = { ownerId: "owner1", network: "testnet" as const, memory, index, payments, signer, signatures, roundTrips, clock, nonces: { next: () => `n${++n}${randomBytes(4).toString("hex")}` }, caps, cooldownMs: 24 * 3600 * 1000 };
   const agent = new Countersign(deps);
   const landlord = wallet();
   const designer = wallet();

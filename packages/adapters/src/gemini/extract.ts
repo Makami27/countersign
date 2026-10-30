@@ -15,7 +15,8 @@ const RESPONSE_SCHEMA = {
     newAddress: { type: "STRING" },
     reasonQuote: { type: "STRING" },
   },
-  required: ["kind"],
+  required: ["kind", "payeeId", "amountText", "newAddress", "reasonQuote"],
+  propertyOrdering: ["kind", "payeeId", "amountText", "newAddress", "reasonQuote"],
 } as const;
 
 const INSTRUCTIONS = [
@@ -23,6 +24,7 @@ const INSTRUCTIONS = [
   "kind=pay when the owner asks to pay a known payee. Give payeeId from the list, and amountText as the number of USDC exactly as written in the message, digits and one dot only, no currency sign or word.",
   "kind=change_address when the message says a payee's wallet address changed. Copy newAddress exactly as written.",
   "kind=none otherwise.",
+  "Always fill every field; use an empty string for a field that does not apply.",
   "reasonQuote must be copied verbatim from the message. Never paraphrase. Never invent an address or an amount. Never convert units.",
 ].join("\n");
 
@@ -31,7 +33,7 @@ export type GeminiConfig = { readonly apiKey: string; readonly model: string; re
 export type ModelProblem = "TIMEOUT" | "NETWORK" | "RATE_LIMITED" | "UNAVAILABLE" | "HTTP" | "NO_ANSWER";
 
 export type Extraction =
-  | { readonly status: "READ"; readonly proposal: Proposal; readonly modelVersion: string | null }
+  | { readonly status: "READ"; readonly proposal: Proposal; readonly modelVersion: string | null; readonly modelText: string }
   | { readonly status: "UNKNOWN"; readonly problem: ModelProblem };
 
 type GenerateResponse = { readonly candidates?: readonly { readonly content?: { readonly parts?: readonly { readonly text?: unknown }[] } }[]; readonly modelVersion?: unknown };
@@ -42,7 +44,20 @@ function problemForStatus(status: number): ModelProblem {
   return "HTTP";
 }
 
-export async function extractProposal(config: GeminiConfig, text: string, payeeIds: readonly string[]): Promise<Extraction> {
+const RETRYABLE: readonly ModelProblem[] = ["RATE_LIMITED", "UNAVAILABLE", "TIMEOUT"];
+const RETRY_DELAYS_MS = [2_000, 5_000] as const;
+
+export async function extractProposal(config: GeminiConfig, text: string, payeeIds: readonly string[], sleep: (ms: number) => Promise<void> = (ms) => new Promise((resolve) => setTimeout(resolve, ms))): Promise<Extraction> {
+  let result = await extractOnce(config, text, payeeIds);
+  for (const delay of RETRY_DELAYS_MS) {
+    if (result.status !== "UNKNOWN" || !RETRYABLE.includes(result.problem)) return result;
+    await sleep(delay);
+    result = await extractOnce(config, text, payeeIds);
+  }
+  return result;
+}
+
+async function extractOnce(config: GeminiConfig, text: string, payeeIds: readonly string[]): Promise<Extraction> {
   const url = `${config.baseUrl ?? GEMINI_BASE_URL}/models/${encodeURIComponent(config.model)}:generateContent`;
   let response: Response;
   try {
@@ -68,7 +83,7 @@ export async function extractProposal(config: GeminiConfig, text: string, payeeI
   try {
     parsed = JSON.parse(candidateText);
   } catch {
-    return { status: "READ", proposal: { kind: "none" }, modelVersion };
+    return { status: "READ", proposal: { kind: "none" }, modelVersion, modelText: candidateText };
   }
-  return { status: "READ", proposal: toProposal(parsed, text, payeeIds), modelVersion };
+  return { status: "READ", proposal: toProposal(parsed, text, payeeIds), modelVersion, modelText: candidateText };
 }
