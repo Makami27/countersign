@@ -6,7 +6,7 @@ import { SqliteIndex } from "../src/sqlite/indexStore.ts";
 import { SqlitePaymentLedger } from "../src/sqlite/paymentLedger.ts";
 import { toProposal } from "../src/gemini/extract.ts";
 import { recordSignerFromSeed } from "../src/signer.ts";
-import { FixedClock, StandInVerifier, wallet, message, ONE_USDC } from "../../core/test/fixtures.ts";
+import { FixedClock, StandInVerifier, onboard, wallet, message, ONE_USDC } from "../../core/test/fixtures.ts";
 
 async function sqliteWorld() {
   const memory = new InMemoryMemory();
@@ -18,7 +18,7 @@ async function sqliteWorld() {
   };
   const agent = new Countersign(deps);
   const landlord = wallet();
-  await agent.onboardPayee("landlord", landlord.address, "c1");
+  await onboard(agent, "Landlord", landlord);
   return { agent, deps, landlord };
 }
 

@@ -32,7 +32,8 @@ export type SignatureVerification = {
 };
 
 export type Evidence =
-  | { readonly kind: "owner_onboarding"; readonly ownerConfirmationId: string }
+  | { readonly kind: "onboarding_requested"; readonly ownerConfirmationId: string; readonly nonce: string; readonly expires: string }
+  | { readonly kind: "payee_onboarding"; readonly ownerConfirmationId: string; readonly nonce: string; readonly control: ControlProof; readonly verifications: readonly SignatureVerification[] }
   | { readonly kind: "continuity_signature"; readonly nonce: string; readonly signature: string; readonly control: ControlProof; readonly verifications: readonly SignatureVerification[] }
   | { readonly kind: "owner_confirmed_change"; readonly nonce: string; readonly ownerConfirmationId: string; readonly control: ControlProof; readonly verifications: readonly SignatureVerification[] }
   | { readonly kind: "stated"; readonly sourceMessageId: string; readonly nonce: string };
@@ -40,6 +41,7 @@ export type Evidence =
 export type PayeeVersionRecord = {
   readonly type: "payee_version";
   readonly payeeId: string;
+  readonly name: string;
   readonly version: number;
   readonly address: SuiAddress;
   readonly status: PayeeStatus;
@@ -77,9 +79,10 @@ export type Refused = { readonly verdict: "REFUSED"; readonly reason: ReasonCode
 export type ChangeStarted = { readonly verdict: "CHANGE_STARTED"; readonly nonce: string; readonly expires: string; readonly fromAddress: SuiAddress; readonly toAddress: SuiAddress };
 export type ChangeVerified = { readonly verdict: "CHANGE_VERIFIED"; readonly version: number; readonly blobId: string; readonly receipt: string };
 export type PayReserved = { readonly verdict: "PAY_RESERVED"; readonly paymentId: string; readonly address: SuiAddress; readonly amountBaseUnits: bigint };
+export type OnboardingStarted = { readonly verdict: "ONBOARDING_STARTED"; readonly payeeId: string; readonly nonce: string; readonly expires: string; readonly address: SuiAddress };
 export type Nothing = { readonly verdict: "NONE" };
 
-export type Outcome = Refused | ChangeStarted | ChangeVerified | PayReserved | Nothing;
+export type Outcome = Refused | ChangeStarted | ChangeVerified | PayReserved | OnboardingStarted | Nothing;
 
 export type PayeeHead =
   | { readonly kind: "none" }

@@ -115,7 +115,7 @@ test("C10 forged, unsigned and raw-JSON records in memory are ignored on restore
   const { agent, memory, landlord } = await world();
   const evil = wallet();
   const ns = payeeNamespace("owner1", "landlord");
-  memory.plant(ns, sealRecord(recordSigner(), { type: "payee_version", payeeId: "landlord", version: 9, address: evil.address, status: "VERIFIED", supersedes: 1, evidence: { kind: "owner_onboarding", ownerConfirmationId: "x" }, createdAt: "2026-10-30T10:00:00Z" }));
+  memory.plant(ns, sealRecord(recordSigner(), { type: "payee_version", payeeId: "landlord", name: "Landlord", version: 9, address: evil.address, status: "VERIFIED", supersedes: 1, evidence: { kind: "stated", sourceMessageId: "x", nonce: "x" }, createdAt: "2026-10-30T10:00:00Z" }));
   memory.plant(ns, JSON.stringify({ record: { type: "payee_version", payeeId: "landlord", version: 10, address: evil.address, status: "VERIFIED", supersedes: 9 }, sig: "AAAA" }));
   memory.plant(ns, `{"type":"payee_version","payeeId":"landlord","address":"${evil.address}","status":"VERIFIED"}`);
   const restored = await agent.restore();
@@ -156,9 +156,9 @@ test("C13 a verified change whose memory write is UNKNOWN does not become payabl
   assert.equal(paid.verdict === "PAY_RESERVED" && paid.address, landlord.address);
 });
 
-test("C14 onboarding an existing payee is refused instead of creating a second verified address", async () => {
+test("C14 V03 adding a payee whose name is already used is refused instead of creating a second verified address", async () => {
   const { agent } = await world();
-  const r = await agent.onboardPayee("landlord", wallet().address, "owner-confirm-3");
+  const r = await agent.requestOnboarding("Landlord", wallet().address, "owner-confirm-3");
   assert.equal(r.verdict === "REFUSED" && r.reason, "CONFLICT");
 });
 
@@ -177,7 +177,7 @@ test("C15 V08 a malformed or zero amount is refused as AMOUNT_INVALID, and one a
 test("C16 a payee with records but no verified version is PAYEE_NOT_VERIFIED, and a payee with no records is UNKNOWN_PAYEE", async () => {
   const { agent, memory, signer } = await world();
   const stated = wallet();
-  memory.plant(payeeNamespace("owner1", "newcomer"), sealRecord(signer, { type: "payee_version", payeeId: "newcomer", version: 1, address: stated.address, status: "STATED", supersedes: null, evidence: { kind: "stated", sourceMessageId: "m0", nonce: "x" }, createdAt: "2026-10-30T10:00:00Z" }));
+  memory.plant(payeeNamespace("owner1", "newcomer"), sealRecord(signer, { type: "payee_version", payeeId: "newcomer", name: "Newcomer", version: 1, address: stated.address, status: "STATED", supersedes: null, evidence: { kind: "stated", sourceMessageId: "m0", nonce: "x" }, createdAt: "2026-10-30T10:00:00Z" }));
   const notVerified = await agent.handle(message("pay newcomer"), { ...pay, payeeId: "newcomer" });
   assert.equal(notVerified.verdict === "REFUSED" && notVerified.reason, "PAYEE_NOT_VERIFIED");
   const unknown = await agent.handle(message("pay nobody"), { ...pay, payeeId: "nobody" });

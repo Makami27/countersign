@@ -1,5 +1,5 @@
 import { DatabaseSync } from "node:sqlite";
-import { remembersAttack, type IndexStore, type PayeeVersionRecord, type PendingChange, type ReceiptRecord, type SuiAddress } from "@countersign/core";
+import { remembersAttack, type IndexStore, type PayeeVersionRecord, type PendingChange, type PendingOnboarding, type ReceiptRecord, type SuiAddress } from "@countersign/core";
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS payee_versions (
@@ -10,6 +10,9 @@ CREATE TABLE IF NOT EXISTS receipts (
   receipt TEXT PRIMARY KEY,
   verdict TEXT NOT NULL CHECK (verdict IN ('PAID','PAYMENT_FAILED','REFUSED','CHANGE_VERIFIED','CHANGE_REJECTED')),
   attack_address TEXT, record TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS pending_onboardings (
+  nonce TEXT PRIMARY KEY, payee_id TEXT NOT NULL, name TEXT NOT NULL, address TEXT NOT NULL,
+  expires TEXT NOT NULL, used INTEGER NOT NULL DEFAULT 0 CHECK (used IN (0,1)));
 CREATE TABLE IF NOT EXISTS pending_changes (
   nonce TEXT PRIMARY KEY, payee_id TEXT NOT NULL, from_address TEXT NOT NULL, to_address TEXT NOT NULL,
   expires TEXT NOT NULL, used INTEGER NOT NULL DEFAULT 0 CHECK (used IN (0,1)));
@@ -63,6 +66,20 @@ export class SqliteIndex implements IndexStore {
     const row = this.#db.prepare("SELECT * FROM pending_changes WHERE nonce = ? AND used = 0").get(nonce);
     if (!row) return null;
     return { nonce: String(row["nonce"]), payeeId: String(row["payee_id"]), fromAddress: String(row["from_address"]) as SuiAddress, toAddress: String(row["to_address"]) as SuiAddress, expires: String(row["expires"]) };
+  }
+
+  insertPendingOnboarding(onboarding: PendingOnboarding): void {
+    this.#db.prepare("INSERT INTO pending_onboardings (nonce, payee_id, name, address, expires) VALUES (?,?,?,?,?)").run(onboarding.nonce, onboarding.payeeId, onboarding.name, onboarding.address, onboarding.expires);
+  }
+
+  pendingOnboarding(nonce: string): PendingOnboarding | null {
+    const row = this.#db.prepare("SELECT * FROM pending_onboardings WHERE nonce = ? AND used = 0").get(nonce);
+    if (!row) return null;
+    return { nonce: String(row["nonce"]), payeeId: String(row["payee_id"]), name: String(row["name"]), address: String(row["address"]) as SuiAddress, expires: String(row["expires"]) };
+  }
+
+  consumePendingOnboarding(nonce: string): boolean {
+    return Number(this.#db.prepare("UPDATE pending_onboardings SET used = 1 WHERE nonce = ? AND used = 0").run(nonce).changes) === 1;
   }
 
   consumePendingChange(nonce: string): boolean {

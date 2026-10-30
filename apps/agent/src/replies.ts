@@ -50,6 +50,8 @@ export function replyFor(outcome: Outcome): string {
       const cites = outcome.cites ? ` Same as refusal ${outcome.cites}.` : "";
       return `Refused: ${info.message} ${info.nextAction}${cites} Receipt ${outcome.receipt}.`;
     }
+    case "ONBOARDING_STARTED":
+      return `Payee ${outcome.payeeId} added and waiting for the payee's wallet. Nothing can be paid to ${outcome.address} until that wallet signs. The signing link expires ${outcome.expires}.`;
     case "NONE":
       return "No payment or payee change found in that message. Nothing was changed.";
   }

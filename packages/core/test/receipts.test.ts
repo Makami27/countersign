@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { Countersign } from "../src/engine.ts";
 import { changeMessage } from "../src/changeMessage.ts";
 import { payeeNamespace, receiptsNamespace } from "../src/payeeBook.ts";
-import { sealRecord } from "../src/records.ts";
+import { canonicalJson, sealRecord } from "../src/records.ts";
 import type { Outcome, PayeeVersionRecord } from "../src/types.ts";
 import { ONE_USDC, lookalikeOf, message, wallet, world, type TestWallet } from "./fixtures.ts";
 
@@ -116,10 +116,14 @@ test("D13 a zkLogin-verified payee stays payable after the signature's maxEpoch,
   assert.equal(paid.verdict === "PAY_RESERVED" && paid.address, next.address);
 });
 
+function sealLegacy(signer: { sign(canonical: string): string }, record: Record<string, unknown>): string {
+  return JSON.stringify({ record, sig: signer.sign(canonicalJson(record)) });
+}
+
 test("restore skips old 'refusal' records left in memory instead of crashing or calling them forgeries", async () => {
   const { agent, memory, signer } = await world();
-  memory.plant(receiptsNamespace("owner1"), JSON.stringify({ record: { type: "refusal", receipt: "rcpt_old", reason: "LOOKALIKE_ADDRESS", ref: "m1", payeeId: "landlord", address: null, createdAt: "2026-10-29T10:00:00Z" }, sig: signer.sign("x") }));
-  memory.plant(payeeNamespace("owner1", "landlord"), sealRecord(signer, { type: "payee_version", payeeId: "landlord", version: 7, address: wallet().address, status: "STATED", supersedes: 1, evidence: { kind: "stated", sourceMessageId: "m1", nonce: "n" }, createdAt: "2026-10-29T10:00:00Z" }));
+  memory.plant(receiptsNamespace("owner1"), sealLegacy(signer, { type: "refusal", receipt: "rcpt_old", reason: "LOOKALIKE_ADDRESS", ref: "m1", payeeId: "landlord", address: null, createdAt: "2026-10-29T10:00:00Z" }));
+  memory.plant(payeeNamespace("owner1", "landlord"), sealRecord(signer, { type: "payee_version", payeeId: "landlord", name: "Landlord", version: 7, address: wallet().address, status: "STATED", supersedes: 1, evidence: { kind: "stated", sourceMessageId: "m1", nonce: "n" }, createdAt: "2026-10-29T10:00:00Z" }));
   const restored = await agent.restore();
   assert.deepEqual(restored.ok && { legacy: restored.legacy, ignored: restored.ignored }, { legacy: 1, ignored: 0 });
 });

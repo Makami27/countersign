@@ -54,10 +54,8 @@ say(`Restored ${restored.payees} payee namespace(s); ${restored.ignored} record(
 
 const head = engine.payeeHead(PAYEE_ID);
 if (head.kind !== "verified" || head.version.address !== payeeAddress) {
-  say(`Adding payee "${PAYEE_ID}" at ${payeeAddress}. Nothing has been paid. Writing the payee record and its receipt to Walrus Memory (about 40 seconds)…`);
-  const onboarded = await engine.onboardPayee(PAYEE_ID, payeeAddress, `act1-owner-${runId}`);
-  say(onboarded.verdict === "CHANGE_VERIFIED" ? `Payee "${PAYEE_ID}" verified (version ${onboarded.version}, blob ${onboarded.blobId}, receipt ${onboarded.receipt}).` : replyFor(onboarded));
-  if (onboarded.verdict !== "CHANGE_VERIFIED") process.exit(1);
+  say(`Payee "${PAYEE_ID}" is not verified at ${payeeAddress}. Nothing was sent. Add the payee in the owner app and have the payee sign on the signing page first.`);
+  process.exit(1);
 } else say(`Payee "${PAYEE_ID}" is already verified at ${payeeAddress} (version ${head.version.version}).`);
 
 say(`Owner: "${text}"`);
