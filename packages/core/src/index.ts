@@ -6,6 +6,7 @@ export * from "./records.ts";
 export * from "./payeeBook.ts";
 export * from "./changeMessage.ts";
 export * from "./engine.ts";
+export { payeeIdFor } from "./onboarding.ts";
 export * from "./receipts.ts";
 export * from "./memoryBook.ts";
 export type * from "./engineDeps.ts";

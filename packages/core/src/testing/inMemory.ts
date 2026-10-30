@@ -1,4 +1,4 @@
-import type { IndexStore, MemoryPort, MemoryRead, MemoryWrite, PaymentLedger, PendingChange, StoredText } from "../ports.ts";
+import type { IndexStore, MemoryPort, MemoryRead, MemoryWrite, PaymentLedger, PendingChange, PendingOnboarding, StoredText } from "../ports.ts";
 import { remembersAttack } from "../receipts.ts";
 import { statesThatMayMoveTo, type NewPaymentIntent, type PaymentIntent, type PaymentMove } from "../payments.ts";
 import type { PayeeVersionRecord, ReceiptRecord, SuiAddress } from "../types.ts";
@@ -41,6 +41,7 @@ export class InMemoryIndex implements IndexStore {
   #versions: PayeeVersionRecord[] = [];
   #receipts: ReceiptRecord[] = [];
   readonly #pending = new Map<string, { change: PendingChange; used: boolean }>();
+  readonly #onboardings = new Map<string, { onboarding: PendingOnboarding; used: boolean }>();
 
   putPayeeVersion(record: PayeeVersionRecord): void {
     this.#versions = [...this.#versions.filter((v) => !(v.payeeId === record.payeeId && v.version === record.version)), record];
@@ -72,6 +73,19 @@ export class InMemoryIndex implements IndexStore {
   }
   consumePendingChange(nonce: string): boolean {
     const entry = this.#pending.get(nonce);
+    if (!entry || entry.used) return false;
+    entry.used = true;
+    return true;
+  }
+  insertPendingOnboarding(onboarding: PendingOnboarding): void {
+    this.#onboardings.set(onboarding.nonce, { onboarding, used: false });
+  }
+  pendingOnboarding(nonce: string): PendingOnboarding | null {
+    const entry = this.#onboardings.get(nonce);
+    return entry && !entry.used ? entry.onboarding : null;
+  }
+  consumePendingOnboarding(nonce: string): boolean {
+    const entry = this.#onboardings.get(nonce);
     if (!entry || entry.used) return false;
     entry.used = true;
     return true;

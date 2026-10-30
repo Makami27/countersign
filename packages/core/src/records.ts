@@ -26,10 +26,17 @@ export function openRecord(signer: RecordSigner, text: string): OpenedRecord {
   } catch {
     return { ok: false, why: "NOT_JSON" };
   }
+  if (!isSignedObject(parsed)) return { ok: false, why: "NOT_ENVELOPE" };
+  if (!signer.verify(canonicalJson(parsed.record), parsed.sig)) return { ok: false, why: "BAD_SIGNATURE" };
   if (isLegacyRefusal(parsed)) return { ok: false, why: "LEGACY_RECORD" };
   if (!isEnvelopeShape(parsed)) return { ok: false, why: "NOT_ENVELOPE" };
-  if (!signer.verify(canonicalJson(parsed.record), parsed.sig)) return { ok: false, why: "BAD_SIGNATURE" };
   return { ok: true, record: parsed.record };
+}
+
+function isSignedObject(value: unknown): value is { record: object; sig: string } {
+  if (value === null || typeof value !== "object") return false;
+  const candidate = value as { record?: unknown; sig?: unknown };
+  return typeof candidate.sig === "string" && candidate.record !== null && typeof candidate.record === "object";
 }
 
 function isEnvelopeShape(value: unknown): value is Envelope {
@@ -43,5 +50,8 @@ function isEnvelopeShape(value: unknown): value is Envelope {
 function isLegacyRefusal(value: unknown): boolean {
   if (value === null || typeof value !== "object") return false;
   const record = (value as { record?: unknown }).record;
-  return record !== null && typeof record === "object" && (record as { type?: unknown }).type === "refusal";
+  if (record === null || typeof record !== "object") return false;
+  const shaped = record as { type?: unknown; name?: unknown; evidence?: { kind?: unknown } };
+  if (shaped.type === "refusal") return true;
+  return shaped.type === "payee_version" && (typeof shaped.name !== "string" || shaped.evidence?.kind === "owner_onboarding");
 }

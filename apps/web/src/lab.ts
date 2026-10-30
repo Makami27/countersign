@@ -1,5 +1,5 @@
 import { createHash, generateKeyPairSync, randomBytes, sign, verify, type KeyObject } from "node:crypto";
-import { isRefusal, Countersign, InMemoryIndex, InMemoryMemory, InMemoryPaymentLedger, addressesIn, changeMessage, headOf, type Outcome, type PayeeVersionRecord, type ReceiptRecord, type SignatureCheck, type SuiAddress } from "@countersign/core";
+import { isRefusal, Countersign, InMemoryIndex, InMemoryMemory, InMemoryPaymentLedger, addressesIn, changeMessage, headOf, onboardingMessage, type Outcome, type PayeeVersionRecord, type ReceiptRecord, type SignatureCheck, type SuiAddress } from "@countersign/core";
 import { traceFor, type TraceStep } from "./trace.ts";
 
 export const LAB_PAYEES = [
@@ -77,6 +77,9 @@ class LabSession {
         insertPendingChange: (c) => index.insertPendingChange(c),
         pendingChange: (n) => index.pendingChange(n),
         consumePendingChange: (n) => index.consumePendingChange(n),
+        insertPendingOnboarding: (o) => index.insertPendingOnboarding(o),
+        pendingOnboarding: (n) => index.pendingOnboarding(n),
+        consumePendingOnboarding: (n) => index.consumePendingOnboarding(n),
         clearIndex: () => index.clearIndex(),
       },
       payments: new InMemoryPaymentLedger(),
@@ -100,7 +103,10 @@ class LabSession {
       const wallet = newWallet();
       this.wallets.set(wallet.address, wallet);
       this.current.set(payee.id, wallet);
-      await this.engine.onboardPayee(payee.id, wallet.address, `lab-owner-${payee.id}`);
+      const started = await this.engine.requestOnboarding(payee.name, wallet.address, `lab-owner-${payee.id}`);
+      if (started.verdict !== "ONBOARDING_STARTED") throw new Error(`lab payee ${payee.id} could not start onboarding`);
+      const signed = onboardingMessage({ nonce: started.nonce, payeeId: started.payeeId, name: payee.name, address: started.address, expires: started.expires });
+      await this.engine.completeOnboarding(started.nonce, { kind: "signature", signature: sign(null, Buffer.from(signed), wallet.key).toString("base64") });
     }
   }
 

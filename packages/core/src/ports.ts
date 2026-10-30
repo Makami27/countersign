@@ -34,6 +34,14 @@ export type PendingChange = {
   readonly expires: string;
 };
 
+export type PendingOnboarding = {
+  readonly nonce: string;
+  readonly payeeId: string;
+  readonly name: string;
+  readonly address: SuiAddress;
+  readonly expires: string;
+};
+
 export interface IndexStore {
   putPayeeVersion(record: PayeeVersionRecord): void;
   payeeVersions(payeeId: string): readonly PayeeVersionRecord[];
@@ -45,6 +53,9 @@ export interface IndexStore {
   insertPendingChange(change: PendingChange): void;
   pendingChange(nonce: string): PendingChange | null;
   consumePendingChange(nonce: string): boolean;
+  insertPendingOnboarding(onboarding: PendingOnboarding): void;
+  pendingOnboarding(nonce: string): PendingOnboarding | null;
+  consumePendingOnboarding(nonce: string): boolean;
   clearIndex(): void;
 }
 

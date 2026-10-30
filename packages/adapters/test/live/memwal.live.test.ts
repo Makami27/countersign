@@ -33,8 +33,8 @@ test("V18 D9 agent-signed records written to Walrus Memory come back complete th
   const signer = recordSignerFromSeed(randomBytes(32).toString("base64"));
   const writer = new MemWalMemory(config);
   const records: PayeeVersionRecord[] = Array.from({ length: RECORDS }, (_, i) => ({
-    type: "payee_version", payeeId: "live", version: i + 1, address: testAddress(), status: i === 0 ? "VERIFIED" : "STATED",
-    supersedes: i === 0 ? null : 1, evidence: { kind: "owner_onboarding", ownerConfirmationId: `live-test-${runId}` }, createdAt: new Date().toISOString(),
+    type: "payee_version", payeeId: "live", name: "Live test", version: i + 1, address: testAddress(), status: i === 0 ? "VERIFIED" : "STATED",
+    supersedes: i === 0 ? null : 1, evidence: { kind: "onboarding_requested", ownerConfirmationId: `live-test-${runId}`, nonce: `${runId}-${i}`, expires: new Date().toISOString() }, createdAt: new Date().toISOString(),
   }));
   const texts = records.map((record) => sealRecord(signer, record));
   const writes: { key: string; blobId: string; ms: number }[] = [];

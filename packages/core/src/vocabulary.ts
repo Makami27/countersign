@@ -1,6 +1,7 @@
 export const REASON_CODES = [
   "PAYEE_NOT_VERIFIED",
   "UNKNOWN_PAYEE",
+  "NAME_INVALID",
   "ADDRESS_NOT_IN_MESSAGE",
   "LOOKALIKE_ADDRESS",
   "CONFLICT",
@@ -31,6 +32,7 @@ export type ReasonInfo = {
 
 export const REASONS = {
   PAYEE_NOT_VERIFIED: { message: "This payee has no verified address.", retryable: false, nextAction: "Nothing was sent. Verify the payee in the owner app." },
+  NAME_INVALID: { message: "The payee name is empty, too long, or has no letters or digits.", retryable: false, nextAction: "Nothing was added. Use a short name such as Flat 4B rent." },
   UNKNOWN_PAYEE: { message: "No single payee matches that name.", retryable: false, nextAction: "Nothing was sent. Use the exact payee name." },
   ADDRESS_NOT_IN_MESSAGE: { message: "The proposed address does not appear in the message.", retryable: false, nextAction: "Nothing was changed." },
   LOOKALIKE_ADDRESS: { message: "The new address imitates a known address.", retryable: false, nextAction: "Nothing was changed. Confirm the address with the payee directly." },
@@ -52,7 +54,7 @@ export const REASONS = {
   PAYMENT_EXPIRED: { message: "The transfer never reached the chain and can no longer execute.", retryable: true, nextAction: "No USDC moved. Ask again." },
 } as const satisfies Record<ReasonCode, ReasonInfo>;
 
-export const VERDICTS = ["PAY_RESERVED", "REFUSED", "CHANGE_STARTED", "CHANGE_VERIFIED", "NONE"] as const;
+export const VERDICTS = ["PAY_RESERVED", "REFUSED", "CHANGE_STARTED", "CHANGE_VERIFIED", "ONBOARDING_STARTED", "NONE"] as const;
 export type VerdictCode = (typeof VERDICTS)[number];
 
 export const PAYEE_STATUSES = ["VERIFIED", "STATED", "REVOKED"] as const;
