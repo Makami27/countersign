@@ -1,0 +1,137 @@
+{
+  "runId": "2026-10-30T20-46-45-854Z",
+  "network": "mainnet",
+  "sdk": "@mysten/sui 2.37.0, memwal 0.1.12",
+  "results": [
+    {
+      "id": "S1",
+      "claim": "Tatum Sui mainnet GraphQL answers with x-api-key; JSON-RPC on / may 404",
+      "outcome": "CONFIRMED",
+      "observed": {
+        "outcome": "CONFIRMED",
+        "graphql": {
+          "status": 200,
+          "body": {
+            "data": {
+              "chainIdentifier": "4btiuiMPvEENsttpZC7CZ53DruC3MAgfznDbASZ7DR6S"
+            }
+          }
+        },
+        "methodsStatus": 200,
+        "methodsBody": "{\"sui-mainnet-graphql\":{\"url\":\"https://sui-mainnet.gateway.tatum.io/graphql\",\"protocol\":\"GraphQL\",\"methods\":[\"mutation\",\"query\"]}}",
+        "jsonRpcStatus": 404,
+        "jsonRpcBody": "{\"statusCode\": 404, \"message\": \"Not Found\"}"
+      },
+      "ms": 908
+    },
+    {
+      "id": "S5",
+      "claim": "Tatum gRPC (native, not grpc-web) answers LedgerService.GetServiceInfo with x-api-key metadata",
+      "outcome": "ERROR",
+      "error": "TypeError: Do not know how to serialize a BigInt\n    at JSON.stringify (<anonymous>)\n    at redact (file:///C:/Users/Administrator/Downloads/total-recall/spikes/run.mjs:34:55)\n    at spike (file:///C:/Users/Administrator/Downloads/total-recall/spikes/run.mjs:45:79)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///C:/Users/Administrator/Downloads/total-recall/spikes/run.mjs:86:1",
+      "ms": 642
+    },
+    {
+      "id": "S6",
+      "claim": "Tatum GraphQL serves transactions(filter:{affectedAddress}) with balanceChanges; report retention window",
+      "outcome": "CONFIRMED",
+      "observed": {
+        "outcome": "CONFIRMED",
+        "config": {
+          "status": 200,
+          "body": {
+            "data": {
+              "serviceConfig": {
+                "maxPageSize": 50,
+                "availableRange": {
+                  "first": {
+                    "sequenceNumber": 305685174
+                  },
+                  "last": {
+                    "sequenceNumber": 339900133
+                  }
+                }
+              }
+            }
+          }
+        },
+        "history": {
+          "status": 200,
+          "body": {
+            "data": {
+              "transactions": {
+                "nodes": []
+              }
+            }
+          }
+        }
+      },
+      "ms": 305
+    },
+    {
+      "id": "S10",
+      "claim": "Tatum gRPC SignatureVerificationService verifies a Sui PersonalMessage and enforces the address",
+      "outcome": "ERROR",
+      "error": "RpcError: Received HTTP status code 429\n    at Object.callback (C:\\Users\\Administrator\\Downloads\\total-recall\\node_modules\\.pnpm\\@protobuf-ts+grpc-transport@2.11.1_@grpc+grpc-js@1.13.6\\node_modules\\@protobuf-ts\\grpc-transport\\build\\commonjs\\grpc-transport.js:37:27)\n    at Object.onReceiveStatus (C:\\Users\\Administrator\\Downloads\\total-recall\\node_modules\\.pnpm\\@grpc+grpc-js@1.13.6\\node_modules\\@grpc\\grpc-js\\build\\src\\client.js:193:36)\n    at Object.onReceiveStatus (C:\\Users\\Administrator\\Downloads\\total-recall\\node_modules\\.pnpm\\@grpc+grpc-js@1.13.6\\node_modules\\@grpc\\grpc-js\\build\\src\\client-interceptors.js:361:141)\n    at Object.onReceiveStatus (C:\\Users\\Administrator\\Downloads\\total-recall\\node_modules\\.pnpm\\@grpc+grpc-js@1.13.6\\node_modules\\@grpc\\grpc-js\\build\\src\\client-interceptors.js:324:181)\n    at C:\\Users\\Administrator\\Downloads\\total-recall\\node_modules\\.pnpm\\@grpc+grpc-js@1.13.6\\node_modules\\@grpc\\grpc-js\\build\\src\\resolving-call.js:135:78\n    at process.processTicksAndRejections (node:internal/process/task_queues:85:11)",
+      "ms": 292
+    },
+    {
+      "id": "S2",
+      "claim": "rememberAndWait returns a blob id on mainnet; record write latency (labelled spike data, separate namespace)",
+      "outcome": "CONFIRMED",
+      "observed": {
+        "outcome": "CONFIRMED",
+        "namespace": "countersign-spike-2026-10-30T20-46-45-854Z",
+        "timings": [
+          {
+            "i": 1,
+            "ms": 23252,
+            "written": {
+              "id": "a1646b56-678d-46dc-969e-ea8d96c81ee7",
+              "job_id": "a1646b56-678d-46dc-969e-ea8d96c81ee7",
+              "blob_id": "ocbw7I8Wplxcw_FA5Dgv2FIONKSs39mbi7sTsWkSyGQ",
+              "owner": "0x9abcce49798768ae1f3feee8d4a37a33909de0c3756971b40e65dfc2145ef9ba",
+              "namespace": "countersign-spike-2026-10-30T20-46-45-854Z"
+            }
+          },
+          {
+            "i": 2,
+            "ms": 20336,
+            "written": {
+              "id": "16a6e68f-d83e-487d-9870-c511a2dbcd26",
+              "job_id": "16a6e68f-d83e-487d-9870-c511a2dbcd26",
+              "blob_id": "Ss1ioTQLOwDveVF-eYg5Pytt_iEPwAHRUcgEPTnP5Hk",
+              "owner": "0x9abcce49798768ae1f3feee8d4a37a33909de0c3756971b40e65dfc2145ef9ba",
+              "namespace": "countersign-spike-2026-10-30T20-46-45-854Z"
+            }
+          },
+          {
+            "i": 3,
+            "ms": 20642,
+            "written": {
+              "id": "b8f51bbe-fc6b-47e4-a272-0e60ec78d452",
+              "job_id": "b8f51bbe-fc6b-47e4-a272-0e60ec78d452",
+              "blob_id": "jPGEBeBPZxdJvwSKQ0tojbxwAg-cGI4Mi2oxkJyZ4SQ",
+              "owner": "0x9abcce49798768ae1f3feee8d4a37a33909de0c3756971b40e65dfc2145ef9ba",
+              "namespace": "countersign-spike-2026-10-30T20-46-45-854Z"
+            }
+          }
+        ]
+      },
+      "ms": 64230
+    },
+    {
+      "id": "S12",
+      "claim": "recall(topK 100, no maxDistance) returns every record in a small namespace; count matches listMemories",
+      "outcome": "CONFIRMED",
+      "observed": {
+        "outcome": "CONFIRMED",
+        "recalledCount": 3,
+        "listedCount": 3,
+        "droppedCount": 0,
+        "sampleEndEpoch": null
+      },
+      "ms": 3457
+    }
+  ]
+}

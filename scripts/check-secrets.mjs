@@ -20,6 +20,7 @@ const PUBLIC_CONFIG_KEYS = new Set([
   "DATABASE_PATH",
   "PROOF_DATABASE_PATH",
   "WEB_PORT",
+  "WALLET_B_ADDRESS",
 ]);
 
 const envSecrets = ENV_FILES.filter((file) => existsSync(file)).flatMap((file) =>

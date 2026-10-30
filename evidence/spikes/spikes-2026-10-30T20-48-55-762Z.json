@@ -1,0 +1,97 @@
+{
+  "runId": "2026-10-30T20-48-55-762Z",
+  "network": "mainnet",
+  "sdk": "@mysten/sui 2.37.0, memwal 0.1.12",
+  "results": [
+    {
+      "id": "S5",
+      "claim": "Tatum gRPC (native, not grpc-web) answers LedgerService.GetServiceInfo with x-api-key metadata",
+      "outcome": "CONFIRMED",
+      "observed": {
+        "outcome": "CONFIRMED",
+        "response": {
+          "chainId": "4btiuiMPvEENsttpZC7CZ53DruC3MAgfznDbASZ7DR6S",
+          "chain": "mainnet",
+          "epoch": "1296",
+          "checkpointHeight": "339900673",
+          "timestamp": {
+            "seconds": "1793393336",
+            "nanos": 739000000
+          },
+          "lowestAvailableCheckpoint": "237661232",
+          "lowestAvailableCheckpointObjects": "237661232",
+          "server": "sui-node/1.82.4-485613f749ed"
+        }
+      },
+      "ms": 694
+    },
+    {
+      "id": "S6",
+      "claim": "Tatum GraphQL serves transactions(filter:{affectedAddress}) with balanceChanges; report retention window",
+      "outcome": "CONFIRMED",
+      "observed": {
+        "outcome": "CONFIRMED",
+        "config": {
+          "status": 200,
+          "body": {
+            "data": {
+              "serviceConfig": {
+                "maxPageSize": 50,
+                "availableRange": {
+                  "first": {
+                    "sequenceNumber": 305685174
+                  },
+                  "last": {
+                    "sequenceNumber": 339900675
+                  }
+                }
+              }
+            }
+          }
+        },
+        "firstAt": "2026-08-01T22:28:34.435Z",
+        "lastAt": null,
+        "retentionDays": null,
+        "history": {
+          "status": 200,
+          "body": {
+            "data": {
+              "transactions": {
+                "nodes": []
+              }
+            }
+          }
+        },
+        "latestWithBalanceChanges": {
+          "status": 429,
+          "body": {
+            "statusCode": 429,
+            "message": "You have exceeded your limit of 3 requests per second. To increase this limit, upgrade to a Paid plan with 200 requests per second at https://co.tatum.io/upgrade"
+          }
+        }
+      },
+      "ms": 1264
+    },
+    {
+      "id": "S10",
+      "claim": "Tatum gRPC SignatureVerificationService verifies a Sui PersonalMessage and enforces the address",
+      "outcome": "CONFIRMED",
+      "observed": {
+        "outcome": "CONFIRMED",
+        "good": {
+          "isValid": true
+        },
+        "wrong": {
+          "isValid": false,
+          "reason": "provided address `0x68f21c9f3d876c7115d8bea271a6fdb53a139f97cae8bfc5bca45b88262b023b` does not match derived address `0xcafb4f22d7a1ad519fede051b5c36f37c74d4f16503c376e90cea6c4c8f02dcb`"
+        },
+        "tamperedMessage": {
+          "isValid": false,
+          "reason": "signature error: Verification equation was not satisfied"
+        },
+        "localSdkAgrees": true
+      },
+      "ms": 2470
+    }
+  ]
+}

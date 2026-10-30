@@ -4,7 +4,8 @@
   "type": "module",
   "scripts": {
     "spikes": "node --env-file=.env run.mjs",
-    "spikes:pay": "node --env-file=.env run.mjs --pay"
+    "spikes:pay": "node --env-file=.env run.mjs --pay",
+    "spikes:testnet": "node --env-file=../.env testnet.mjs"
   },
   "dependencies": {
     "@grpc/grpc-js": "1.13.6",

@@ -1,0 +1,98 @@
+{
+  "runId": "2026-10-30T20-47-21-329Z",
+  "network": "testnet",
+  "sdk": "@mysten/sui 2.37.0",
+  "results": [
+    {
+      "id": "T1",
+      "claim": "Tatum serves Sui testnet GraphQL at sui-testnet.gateway.tatum.io/graphql with the testnet key",
+      "outcome": "CONFIRMED",
+      "observed": {
+        "outcome": "CONFIRMED",
+        "graphql": {
+          "status": 200,
+          "body": {
+            "data": {
+              "chainIdentifier": "69WiPg3DAQiwdxfncX6wYQ2siKwAe6L9BZthQea3JNMD"
+            }
+          }
+        }
+      },
+      "ms": 821
+    },
+    {
+      "id": "T2",
+      "claim": "Tatum serves Sui testnet native gRPC with the testnet key",
+      "outcome": "ERROR",
+      "error": "TypeError: Do not know how to serialize a BigInt\n    at JSON.stringify (<anonymous>)\n    at redact (file:///C:/Users/Administrator/Downloads/total-recall/spikes/testnet.mjs:24:57)\n    at spike (file:///C:/Users/Administrator/Downloads/total-recall/spikes/testnet.mjs:32:79)\n    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at async file:///C:/Users/Administrator/Downloads/total-recall/spikes/testnet.mjs:59:1",
+      "ms": 711
+    },
+    {
+      "id": "T3",
+      "claim": "Agent wallet testnet holdings: SUI and USDC as address balance vs coin objects",
+      "outcome": "CONFIRMED",
+      "observed": {
+        "outcome": "CONFIRMED",
+        "agentAddress": "0x189c509d9d58f85f2f8b3549dd36ecb9ec937b9a1967b34d3d179d2193a78691",
+        "graphql": {
+          "status": 200,
+          "body": {
+            "data": {
+              "address": {
+                "balances": {
+                  "nodes": [
+                    {
+                      "coinType": {
+                        "repr": "0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI"
+                      },
+                      "totalBalance": "1000000000"
+                    },
+                    {
+                      "coinType": {
+                        "repr": "0xa1ec7fc00a6f40db9693ad1415d0c193ad3906494428cf252621037bd7117e29::usdc::USDC"
+                      },
+                      "totalBalance": "20000000"
+                    }
+                  ]
+                },
+                "objects": {
+                  "nodes": [
+                    {
+                      "address": "0x4a428155ea05384d0b3e864aa095a4bcf03fa2f3076aed5cfcddcf6759cb8d55",
+                      "contents": {
+                        "type": {
+                          "repr": "0x0000000000000000000000000000000000000000000000000000000000000002::coin::Coin<0xa1ec7fc00a6f40db9693ad1415d0c193ad3906494428cf252621037bd7117e29::usdc::USDC>"
+                        },
+                        "json": {
+                          "id": "0x4a428155ea05384d0b3e864aa095a4bcf03fa2f3076aed5cfcddcf6759cb8d55",
+                          "balance": "20000000"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        "grpcSui": {
+          "balance": {
+            "balance": "1000000000",
+            "coinType": "0x0000000000000000000000000000000000000000000000000000000000000002::sui::SUI",
+            "coinBalance": "0",
+            "addressBalance": "1000000000"
+          }
+        },
+        "grpcUsdc": {
+          "balance": {
+            "balance": "20000000",
+            "coinType": "0xa1ec7fc00a6f40db9693ad1415d0c193ad3906494428cf252621037bd7117e29::usdc::USDC",
+            "coinBalance": "20000000",
+            "addressBalance": "0"
+          }
+        }
+      },
+      "ms": 585
+    }
+  ]
+}
