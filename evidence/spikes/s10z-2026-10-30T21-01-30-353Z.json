@@ -1,0 +1,47 @@
+{
+  "runId": "2026-10-30T21-01-30-353Z",
+  "network": "mainnet and testnet via Tatum",
+  "sdk": "@mysten/sui 2.37.0",
+  "wallet": "Slush",
+  "address": "0x68f21c9f3d876c7115d8bea271a6fdb53a139f97cae8bfc5bca45b88262b023b",
+  "isWalletB": true,
+  "signature": {
+    "scheme": "ZkLogin",
+    "iss": "https://accounts.google.com",
+    "maxEpoch": "1298"
+  },
+  "message": "Countersign S10z spike\nrun:2026-10-30T21-01-30-353Z\nnonce:799e1cbe229332fe328345cb3e4cb426\nissued:2026-10-30T21:34:34.964Z\nThis signature moves no money.",
+  "signatureBase64": "BQNMMTAwMjkwNzgzMDA5OTc2MjUxNTk5Mzg2MDE5Mjg4MDgyOTUxMTQ3OTYxMDMzMjUyNzM1NzIwNjAwMzY5MTE1MTMxNzcyNzg0NTU2Mk0xNTkzNzQ5MjQzMjgwNjAyNzgzNTk2NzA3MTc5OTY3MjQ2MDQyMjU1NDAwMzQyMDU0NzkwMDgzMTY1NDYxNjk3Nzk5MDk2MjA4Nzc3MQExAwJNMTcxNzYwODUyNjE1MDgxNDAwNzM0NDg1Njk4ODAzOTAzNTA1ODI0NzUyOTQyNTEwNTY5MDE1NTA5ODkxMjc3MTQ2MjU1MDE3MDAyOTRNMTA2OTEyMjYwOTM2Nzc5Njk0NzEwNzM5OTk3NTMwODM0NDEwMDg3NzgxMjI2MzYyMzczNzA4NjQ5MjcxMjUyMjc0NjgxNDY2NTk5ODYCTDg0ODYzMTAwMTA4MTE1NzAwMjExOTM2MjMyNzIxNTk4MDgzMDE3MzU3NjA0MDY3MjYwMTUwNDY3NjcyNjU4NzM2NzY0MDA3NTM1MTBMNDQ1NzUxOTYzMzQ5OTYxNzcyOTIyNzIwNDA5NDM1Njg3MDAxODE3NjI5ODU0NDIyNjgwMDEwNjQ3Njk1NzkwODI1NTY5Mzg0NzA5OAIBMQEwA00xNjkyNDcwNDQ1MzAwMTkxMDkxMjQ2NjE2MzQzNTAyODQ0ODI2MjA2NjUyNTY0NjAyMTE2NTY5NzU3MDA0NTg4MDM1NDk3NTY0MzQxOEwyMTY4NTg0NTQzMzI4MTU5NTIzNTIwMTI4MzIyODc5MzM2MzA0NjYxMjA0MDgwMjYwOTY4OTEyODMwOTkwMDc0NDkxMjk4NjU1NDE0ATExeUpwYzNNaU9pSm9kSFJ3Y3pvdkwyRmpZMjkxYm5SekxtZHZiMmRzWlM1amIyMGlMQwFmZXlKaGJHY2lPaUpTVXpJMU5pSXNJbXRwWkNJNklqazBNMkV6WVRWa04yUTVNVGsyTWpWaE5EVTBaVFE0T1dJM05XTXlPV0ZrWVdJMU4yRmpZbUVpTENKMGVYQWlPaUpLVjFRaWZRTTIwMTc2MTczNDcyMzkyODI1ODI2NzU3Mjk4NjI3MDA2MDA4OTQwNTk2OTU4MzgxMzQwNDY5MTM1ODEyMTgzNjg0OTkyNTAwMzkwMjIzEgUAAAAAAABiAhzCOdZwlSynu/Kt0Tlwh0YrHHd3MGfa1S/XRTAtBriOAuFnkHhc0yicxyNAqEEV9VRypwU52xMpDV9x7josXQMCrnuZ6N0FcSN+sL32aWwhAz57cFchB6h2kF93io0E4Bk=",
+  "checks": {
+    "mainnetGateway": {
+      "result": "VALID",
+      "reason": null
+    },
+    "mainnetGatewayUnrelatedAddress": {
+      "result": "INVALID",
+      "reason": "provided address `0x1111111111111111111111111111111111111111111111111111111111111111` does not match derived address `0x68f21c9f3d876c7115d8bea271a6fdb53a139f97cae8bfc5bca45b88262b023b`"
+    },
+    "mainnetGatewayAlteredMessage": {
+      "result": "INVALID",
+      "reason": "signature error"
+    },
+    "mainnetSdkViaGrpc": {
+      "result": "VALID"
+    },
+    "mainnetSdkViaGraphql": {
+      "result": "VALID"
+    },
+    "testnetGateway": {
+      "result": "VALID",
+      "reason": null
+    },
+    "testnetSdkViaGraphql": {
+      "result": "VALID"
+    }
+  },
+  "currentEpochs": {
+    "mainnet": "1296",
+    "testnet": "1269"
+  },
+  "outcome": "CONFIRMED"
+}
