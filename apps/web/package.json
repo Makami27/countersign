@@ -1,0 +1,8 @@
+{
+  "name": "@countersign/web",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@countersign/core": "workspace:*"
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "suite": "F1 sui personal-message signatures (offline)",
+  "passed": 14,
+  "total": 14,
+  "results": [
+    {
+      "check": "V1 personal-message signature equals Mysten ts-sdks vector (keypair.test.ts)",
+      "passed": true,
+      "detail": "ADXvYCSZk+ZtVL6VfB4+5zso"
+    },
+    {
+      "check": "V2.1 suiprivkey \u2192 address equals Rust keytool vector",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "V2.2 suiprivkey \u2192 address equals Rust keytool vector",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "V2.3 suiprivkey \u2192 address equals Rust keytool vector",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "V3 verify accepts the Mysten vector signature for its signer",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "C05a continuity: old payee's signature over the change verifies",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "C06 attacker signing the change with own key fails continuity (SIGNER_MISMATCH)",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "C06b attacker can prove control of own address (so control alone must never verify)",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "C07a old payee's signature does not transfer to a tampered 'to' address",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "C07b signature bound to payee id: reuse for another payee fails",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "C07c signature bound to expiry: extending expiry fails",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "C07d intent separation: raw ed25519 signature over the message (no intent) is rejected",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "C07e non-ed25519 flag is UNSUPPORTED, never VALID",
+      "passed": true,
+      "detail": ""
+    },
+    {
+      "check": "C05b control: new payee proves control of new address",
+      "passed": true,
+      "detail": ""
+    }
+  ]
+}

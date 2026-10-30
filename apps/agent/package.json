@@ -1,0 +1,11 @@
+{
+  "name": "@countersign/agent",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@countersign/adapters": "workspace:*",
+    "@countersign/core": "workspace:*",
+    "@mysten/sui": "2.37.0",
+    "grammy": "1.46.0"
+  }
+}

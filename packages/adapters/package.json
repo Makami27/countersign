@@ -1,0 +1,21 @@
+{
+  "name": "@countersign/adapters",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./sqlite": "./src/sqlite/indexStore.ts",
+    "./memwal": "./src/memwal/memory.ts",
+    "./tatum": "./src/tatum/index.ts",
+    "./gemini": "./src/gemini/extract.ts",
+    "./signer": "./src/signer.ts"
+  },
+  "dependencies": {
+    "@countersign/core": "workspace:*",
+    "@grpc/grpc-js": "1.13.6",
+    "@mysten-incubation/memwal": "0.1.12",
+    "@mysten/seal": "1.4.19",
+    "@mysten/sui": "2.37.0",
+    "@mysten/walrus": "1.2.34",
+    "@protobuf-ts/grpc-transport": "2.11.1"
+  }
+}

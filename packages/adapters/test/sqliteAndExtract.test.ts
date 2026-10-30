@@ -1,0 +1,60 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { randomBytes } from "node:crypto";
+import { Countersign, InMemoryMemory, changeMessage } from "@countersign/core";
+import { SqliteIndex } from "../src/sqlite/indexStore.ts";
+import { toProposal } from "../src/gemini/extract.ts";
+import { recordSignerFromSeed } from "../src/signer.ts";
+import { FixedClock, StandInVerifier, wallet, message, ONE_USDC } from "../../core/test/fixtures.ts";
+
+async function sqliteWorld() {
+  const memory = new InMemoryMemory();
+  const index = new SqliteIndex(":memory:");
+  const deps = {
+    ownerId: "owner1", memory, index, signer: recordSignerFromSeed(randomBytes(32).toString("base64")), signatures: new StandInVerifier(),
+    roundTrips: { check: async () => "NOT_PROVEN" as const }, clock: new FixedClock("2026-10-30T10:00:00Z"),
+    nonces: { next: () => randomBytes(8).toString("hex") }, caps: { perPaymentBaseUnits: 50_000_000n, perDayBaseUnits: 100_000_000n }, cooldownMs: 1000,
+  };
+  const agent = new Countersign(deps);
+  const landlord = wallet();
+  await agent.onboardPayee("landlord", landlord.address, "c1");
+  return { agent, deps, landlord };
+}
+
+test("S01 SQLite index: verified change, replay refusal and daily cap behave as with the in-memory index", async () => {
+  const { agent, landlord } = await sqliteWorld();
+  const next = wallet();
+  const s = await agent.handle(message(`wallet ${next.address}`), { kind: "change_address", payeeId: "landlord", newAddress: next.address, reasonQuote: "wallet" });
+  assert.equal(s.verdict, "CHANGE_STARTED");
+  if (s.verdict !== "CHANGE_STARTED") return;
+  const text = changeMessage({ nonce: s.nonce, payeeId: "landlord", fromAddress: s.fromAddress, toAddress: s.toAddress, expires: s.expires });
+  const proofs = [{ kind: "signature", signature: landlord.sign(text) }, { kind: "signature", signature: next.sign(text) }] as const;
+  assert.equal((await agent.completeChange(s.nonce, ...proofs)).verdict, "CHANGE_VERIFIED");
+  const replay = await agent.completeChange(s.nonce, ...proofs);
+  assert.equal(replay.verdict === "REFUSED" && replay.reason, "NONCE_REUSED");
+  const results = await Promise.all(Array.from({ length: 10 }, () => agent.handle(message("pay"), { kind: "pay", payeeId: "landlord", amountBaseUnits: "30000000", reasonQuote: "pay" })));
+  assert.equal(results.filter((r) => r.verdict === "PAY_RESERVED").length, 3);
+});
+
+test("S02 SQLite index rebuilt from memory after a wipe gives the same payable address", async () => {
+  const { agent, deps, landlord } = await sqliteWorld();
+  deps.index.clearIndex();
+  assert.equal((await new Countersign(deps).restore()).ok, true);
+  const paid = await agent.handle(message("pay rent"), { kind: "pay", payeeId: "landlord", amountBaseUnits: ONE_USDC, reasonQuote: "pay rent" });
+  assert.equal(paid.verdict === "PAY_RESERVED" && paid.address, landlord.address);
+});
+
+test("X01 extraction keeps only proposals whose quote appears verbatim and whose payee is known", () => {
+  const text = "Landlord here, my new wallet is 0xabc, pay there";
+  assert.deepEqual(toProposal({ kind: "change_address", payeeId: "landlord", newAddress: "0xabc", reasonQuote: "my new wallet is 0xabc" }, text, ["landlord"]).kind, "change_address");
+  assert.equal(toProposal({ kind: "change_address", payeeId: "landlord", newAddress: "0xabc", reasonQuote: "my landlord confirmed" }, text, ["landlord"]).kind, "none");
+  assert.equal(toProposal({ kind: "change_address", payeeId: "mallory", newAddress: "0xabc", reasonQuote: "my new wallet is 0xabc" }, text, ["landlord"]).kind, "none");
+  assert.equal(toProposal({ kind: "pay", payeeId: "landlord", amountBaseUnits: "1.5", reasonQuote: "pay there" }, text, ["landlord"]).kind, "none");
+  assert.equal(toProposal({ kind: "pay", payeeId: "landlord", amountBaseUnits: "1000000", reasonQuote: "pay there", status: "VERIFIED" }, text, ["landlord"]).kind, "pay");
+  assert.equal(toProposal("not an object", text, ["landlord"]).kind, "none");
+});
+
+test("X02 the proposal type has no field that can set a status or a cap", () => {
+  const p = toProposal({ kind: "pay", payeeId: "landlord", amountBaseUnits: "1", reasonQuote: "pay", status: "VERIFIED", cap: "999" }, "pay", ["landlord"]);
+  assert.deepEqual(Object.keys(p).sort(), ["amountBaseUnits", "kind", "payeeId", "reasonQuote"]);
+});

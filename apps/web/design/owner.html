@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Countersign: payees</title>
+  <link rel="stylesheet" href="screens.css">
+  <script type="module" src="addr.js"></script>
+</head>
+<body>
+  <header class="bar">
+    <a class="wordmark" href="#"><svg viewBox="0 0 40 24" aria-hidden="true"><path d="M2 17c5-1 7-13 11-12s-4 14 1 13 5-9 8-9-1 8 2 8 6-6 9-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M2 21h36" stroke="currentColor" stroke-width="1"/></svg>Countersign</a>
+    <nav aria-label="Owner">
+      <a href="#" aria-current="page">Payees</a>
+      <a href="#">Activity</a>
+      <a href="#">Settings</a>
+    </nav>
+  </header>
+
+  <div class="owner">
+    <section class="list" aria-labelledby="payees-title">
+      <h1 id="payees-title">Payees</h1>
+      <p class="sub">Your agent can only pay addresses marked verified.</p>
+      <a class="cheque" href="#" aria-current="true">
+        <span class="name">Hollow Oak Supplies <span class="status refused">Attempt refused</span></span>
+        <span data-addr="0x91ac3f0e7b2d4c18a9e05f6b3d71c2e48f0a9b6d5c3e2f1a0b9c8d7e6f5a77e0" data-short></span>
+        <span class="meta">Still paying the verified address. 1 refusal today.</span>
+      </a>
+      <a class="cheque" href="#">
+        <span class="name">Mara Lindqvist, design <span class="status stated">Change waiting for proof</span></span>
+        <span data-addr="0x4d0e9a7c21b85f3e6a0d9c4b72e1f8a35c6d0b9e4f2a71c8d3e5b0a96f1c2e88" data-short></span>
+        <span class="meta">New address requested 2 h ago, not payable yet</span>
+      </a>
+      <a class="cheque" href="#">
+        <span class="name">Flat 4B rent <span class="status verified">Verified</span></span>
+        <span data-addr="0xb7e2c05a9d3f41e86c2b0a7d95f3e1c48a6d2b0f9e7c3a5d1b8f0e2c4a6d9310" data-short></span>
+        <span class="meta">Last paid 0.10 USDC on 1 Oct</span>
+      </a>
+      <div class="actions"><a class="btn" href="#">Add a payee</a></div>
+    </section>
+
+    <section class="detail" aria-labelledby="payee-title">
+      <header>
+        <h2 id="payee-title">Hollow Oak Supplies</h2>
+        <p class="lede">Payments go to the address below. Nothing anyone sends the agent can change that without proof.</p>
+      </header>
+
+      <div class="payto">
+        <span class="label">Pays to</span>
+        <span data-addr="0x91ac3f0e7b2d4c18a9e05f6b3d71c2e48f0a9b6d5c3e2f1a0b9c8d7e6f5a77e0"></span>
+        <div class="countersig">
+          <svg viewBox="0 0 60 20" aria-hidden="true"><path d="M2 14c6-1 8-11 13-10s-5 12 1 11 6-8 9-8-1 7 3 7 7-5 11-5 5 4 9 3" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          <span>Verified by you on 12 Oct, after the payee's wallet proved control</span>
+          <span class="status verified">Verified</span>
+        </div>
+      </div>
+
+      <article class="attempt" aria-labelledby="attempt-title">
+        <div class="attempt-head"><h3 id="attempt-title">Change refused at 09:42</h3><div class="stamp" aria-hidden="true">VOID</div></div>
+        <p class="money">Nothing was sent and nothing was changed.</p>
+        <p>An email forwarded to the agent asked it to pay a new address. The address copies the first and last four characters of the real one and changes everything in between.</p>
+        <div class="compare">
+          <div class="row"><span class="who">Address in the email</span><span data-addr="0x91ac08d2e6f15a3b9c0e7d4f2b81c6a9e0f35d72b1c84a6e9f03d2b75c1877e0" data-against="0x91ac3f0e7b2d4c18a9e05f6b3d71c2e48f0a9b6d5c3e2f1a0b9c8d7e6f5a77e0"></span></div>
+          <div class="row"><span class="who">Verified address</span><span data-addr="0x91ac3f0e7b2d4c18a9e05f6b3d71c2e48f0a9b6d5c3e2f1a0b9c8d7e6f5a77e0"></span></div>
+        </div>
+        <div class="links"><a href="receipt.html">Receipt rcpt_1d66acf</a><a href="#">Stored on Walrus Memory</a><a href="#">Why look-alikes are refused</a></div>
+      </article>
+
+      <section class="history" aria-labelledby="history-title">
+        <h3 id="history-title">Address history</h3>
+        <ol>
+          <li><span class="v">v1</span><span class="what"><span data-addr="0x91ac3f0e7b2d4c18a9e05f6b3d71c2e48f0a9b6d5c3e2f1a0b9c8d7e6f5a77e0" data-short></span><span class="why">Added by you on 12 Oct. Wallet proved control by signature.</span></span></li>
+          <li class="refused-row"><span class="v">Refused</span><span class="what"><span data-addr="0x91ac08d2e6f15a3b9c0e7d4f2b81c6a9e0f35d72b1c84a6e9f03d2b75c1877e0" data-short></span><span class="why">Refused today: imitates the verified address. Kept on record so a repeat is refused instantly.</span></span></li>
+        </ol>
+      </section>
+
+      <div class="actions sticky">
+        <a class="btn primary" href="#">Pay Hollow Oak</a>
+        <a class="btn" href="#">Request an address change</a>
+      </div>
+    </section>
+  </div>
+</body>
+</html>

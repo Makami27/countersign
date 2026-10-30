@@ -1,0 +1,18 @@
+{
+  "name": "countersign-spikes",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22.23.4" },
+  "scripts": {
+    "spikes": "node --env-file=.env run.mjs",
+    "spikes:pay": "node --env-file=.env run.mjs --pay"
+  },
+  "dependencies": {
+    "@grpc/grpc-js": "1.13.6",
+    "@mysten-incubation/memwal": "0.1.12",
+    "@mysten/seal": "1.4.19",
+    "@mysten/sui": "2.37.0",
+    "@mysten/walrus": "1.2.34",
+    "@protobuf-ts/grpc-transport": "2.11.1"
+  }
+}

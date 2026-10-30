@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Countersign: payee memory your AI agent can't be talked out of</title>
+  <meta name="description" content="Countersign is a payment agent for USDC on Sui that remembers where every payee address came from, and only pays addresses that were proven.">
+  <meta name="theme-color" content="#E9F0EA" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0E1626" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Familjen+Grotesk:wght@400;500;600;700&family=Martian+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/styles.css">
+  <script type="module" src="/app.js"></script>
+</head>
+<body>
+  <a class="skip" href="#lab">Skip to the lab</a>
+  <header class="masthead">
+    <a class="wordmark" href="/" aria-label="Countersign home">
+      <svg viewBox="0 0 40 24" aria-hidden="true"><path d="M2 17c5-1 7-13 11-12s-4 14 1 13 5-9 8-9-1 8 2 8 6-6 9-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M2 21h36" stroke="currentColor" stroke-width="1"/></svg>
+      <span>Countersign</span>
+    </a>
+    <nav aria-label="Sections">
+      <a href="#lab">Try it</a>
+      <a href="#rules">How it decides</a>
+      <a href="#proof">Proof</a>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero" aria-labelledby="hero-title">
+      <h1 id="hero-title">
+        <span>Your AI agent pays your bills.</span>
+        <span>Someone just told it your landlord changed wallets.</span>
+        <span class="punch">It won't believe them.</span>
+      </h1>
+      <p class="lede">Countersign pays your regular payees in USDC on Sui. It remembers where every address came from, and only pays the ones that were proven. Try to scam it.</p>
+    </section>
+
+    <section id="lab" class="lab" aria-labelledby="lab-title">
+      <h2 id="lab-title" class="visually-hidden">Attack lab</h2>
+      <div class="lab-compose">
+        <div class="payee-switch" role="radiogroup" aria-label="Which payee is the message about">
+          <button type="button" role="radio" aria-checked="true" data-payee="landlord">Landlord</button>
+          <button type="button" role="radio" aria-checked="false" data-payee="designer">Designer</button>
+        </div>
+        <label class="field-label" for="message">Message to the agent</label>
+        <textarea id="message" rows="5" spellcheck="false"></textarea>
+        <div class="presets" aria-label="Example messages">
+          <button type="button" data-preset="fake">Fake new wallet</button>
+          <button type="button" data-preset="lookalike">Look-alike address</button>
+          <button type="button" data-preset="history">Fake history</button>
+          <button type="button" data-preset="record">Forged record</button>
+        </div>
+        <div class="actions">
+          <button type="button" class="primary" id="send">Send to the agent</button>
+          <button type="button" id="pay">Ask it to pay</button>
+          <button type="button" id="genuine">Make a real, signed change</button>
+        </div>
+        <p class="assumption">The lab assumes the worst: the AI is fully fooled and proposes exactly what the attacker wants. The decision is made by code. Sandbox only: test wallets, no real money.</p>
+      </div>
+
+      <div class="lab-result" aria-live="polite">
+        <article class="slip" id="slip" aria-label="Payee record">
+          <canvas class="guilloche" aria-hidden="true"></canvas>
+          <div class="slip-body" id="slip-body"></div>
+        </article>
+        <div class="verdict" id="verdict" hidden></div>
+        <ol class="trace" id="trace" aria-label="How the agent decided"></ol>
+      </div>
+    </section>
+
+    <section id="rules" class="rules" aria-labelledby="rules-title">
+      <h2 id="rules-title">How it decides</h2>
+      <div class="rule-grid">
+        <div class="rule">
+          <h3>Said isn't proven</h3>
+          <p>Every address in memory is marked <em>verified</em> or <em>stated</em>. Messages, emails and invoices can only ever add a stated address, and stated addresses can't be paid.</p>
+        </div>
+        <div class="rule">
+          <h3>The old wallet signs for the new one</h3>
+          <p>A change goes through only when the payee's current wallet signs it, or you confirm it and a waiting period passes. The new wallet must prove it's in control too. Anyone can prove control of their own wallet, so that alone is never enough.</p>
+        </div>
+        <div class="rule">
+          <h3>Memory that can't be forged</h3>
+          <p>Records live in Walrus Memory and are signed by the agent. Text shaped like a record is ignored. If memory can't be read completely, or the chain doesn't answer, nothing is paid.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="proof" class="proof" aria-labelledby="proof-title">
+      <h2 id="proof-title">Proof</h2>
+      <div class="proof-live" id="proof-live"></div>
+      <table class="claims">
+        <caption>What's proven so far</caption>
+        <thead><tr><th scope="col">Claim</th><th scope="col">Status</th><th scope="col">Evidence</th></tr></thead>
+        <tbody>
+          <tr><td>The change logic never makes an attacker address payable, even with a fully fooled model (8 attack types, 1,000 random sequences)</td><td><span class="badge proven">Proven</span></td><td>core tests M1, P1</td></tr>
+          <tr><td>Sui signature checks match Mysten's published vectors byte for byte</td><td><span class="badge proven">Proven</span></td><td>feasibility F1</td></tr>
+          <tr><td>Tatum verifies payee signatures</td><td><span class="badge open">Not yet</span></td><td>spike S10</td></tr>
+          <tr><td>Payee records live on Walrus Memory mainnet and rebuild completely</td><td><span class="badge open">Not yet</span></td><td>spikes S2, S12</td></tr>
+          <tr><td>Payments execute through Tatum</td><td><span class="badge open">Not yet</span></td><td>spike S13</td></tr>
+          <tr><td>Attack block rate with a real model on testnet</td><td><span class="badge open">Not yet</span></td><td>measurement</td></tr>
+        </tbody>
+      </table>
+    </section>
+  </main>
+
+  <footer class="colophon">
+    <p>Built for Walrus × Tatum Total Recall. Memory on Walrus Memory, chain access through Tatum's Sui gateway.</p>
+  </footer>
+</body>
+</html>

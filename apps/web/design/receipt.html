@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Countersign: receipt rcpt_1d66acf</title>
+  <link rel="stylesheet" href="screens.css">
+  <script type="module" src="addr.js"></script>
+</head>
+<body>
+  <header class="bar">
+    <a class="wordmark" href="#"><svg viewBox="0 0 40 24" aria-hidden="true"><path d="M2 17c5-1 7-13 11-12s-4 14 1 13 5-9 8-9-1 8 2 8 6-6 9-6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M2 21h36" stroke="currentColor" stroke-width="1"/></svg>Countersign</a>
+  </header>
+  <main class="narrow">
+    <section class="verdict-head" aria-labelledby="r-title">
+      <span class="status refused">Refused</span>
+      <div class="attempt-head"><h1 id="r-title">Address change refused</h1><div class="stamp" aria-hidden="true">VOID</div></div>
+      <p class="money">Nothing was sent and nothing was changed.</p>
+    </section>
+
+    <dl class="facts">
+      <div><dt>Why</dt><dd>The new address imitates a verified address: same first and last four characters, different in between.</dd></div>
+      <div><dt>Requested address</dt><dd><span data-addr="0x91ac08d2e6f15a3b9c0e7d4f2b81c6a9e0f35d72b1c84a6e9f03d2b75c1877e0" data-against="0x91ac3f0e7b2d4c18a9e05f6b3d71c2e48f0a9b6d5c3e2f1a0b9c8d7e6f5a77e0"></span></dd></div>
+      <div><dt>Verified address</dt><dd><span data-addr="0x91ac3f0e7b2d4c18a9e05f6b3d71c2e48f0a9b6d5c3e2f1a0b9c8d7e6f5a77e0"></span></dd></div>
+      <div><dt>When</dt><dd>30 Oct 2026, 09:42 WAT</dd></div>
+      <div><dt>Receipt</dt><dd>rcpt_1d66acf, signed by the agent</dd></div>
+      <div><dt>Stored on Walrus Memory</dt><dd><a href="#">Blob 6Hq2…c9Lw</a> (mainnet)</dd></div>
+      <div><dt>On Sui</dt><dd>No transaction: nothing was sent</dd></div>
+    </dl>
+
+    <section aria-labelledby="checks-title">
+      <h2 id="checks-title" class="note" style="margin-bottom:0.5rem">Checks, in the order the agent ran them</h2>
+      <ol class="steps">
+        <li class="done"><span class="n">1</span><span>The address appears word for word in the message</span><span class="when">passed</span></li>
+        <li class="done"><span class="n">2</span><span>The payee already has a verified address</span><span class="when">passed</span></li>
+        <li class="done"><span class="n">3</span><span>Not a repeat of an attempt already refused</span><span class="when">passed</span></li>
+        <li><span class="n" style="border-color:var(--void);color:var(--void)">4</span><span>Does not imitate a known address</span><span class="when" style="color:var(--void)">failed</span></li>
+      </ol>
+    </section>
+    <p class="note">Anyone with this link can check it. The record on Walrus Memory is signed by the agent's key; the agent ignores any record it didn't sign.</p>
+  </main>
+</body>
+</html>
