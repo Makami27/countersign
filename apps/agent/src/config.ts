@@ -10,6 +10,7 @@ export type Config = {
   readonly caps: { readonly perPaymentBaseUnits: bigint; readonly perDayBaseUnits: bigint };
   readonly cooldownMs: number;
   readonly databasePath: string;
+  readonly memoryBackend: "walrus" | "sandbox";
   readonly port: number;
   readonly publicUrl: string | null;
 };
@@ -54,9 +55,13 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     caps: { perPaymentBaseUnits: baseUnits("CAP_PER_PAYMENT_USDC_BASE_UNITS"), perDayBaseUnits: baseUnits("CAP_PER_DAY_USDC_BASE_UNITS") },
     cooldownMs: cooldownSeconds * 1000,
     databasePath: need("DATABASE_PATH"),
+    memoryBackend: env["MEMORY_BACKEND"] === "sandbox" ? "sandbox" : "walrus",
     port: Number(env["WEB_PORT"] ?? env["PORT"]),
     publicUrl: env["PUBLIC_URL"]?.trim().replace(/\/+$/, "") || null,
   };
+  const backend = need("MEMORY_BACKEND");
+  if (backend !== "" && backend !== "walrus" && backend !== "sandbox") problems.push("MEMORY_BACKEND (walrus|sandbox)");
+  if (backend === "sandbox" && network === "mainnet") problems.push("MEMORY_BACKEND=sandbox is not allowed with NETWORK=mainnet");
   if (!Number.isInteger(config.port) || config.port <= 0) problems.push("WEB_PORT or PORT (positive integer)");
   if (config.publicUrl !== null && !/^https?:\/\/[^\s/]+$/.test(config.publicUrl)) problems.push("PUBLIC_URL (origin like https://example.com)");
   if (problems.length > 0) throw new ConfigError(problems);

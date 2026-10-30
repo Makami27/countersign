@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 
 const steps = [
   ["typecheck", existsSync("node_modules/typescript") ? ["node_modules/typescript/bin/tsc", "-p", "tsconfig.json"] : null],
+  ["client typecheck", existsSync("node_modules/typescript") ? ["node_modules/typescript/bin/tsc", "-p", "apps/web/client/tsconfig.json"] : null],
   ["no comments", ["scripts/check-no-comments.mjs"]],
   ["secrets", ["scripts/check-secrets.mjs"]],
   ["tests", ["--test", "--test-reporter=spec", "packages/*/test/*.test.ts", "apps/*/test/*.test.ts"]],

@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { decodeSuiPrivateKey } from "@mysten/sui/cryptography";
-import { Countersign, isRealUseNamespace, type EngineDeps, type PaymentIntent, type SuiAddress } from "@countersign/core";
+import { Countersign, InMemoryMemory, isRealUseNamespace, type EngineDeps, type PaymentIntent, type SuiAddress } from "@countersign/core";
 import { SqliteIndex, SqlitePaymentLedger } from "@countersign/adapters/sqlite";
 import { MemWalMemory } from "@countersign/adapters/memwal";
 import { PaymentRunner } from "@countersign/adapters/payments";
@@ -24,7 +24,9 @@ const grpc = tatumGrpcClient(config.network, config.tatumApiKey, gate);
 const graphql = new TatumGraphql(TATUM_GRAPHQL_URL[config.network], config.tatumApiKey, gate);
 const wallet = Ed25519Keypair.fromSecretKey(decodeSuiPrivateKey(config.agentWalletKey).secretKey);
 const agentAddress = wallet.toSuiAddress() as SuiAddress;
-const memory = new MemWalMemory(config.memwal);
+const walrus = config.memoryBackend === "walrus" ? new MemWalMemory(config.memwal) : null;
+const memory = walrus ?? new InMemoryMemory();
+const relayerLabel = walrus ? walrus.environment : "sandbox (not Walrus Memory)";
 const index = new SqliteIndex(config.databasePath);
 const ledger = new SqlitePaymentLedger(config.databasePath);
 const settings = new OwnerSettings(config.databasePath, { perPaymentBaseUnits: config.caps.perPaymentBaseUnits, perDayBaseUnits: config.caps.perDayBaseUnits, cooldownSeconds: config.cooldownMs / 1000 });
@@ -46,8 +48,8 @@ const engine = new Countersign(deps);
 const runner = new PaymentRunner({ ledger, chain: tatumPaymentChain(grpc, wallet, config.network), clock });
 
 const restored = await engine.restore();
-const memoryView: MemoryView = { relayer: memory.environment, restored: restored.ok, restoredAt: restored.ok ? clock.now().toISOString() : null, legacyRecords: restored.ok ? restored.legacy : 0, ignoredRecords: restored.ok ? restored.ignored : 0 };
-console.log(restored.ok ? `Walrus Memory (${memory.environment}) restored: ${restored.payees} payee namespaces, ${restored.legacy} legacy and ${restored.ignored} ignored records.` : "Walrus Memory could not be read completely. Payments stay blocked until it can.");
+const memoryView: MemoryView = { relayer: relayerLabel, restored: restored.ok, restoredAt: restored.ok ? clock.now().toISOString() : null, legacyRecords: restored.ok ? restored.legacy : 0, ignoredRecords: restored.ok ? restored.ignored : 0 };
+console.log(restored.ok ? `Memory (${relayerLabel}) restored: ${restored.payees} payee namespaces, ${restored.legacy} legacy and ${restored.ignored} ignored records.` : "Walrus Memory could not be read completely. Payments stay blocked until it can.");
 
 async function recordFinished(payments: readonly PaymentIntent[]): Promise<void> {
   for (const payment of payments) await engine.recordPaymentOutcome(payment);
@@ -69,7 +71,8 @@ const owner: OwnerContext = {
   ownerId: config.ownerId, network: config.network, agentAddress, publicUrl: config.publicUrl, engine, index, ledger, auth, settings, balances,
   memory: () => memoryView,
   memoryCounts: async () => {
-    const counts = await memory.namespaceCounts(`countersign:${config.ownerId}:`);
+    if (!walrus) return null;
+    const counts = await walrus.namespaceCounts(`countersign:${config.ownerId}:`);
     if (!counts) return null;
     const real = counts.filter((c) => isRealUseNamespace(config.ownerId, c.name));
     return { realUseMemories: real.reduce((sum, c) => sum + c.count, 0), namespaces: real.length };

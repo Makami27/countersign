@@ -76,7 +76,7 @@ export class Countersign {
       : { kind: "owner_confirmed_change", nonce, ownerConfirmationId: continuity.ownerConfirmationId, control, verifications };
     const record = payeeVersion(d, change.payeeId, head.version.name, nextVersionNumber(d.index.payeeVersions(change.payeeId)), change.toAddress, "VERIFIED", head.version.version, evidence);
     const written = await writeRecord(d, payeeNamespace(d.ownerId, change.payeeId), record, `change:${nonce}:verified`);
-    if (written.status !== "WRITTEN") return refuse(d, "CHANGE_REJECTED", "MEMORY_INCOMPLETE", subject, trail);
+    if (written.status !== "WRITTEN") return refuse(d, "CHANGE_REJECTED", "MEMORY_WRITE_UNCONFIRMED", subject, trail);
     if (!d.index.consumePendingChange(nonce)) return refuse(d, "CHANGE_REJECTED", "NONCE_REUSED", subject, trail);
     d.index.putPayeeVersion(record);
     const receipt = await writeReceipt(d, "CHANGE_VERIFIED", null, subject, trail, [written.blobId], null);
