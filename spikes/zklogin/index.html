@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>S10z spike: sign one message</title>
+  <style>
+    body { font: 16px/1.5 system-ui, sans-serif; max-width: 40rem; margin: 2rem auto; padding: 0 1rem; color: #18233D; background: #E9F0EA; }
+    button { font: inherit; padding: 0.75rem 1rem; margin: 0.25rem 0; border-radius: 8px; border: 1px solid #18233D; background: #18233D; color: #E9F0EA; cursor: pointer; min-height: 44px; }
+    pre { white-space: pre-wrap; word-break: break-all; background: #F4F8F4; padding: 1rem; border: 1px solid #B9C8BD; border-radius: 6px; font-size: 0.85rem; }
+    .note { color: #4A5670; }
+  </style>
+</head>
+<body>
+  <h1>S10z: sign one message with Slush</h1>
+  <p class="note">Local spike for Countersign. It asks your wallet to sign a short text message. Signing moves no money and grants no permission. The signature is checked through Tatum's Sui gateway and written to <code>spikes/evidence/</code>.</p>
+  <div id="wallets"></div>
+  <p id="status" role="status" aria-live="polite">Looking for wallets…</p>
+  <pre id="result"></pre>
+  <script type="module" src="/page.js"></script>
+</body>
+</html>
