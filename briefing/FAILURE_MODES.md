@@ -28,6 +28,8 @@ Researched: 2026-10-30. Guards decided before code. "Test" names the test that m
 | Mode | Guard | Test |
 |---|---|---|
 | Write timeout (`MemWalRememberJobTimeoutError`) | `UNKNOWN`; idempotency key = sha256(canonical record); re-check before rewriting | "retries a write with the same idempotency key" |
+| Slow write (20–23 s on mainnet, S2) | caller shows a pending state ("nothing has been sent yet") before awaiting; the outcome replaces it; a timeout is shown as not confirmed, never as success (DESIGN principle 7) | "a pending write is reported as pending, then as its real outcome" |
+| Wrong environment | dev relayer + dev account for tests and the measurement; mainnet relayer + mainnet account for real use only; until dev keys exist, live tests use the mainnet relayer in a `countersign-test:` namespace excluded from real-use counts (D9) | "the real-use memory count ignores test namespaces" |
 | Rate limit (429 / `MemWalRateLimitedError`) | queue writes; never drop; surface "memory pending" in the UI | "pending writes survive restart" |
 | Recall drops (`dropped_count > 0`) | treat recall as incomplete → payee `UNKNOWN` → no payment | "a recall with dropped results blocks payment" |
 | Forged / unsigned record (K8) | agent signature check on every recalled record; drop + count | "ignores a record without a valid agent signature" |

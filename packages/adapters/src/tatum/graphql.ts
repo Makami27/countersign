@@ -1,3 +1,5 @@
+import type { RateGate } from "./rateGate.ts";
+
 export type GraphqlResult<T> = { readonly ok: true; readonly data: T } | { readonly ok: false; readonly kind: "RATE_LIMITED" | "HTTP" | "NETWORK" | "GRAPHQL" | "TIMEOUT"; readonly detail: string };
 
 const MAX_ATTEMPTS = 3;
@@ -7,10 +9,12 @@ const REQUEST_TIMEOUT_MS = 15_000;
 export class TatumGraphql {
   readonly #url: string;
   readonly #apiKey: string;
+  readonly #gate: RateGate;
 
-  constructor(url: string, apiKey: string) {
+  constructor(url: string, apiKey: string, gate: RateGate) {
     this.#url = url;
     this.#apiKey = apiKey;
+    this.#gate = gate;
   }
 
   async query<T>(query: string, variables: Record<string, unknown> = {}): Promise<GraphqlResult<T>> {
@@ -25,6 +29,7 @@ export class TatumGraphql {
   }
 
   async #once<T>(query: string, variables: Record<string, unknown>): Promise<GraphqlResult<T>> {
+    await this.#gate.acquire();
     let response: Response;
     try {
       response = await fetch(this.#url, {

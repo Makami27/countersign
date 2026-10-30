@@ -5,17 +5,16 @@ import { decodeSuiPrivateKey } from "@mysten/sui/cryptography";
 import { Countersign, type SuiAddress } from "@countersign/core";
 import { SqliteIndex } from "@countersign/adapters/sqlite";
 import { MemWalMemory } from "@countersign/adapters/memwal";
-import { TATUM_GRAPHQL_URL, TatumGraphql, TatumRoundTripChecker, TatumSignatureVerifier, USDC_COIN_TYPE, sendUsdc, tatumGrpcClient } from "@countersign/adapters/tatum";
+import { SqliteRateGate, TATUM_FREE_TIER_INTERVAL_MS, TATUM_GRAPHQL_URL, TatumGraphql, TatumRoundTripChecker, TatumSignatureVerifier, USDC_COIN_TYPE, sendUsdc, tatumGrpcClient, tatumRateGateName } from "@countersign/adapters/tatum";
 import { extractProposal } from "@countersign/adapters/gemini";
 import { recordSignerFromSeed } from "@countersign/adapters/signer";
 import { loadConfig } from "./config.ts";
 import { replyFor } from "./replies.ts";
 
 const config = loadConfig(process.env);
-const grpc = tatumGrpcClient(config.network, config.tatumApiKey);
-const graphqlUrl = TATUM_GRAPHQL_URL[config.network];
-if (!graphqlUrl) throw new Error(`No Tatum GraphQL endpoint configured for ${config.network}. Nothing was started.`);
-const graphql = new TatumGraphql(graphqlUrl, config.tatumApiKey);
+const tatumGate = new SqliteRateGate(config.databasePath, tatumRateGateName(config.network), TATUM_FREE_TIER_INTERVAL_MS);
+const grpc = tatumGrpcClient(config.network, config.tatumApiKey, tatumGate);
+const graphql = new TatumGraphql(TATUM_GRAPHQL_URL[config.network], config.tatumApiKey, tatumGate);
 const wallet = Ed25519Keypair.fromSecretKey(decodeSuiPrivateKey(config.agentWalletKey).secretKey);
 const agentAddress = wallet.toSuiAddress() as SuiAddress;
 
