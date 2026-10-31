@@ -22,12 +22,12 @@ Revised 2026-10-30 (owner review of the phase plan): skeleton deploy moved to Ph
 
 **Next steps**
 1. Done 31 Oct 07:29 UTC: deployed to https://countersign-agent.fly.dev (D18); on a fresh volume the payee book was restored from Walrus Memory (1 payee namespace). The deployed agent now polls Telegram; do not run `pnpm agent` locally at the same time.
-2. Resume S12 at 100 records from write 88 (same run id) and record the result.
+2. Done: S12 at 100 records confirmed (CL13).
 3. Act 4 with the second Slush account; Acts 2–3 through Telegram; real use to ≥10 memories.
 4. Phase 4: `/r/:receipt`, `/proof`, `/status`, lab upgrade, preregistered measurement.
 
 **Background jobs and how to check them**
-- S12 at scale: `node --env-file=.env apps/agent/src/s12Scale.ts 100 60000 2026-10-31T05-57-57-893Z 88` resumes it; progress in `evidence/live/s12-scale-2026-10-31T05-57-57-893Z.json` (`phase`, `writes`). Stopped at 87/100 written when the session ended.
+- S12 at scale: finished 31 Oct, CONFIRMED at 100 records (REALITY_SPIKES S12b, CL13). No background jobs running.
 - Deployed agent: `fly status -a countersign-agent`, `fly logs -a countersign-agent`, health https://countersign-agent.fly.dev/api/health. The local agent stays stopped (only one Telegram poller).
 
 **Open decisions**
