@@ -29,7 +29,7 @@ function nextRole(view: ChangeView): "current" | "new" | null {
 }
 
 function walletButtons(expected: string, view: SignView, role: "current" | "new" | "onboarding", status: HTMLElement): HTMLElement {
-  const box = h("div", { class: "actions sticky" });
+  const box = h("div", { class: "actions" });
   const draw = () => {
     const wallets = signingWallets();
     box.replaceChildren(...(wallets.length ? wallets.map((wallet) => {
@@ -75,7 +75,7 @@ function body(view: SignView): HTMLElement[] {
   return [
     h("h1", { tabindex: "-1" }, `Confirm your new wallet for ${view.payeeName}'s payments`),
     h("p", { class: "lede" }, view.owner ? "The owner confirmed this change. Sign once with the new wallet to prove it is yours. Signing costs nothing and moves no money." : "To move your payments, sign once with the wallet you use now, then once with the new one. Signing costs nothing and moves no money."),
-    h("dl", { class: "facts" }, h("div", {}, h("dt", {}, "Payee"), h("dd", {}, view.payeeName)), h("div", {}, h("dt", {}, "Current wallet"), h("dd", {}, addressEl(view.fromAddress))), h("div", {}, h("dt", {}, "New wallet"), h("dd", {}, addressEl(view.toAddress, { against: view.fromAddress }))), h("div", {}, h("dt", {}, "Request expires"), h("dd", {}, when(view.expires)))),
+    h("dl", { class: "facts" }, h("div", {}, h("dt", {}, "Payee"), h("dd", {}, view.payeeName)), h("div", {}, h("dt", {}, "Current wallet"), h("dd", {}, addressEl(view.fromAddress))), h("div", {}, h("dt", {}, "New wallet"), h("dd", {}, addressEl(view.toAddress))), h("div", {}, h("dt", {}, "Request expires"), h("dd", {}, when(view.expires)))),
     h("section", { "aria-labelledby": "steps-title" }, h("h2", { id: "steps-title", class: "note" }, "Two signatures"), h("ol", { class: "steps" },
       stepRow(1, view.owner ? "Confirmed by the owner" : "Sign with your current wallet", view.owner ? "owner" : view.steps.current, view.owner ? `Waiting period ends ${when(view.owner.readyAt)}` : ""),
       stepRow(2, "Sign with your new wallet", view.steps.next, ""))),

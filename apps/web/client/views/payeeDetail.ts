@@ -63,7 +63,7 @@ function pendingChangeCard(c: PayeeDetail["pendingChanges"][number], current: st
   return h("section", { class: "card stated", "aria-labelledby": `change-${c.nonce}` },
     h("h3", { id: `change-${c.nonce}` }, "Change waiting for proof"),
     h("p", { class: "money" }, "Nothing will be paid to the new address yet. Payments still go to the verified address."),
-    h("span", { class: "label" }, "Requested address"), addressEl(c.toAddress, current ? { against: current } : {}),
+    h("span", { class: "label" }, "Requested address"), addressEl(c.toAddress),
     h("ol", { class: "steps" },
       h("li", { class: c.currentSignedAt || c.ownerConfirmedAt ? "done" : "" }, h("span", { class: "n", "aria-hidden": "true" }, "1"), h("span", {}, "Current wallet signs, or you confirm"), h("span", { class: "when" }, first)),
       h("li", { class: c.newSignedAt ? "done" : "" }, h("span", { class: "n", "aria-hidden": "true" }, "2"), h("span", {}, "New wallet proves control"), h("span", { class: "when" }, c.newSignedAt ? `Signed ${when(c.newSignedAt)}` : "Waiting"))),

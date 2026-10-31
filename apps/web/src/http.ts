@@ -51,12 +51,14 @@ export function clientAddress(req: IncomingMessage): string {
   return first || req.socket.remoteAddress || "unknown";
 }
 
-export async function serveFile(res: ServerResponse, dir: string, path: string, status = 200, cacheControl = "public, max-age=300"): Promise<boolean> {
+export const SIGN_PAGE_CSP = SECURITY_HEADERS["content-security-policy"]?.replace("connect-src 'self'", "connect-src 'self' https://api.slush.app") ?? "";
+
+export async function serveFile(res: ServerResponse, dir: string, path: string, status = 200, cacheControl = "public, max-age=300", headers: Record<string, string> = {}): Promise<boolean> {
   const resolved = normalize(join(dir, path));
   if (!resolved.startsWith(dir.endsWith(sep) ? dir : dir + sep)) return false;
   try {
     const file = await readFile(resolved);
-    res.writeHead(status, { "content-type": TYPES[extname(resolved)] ?? "application/octet-stream", "cache-control": cacheControl, ...SECURITY_HEADERS });
+    res.writeHead(status, { "content-type": TYPES[extname(resolved)] ?? "application/octet-stream", "cache-control": cacheControl, ...SECURITY_HEADERS, ...headers });
     res.end(file);
     return true;
   } catch {

@@ -96,4 +96,5 @@
 .app .steps .done .n { background: var(--seal); border-color: var(--seal); color: var(--paper); }
 .app .steps .when { font-size: var(--step--1); color: var(--ink-soft); text-align: right; }
 .app .message { font-family: var(--mono); font-size: var(--step--1); font-stretch: 87.5%; white-space: pre-wrap; word-break: break-all; padding: 1rem; background: var(--paper-deep); border-radius: 6px; border: 1px solid var(--line); }
-.app details summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; }
+.app details summary { padding: 0.7rem 0; cursor: pointer; }
+.app [tabindex="-1"]:focus { outline: none; }
