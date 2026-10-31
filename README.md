@@ -25,6 +25,7 @@ Built for Walrus × Tatum *Total Recall*, Track 2 (Smart Agents for Real Life).
 ## Known limits
 - **Hosting is Render's free plan.** Render can stop the instance on its own (seen once on 31 Oct, with no deploy). It stays down until the next request; an external ping every 5 minutes wakes it, and the start takes 30–60 s. During that window the web app doesn't answer and Telegram messages wait at Telegram; they are handled after the restart. No payment state is lost: the ledger is in Neon Postgres and the payee book is rebuilt from Walrus Memory on every start, followed by one reconciliation pass.
 - **Neon's free compute suspends when idle.** The first database call after a pause takes about a second longer; the agent retries a failed connection once and never treats a database timeout as success.
+- **Shared scam memory works only between agents that write to the same Walrus Memory account.** Walrus Memory keeps namespaces separate per account, so agents on different accounts don't see each other's reports; each still has its own local checks. A shared namespace past the 100-record read cap reads as incomplete, which means local checks only.
 
 ## How it works
 AI proposes. Code decides.

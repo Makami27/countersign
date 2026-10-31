@@ -10,6 +10,7 @@ import { payeeVersion, refuse, writeReceipt, writeRecord, type ReceiptWrite } fr
 import { completeOnboarding, requestOnboarding } from "./onboarding.ts";
 import { KeyedMutex } from "./keyedMutex.ts";
 import { seenElsewhere } from "./sharedFlags.ts";
+import { repeatOf } from "./knownAttacks.ts";
 import type { PaymentIntent } from "./payments.ts";
 import type { EngineDeps } from "./engineDeps.ts";
 import type { ContinuityProof, ControlProof, Evidence, InboundMessage, Outcome, PayeeHead, Proposal, ReceiptRecord, Refused, SeenElsewhere, SuiAddress } from "./types.ts";
@@ -127,8 +128,8 @@ export class Countersign {
     if (head.kind === "conflict") return refuse(d, "REFUSED", "CONFLICT", subject, trail, "PAYEE_VERIFIED");
     trail.pass("PAYEE_VERIFIED");
     if (toAddress === head.version.address) return { verdict: "NONE" };
-    const earlier = await d.index.earlierRefusalFor(toAddress);
-    if (earlier) return refuse(d, "REFUSED", "KNOWN_ATTACK_PATTERN", subject, trail, "NOT_KNOWN_ATTACK", earlier.receipt);
+    const repeat = await repeatOf(d.index, toAddress, message.channel === "web");
+    if (repeat) return refuse(d, "REFUSED", repeat.reason, { ...subject, ...repeat.seen }, trail, "NOT_KNOWN_ATTACK", repeat.cites);
     trail.pass("NOT_KNOWN_ATTACK");
     if (imitatesAny(toAddress, await d.index.verifiedAddresses())) return refuse(d, "REFUSED", "LOOKALIKE_ADDRESS", subject, trail, "NOT_LOOKALIKE");
     trail.pass("NOT_LOOKALIKE");

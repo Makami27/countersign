@@ -5,6 +5,7 @@ import { headOf, payeeNamespace } from "./payeeBook.ts";
 import { CheckTrail } from "./receipts.ts";
 import { payeeVersion, refuse, writeReceipt, writeRecord } from "./engineWrites.ts";
 import { seenElsewhere } from "./sharedFlags.ts";
+import { repeatOf } from "./knownAttacks.ts";
 import type { EngineDeps } from "./engineDeps.ts";
 import type { ControlProof, Outcome } from "./types.ts";
 
@@ -28,8 +29,8 @@ export async function requestOnboarding(d: EngineDeps, name: string, address: st
   trail.pass("ADDRESS_IN_MESSAGE");
   if ((await d.index.payeeVersions(payeeId)).length > 0) return refuse(d, "REFUSED", "CONFLICT", subject, trail, "OWNER_CONFIRMED");
   trail.pass("OWNER_CONFIRMED");
-  const earlier = await d.index.earlierRefusalFor(parsed);
-  if (earlier) return refuse(d, "REFUSED", "KNOWN_ATTACK_PATTERN", subject, trail, "NOT_KNOWN_ATTACK", earlier.receipt);
+  const repeat = await repeatOf(d.index, parsed, false);
+  if (repeat) return refuse(d, "REFUSED", repeat.reason, { ...subject, ...repeat.seen }, trail, "NOT_KNOWN_ATTACK", repeat.cites);
   trail.pass("NOT_KNOWN_ATTACK");
   if (imitatesAny(parsed, await d.index.verifiedAddresses())) return refuse(d, "REFUSED", "LOOKALIKE_ADDRESS", subject, trail, "NOT_LOOKALIKE");
   trail.pass("NOT_LOOKALIKE");
