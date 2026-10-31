@@ -21,17 +21,17 @@ Revised 2026-10-30 (owner review of the phase plan): skeleton deploy moved to Ph
 - Delegate key rotation after the relayer echoed it in an error (REALITY_SPIKES R4).
 
 **Next steps**
-1. Done 31 Oct 07:29 UTC: deployed to https://countersign-agent.fly.dev (D18); on a fresh volume the payee book was restored from Walrus Memory (1 payee namespace). The deployed agent now polls Telegram; do not run `pnpm agent` locally at the same time.
+1. Done 31 Oct 15:09 UTC: moved to Render free + Neon Postgres (D19, supersedes D18): https://countersign-agent-7u1c.onrender.com, health green; the payee book was rebuilt from Walrus Memory into Postgres on boot. The Fly machine is stopped with autostart off; `fly apps destroy countersign-agent` waits for the owner after an hour of green health. Do not run `pnpm agent` locally (one Telegram poller).
 2. Done: S12 at 100 records confirmed (CL13).
 3. Act 4 with the second Slush account; Acts 2–3 through Telegram; real use to ≥10 memories.
 4. Phase 4: `/r/:receipt`, `/proof`, `/status`, lab upgrade, preregistered measurement.
 
 **Background jobs and how to check them**
 - S12 at scale: finished 31 Oct, CONFIRMED at 100 records (REALITY_SPIKES S12b, CL13). No background jobs running.
-- Deployed agent: `fly status -a countersign-agent`, `fly logs -a countersign-agent`, health https://countersign-agent.fly.dev/api/health. The local agent stays stopped (only one Telegram poller).
+- Deployed agent: Render service `srv-dbj08anf3r2c73ejrggg` (Ohio), health https://countersign-agent-7u1c.onrender.com/api/health. The owner sets an external 5-minute ping to that URL so the free instance doesn't sleep.
 
 **Open decisions**
-- Fly region and whether 256 MB is enough (start at 256 MB, raise only if it runs out).
+- Neon free compute hours: idle loops skip the database, so the compute can suspend; watch usage in the Neon console.
 - Telegram polling vs webhook once deployed (polling for now; only one instance may poll).
 
 ## Workstreams
