@@ -1,0 +1,93 @@
+{
+  "capturedAt": "2026-10-31T06:55:32.794Z",
+  "classification": "real use: the owner's own wallet B onboarded as payee Rent through the signing page; memory on the Walrus Memory mainnet relayer; money on Sui testnet",
+  "versions": [
+    {
+      "type": "payee_version",
+      "payeeId": "rent",
+      "name": "Rent",
+      "version": 1,
+      "address": "0x68f21c9f3d876c7115d8bea271a6fdb53a139f97cae8bfc5bca45b88262b023b",
+      "status": "STATED",
+      "supersedes": null,
+      "evidence": {
+        "kind": "onboarding_requested",
+        "ownerConfirmationId": "web:69fdec7728ca",
+        "nonce": "77217ba1d97259b42b78597cc4219749",
+        "expires": "2026-11-01T06:17:54.524Z"
+      },
+      "createdAt": "2026-10-31T06:17:54.524Z"
+    },
+    {
+      "type": "payee_version",
+      "payeeId": "rent",
+      "name": "Rent",
+      "version": 2,
+      "address": "0x68f21c9f3d876c7115d8bea271a6fdb53a139f97cae8bfc5bca45b88262b023b",
+      "status": "VERIFIED",
+      "supersedes": null,
+      "evidence": {
+        "kind": "payee_onboarding",
+        "ownerConfirmationId": "web:69fdec7728ca",
+        "nonce": "77217ba1d97259b42b78597cc4219749",
+        "control": {
+          "kind": "signature",
+          "signature": "BQNNMjA1Mzg0NDUyMjczMjQzNjE4MjczMTcwNTM2MjYxNjI4NzAwMzAxMDE3NDM1MDMyMDQ4OTE2MTc2MzY2OTA1ODIzMTExMDQyNzE5NzVNMTgzMDA2NjYzODE2OTg0ODU0NjA2Njg2MzgxNDk3ODk1OTUzOTI5MDMzMjAyMDIzODM2Mjc3NjQ5NzExNzI5MjM2MjAwNjUzODkzNDUBMQMCTDU2MTg3NzQzMjI4MTc1MDI0MzQ0MzE1ODMxMjk4NDYwNjgxNzExMTk4ODUyNTYwNTA3OTg4ODU4MzA4NjI5NTgyMDQ5NDIxNzIyNDBMNDE2MTU1MzY5MzY1MzM0NzAyMDQxMzcxMTY5MzI1MDcyNTE1MjY1MjI3NDA4MzU5NjUyNjQ5NzM0NzE1MzA0NTcxNDA2OTk4NzkzMgJNMTEwNzUyODczMjc3NzA4NjMwMDQ2NDY1ODY1MjIzNDQxNjc3OTkwMjIwMTc3ODg4ODEzMzg1NDAwNDE2ODcwNjc5MDA5OTc3NjM2NTVMOTY2MzU2NDQwOTEzNDMzOTkyODA2NjIzNDMwNTY5NDI4OTU3OTMzNDY5NTg1MDk4NjkzODAwMjU3ODU4NjcxOTUzNzc5NTExNTc3NwIBMQEwA0w5MDg2OTQxODY5NzE0MDc3OTcyNzY5NDA2MTgzMDg4MjU5MzAzOTg3MjAwODMxNjcwMzU1NDQ2NDYxOTU4ODQxMDcwOTM2MTYzMTU2TTEzNzE2MTY4MjU0MjQ2NTEzMDk2OTUyNDgwNjExOTE5ODkzMTYwNjk1ODM5Nzg5Mjc3OTI5NDA2NzM2Mzk5NDA0Mzg3OTcxNDQ0Mzg0ATExeUpwYzNNaU9pSm9kSFJ3Y3pvdkwyRmpZMjkxYm5SekxtZHZiMmRzWlM1amIyMGlMQwFmZXlKaGJHY2lPaUpTVXpJMU5pSXNJbXRwWkNJNklqazBNMkV6WVRWa04yUTVNVGsyTWpWaE5EVTBaVFE0T1dJM05XTXlPV0ZrWVdJMU4yRmpZbUVpTENKMGVYQWlPaUpLVjFRaWZRTTIwMTc2MTczNDcyMzkyODI1ODI2NzU3Mjk4NjI3MDA2MDA4OTQwNTk2OTU4MzgxMzQwNDY5MTM1ODEyMTgzNjg0OTkyNTAwMzkwMjIz9wQAAAAAAABiAl0e1deSz+rwJGoM5U9elk7Q882IU1k8D9JuHBvYU6k1J6UCGCrxB3X+SDQmt+adyDyfVPQPoTNdssPwux1rjssCrnuZ6N0FcSN+sL32aWwhAz57cFchB6h2kF93io0E4Bk="
+        },
+        "verifications": [
+          {
+            "role": "control",
+            "signer": "0x68f21c9f3d876c7115d8bea271a6fdb53a139f97cae8bfc5bca45b88262b023b",
+            "scheme": "ZKLOGIN",
+            "maxEpoch": "1271",
+            "checkedAtEpoch": "1269"
+          }
+        ]
+      },
+      "createdAt": "2026-10-31T06:31:34.127Z"
+    }
+  ],
+  "receipts": [
+    {
+      "type": "receipt",
+      "receipt": "rcpt_581de88ff0e1e1c67c923a493945f83a",
+      "verdict": "CHANGE_VERIFIED",
+      "reason": null,
+      "ref": "77217ba1d97259b42b78597cc4219749",
+      "payeeId": "rent",
+      "address": "0x68f21c9f3d876c7115d8bea271a6fdb53a139f97cae8bfc5bca45b88262b023b",
+      "amountBaseUnits": null,
+      "checks": [
+        {
+          "check": "NOT_LOOKALIKE",
+          "result": "PASS"
+        },
+        {
+          "check": "CONTROL",
+          "result": "PASS"
+        }
+      ],
+      "memoryBlobIds": [
+        "GU_dX9lvZ431sllwVFV2LoLU3x-44EmRhNQ957ImRlY"
+      ],
+      "suiDigest": null,
+      "network": "testnet",
+      "createdAt": "2026-10-31T06:31:59.604Z"
+    }
+  ],
+  "memoryCounts": {
+    "realUseMemories": 3,
+    "realUseNamespaces": [
+      {
+        "suffix": "payee:rent",
+        "count": 2
+      },
+      {
+        "suffix": "receipts",
+        "count": 1
+      }
+    ],
+    "otherCountersignNamespaces": 6,
+    "readAt": "2026-10-31T06:56:00.721Z"
+  }
+}
