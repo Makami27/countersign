@@ -82,7 +82,26 @@ export type OwnerWalletRecord = {
   readonly createdAt: string;
 };
 
-export type MemoryRecord = PayeeVersionRecord | ReceiptRecord | OwnerWalletRecord;
+export type ScheduleTerms = {
+  readonly payeeId: string;
+  readonly amountBaseUnits: string;
+  readonly every: "month" | "year";
+  readonly day: number;
+  readonly month: number | null;
+};
+
+export type ScheduleRecord = ScheduleTerms & {
+  readonly type: "schedule";
+  readonly ownerId: string;
+  readonly scheduleId: string;
+  readonly version: number;
+  readonly status: "ACTIVE" | "DELETED";
+  readonly approval: { readonly signer: SuiAddress; readonly message: string; readonly signature: string };
+  readonly verifications: readonly SignatureVerification[];
+  readonly createdAt: string;
+};
+
+export type MemoryRecord = PayeeVersionRecord | ReceiptRecord | OwnerWalletRecord | ScheduleRecord;
 
 export type Envelope = { readonly record: MemoryRecord; readonly sig: string };
 

@@ -1,8 +1,9 @@
 import { api } from "./api.ts";
 import { h, networkWords } from "./dom.ts";
-import type { ActivityItem, Overview, PayeeDetail, PayeeSummary } from "./types.ts";
+import type { ActivityItem, Overview, PayeeDetail, PayeeSummary, ScheduleItem } from "./types.ts";
 import { payeeList } from "./views/payees.ts";
 import { payeeDetailView } from "./views/payeeDetail.ts";
+import { schedulesPanel } from "./views/schedules.ts";
 import { addPayeeSheet, paySheet } from "./views/sheets.ts";
 import { confirmChangeSheet, requestChangeSheet } from "./views/changeSheets.ts";
 import { activityPage, loginPage, settingsPage } from "./views/pages.ts";
@@ -94,6 +95,8 @@ async function renderPage(): Promise<void> {
   const detail = await api<PayeeDetail>("GET", `/api/app/payees/${encodeURIComponent(selected)}`);
   const rerender = () => void render();
   const detailView = detail.ok ? payeeDetailView(detail.data, { onPay: () => paySheet(detail.data, overview.data, rerender), onRequestChange: () => requestChangeSheet(detail.data, rerender), onConfirm: (nonce) => confirmChangeSheet(nonce, overview.data.cooldownSeconds, overview.data.network, rerender) }) : failure(detail.error.message);
+  const schedules = detail.ok && detail.data.payTo ? await api<{ schedules: ScheduleItem[] }>("GET", "/api/app/schedules") : null;
+  if (detail.ok && schedules?.ok) detailView.insertBefore(schedulesPanel(selected, schedules.data.schedules, overview.data.network, rerender), detailView.querySelector(".actions.sticky"));
   if (detail.ok && (detail.data.pendingChanges.length > 0 || detail.data.waiting)) schedulePoll(path);
   show(h("div", { class: `owner ${match ? "at-detail" : "at-list"}` }, list, detailView));
 }

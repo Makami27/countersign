@@ -10,6 +10,7 @@ import { tryCompleteChange } from "./changeCompletion.ts";
 import { TookTooLong, within } from "./deadline.ts";
 import { ownerSigned } from "./ownerGate.ts";
 import { ownerWalletRoute } from "./ownerWalletRoutes.ts";
+import { scheduleList, scheduleRoute } from "./scheduleRoutes.ts";
 
 export const SESSION_COOKIE = "cs_owner";
 export const CSRF_HEADER = "x-countersign";
@@ -67,6 +68,7 @@ async function ownerRequest(ctx: OwnerContext, req: IncomingMessage, res: Server
     return detail ? send(res, 200, detail) : problem(res, 404, "No payee with that name.");
   }
   if (req.method === "GET" && parts[0] === "activity") return send(res, 200, { items: await activity(ctx) });
+  if (req.method === "GET" && parts[0] === "schedules") return send(res, 200, scheduleList(ctx, now));
   if (req.method === "GET" && parts[0] === "settings") return send(res, 200, ctx.settings.values());
   if (req.method === "GET" && parts[0] === "payments" && parts[1]) {
     const payment = await ctx.ledger.payment(parts[1]);
@@ -76,6 +78,7 @@ async function ownerRequest(ctx: OwnerContext, req: IncomingMessage, res: Server
 
   const input = await readJson(req);
   if (!input) return problem(res, 400, "Send a JSON object under 8 KB. Nothing was changed.");
+  if (parts[0] === "schedules") return scheduleRoute(ctx, res, req.method ?? "", parts, input);
   if (req.method === "POST" && parts[0] === "owner" && parts[1] === "wallet") return ownerWalletRoute(ctx, res, parts, input);
   if (req.method === "PUT" && parts[0] === "settings") {
     const wanted = { perPaymentBaseUnits: String(input["perPaymentBaseUnits"] ?? ""), perDayBaseUnits: String(input["perDayBaseUnits"] ?? ""), cooldownSeconds: String(input["cooldownSeconds"] ?? "") };

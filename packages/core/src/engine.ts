@@ -2,9 +2,11 @@ import { appearsVerbatim, imitatesAny, parseSuiAddress } from "./address.ts";
 import { CHANGE_REQUEST_LIFETIME_MS, changeMessage } from "./changeMessage.ts";
 import { checkContinuity, checkControl } from "./changeProofs.ts";
 import { headOf, nextVersionNumber, payeeNamespace } from "./payeeBook.ts";
-import { restoreIndex, versionsFrom, type RestoreResult } from "./memoryBook.ts";
+import { restoreIndex, type RestoreResult } from "./memoryBook.ts";
+import { checkPayment } from "./paymentChecks.ts";
+import { recheckReserved, reserveScheduled, type ScheduledReservation } from "./scheduledPayments.ts";
 import { CheckTrail, paymentOutcome } from "./receipts.ts";
-import { payeeVersion, refuse, writeReceipt, writeRecord, type ReceiptWrite, type Subject } from "./engineWrites.ts";
+import { payeeVersion, refuse, writeReceipt, writeRecord, type ReceiptWrite } from "./engineWrites.ts";
 import { completeOnboarding, requestOnboarding } from "./onboarding.ts";
 import { KeyedMutex } from "./keyedMutex.ts";
 import type { PaymentIntent } from "./payments.ts";
@@ -15,9 +17,9 @@ export type { RoundTripChecker, RoundTripResult } from "./changeProofs.ts";
 export type { RestoreResult } from "./memoryBook.ts";
 export type { Caps, EngineDeps } from "./engineDeps.ts";
 export type { ReceiptWrite } from "./engineWrites.ts";
+export type { ScheduledReservation } from "./scheduledPayments.ts";
 
 export type PaymentPreview = { readonly verdict: "PAY_PREVIEW"; readonly payeeId: string; readonly name: string; readonly address: SuiAddress; readonly amountBaseUnits: bigint };
-type CheckedPayment = { readonly name: string; readonly version: number; readonly address: SuiAddress; readonly amount: bigint; readonly payeeBlobId: string | null; readonly subject: Subject; readonly trail: CheckTrail };
 
 export class Countersign {
   readonly #d: EngineDeps;
@@ -90,6 +92,14 @@ export class Countersign {
     return { verdict: "CHANGE_VERIFIED", version: record.version, blobId: written.blobId, receipt: receipt.receipt };
   }
 
+  reserveScheduled(scheduleId: string, period: string, payeeId: string): Promise<ScheduledReservation> {
+    return this.#payees.run(payeeId, () => reserveScheduled(this.#d, scheduleId, period, payeeId));
+  }
+
+  recheckReserved(intent: PaymentIntent): Promise<"SEND" | "WAIT" | "PAYEE_CHANGED"> {
+    return this.#payees.run(intent.payeeId, () => recheckReserved(this.#d, intent));
+  }
+
   async recordPaymentOutcome(intent: PaymentIntent): Promise<ReceiptWrite | null> {
     if (intent.state !== "SETTLED" && intent.state !== "FAILED") return null;
     const { verdict, reason, trail } = paymentOutcome(intent.state, intent.reason);
@@ -126,14 +136,14 @@ export class Countersign {
   }
 
   async previewPayment(message: InboundMessage, proposal: Extract<Proposal, { kind: "pay" }>): Promise<PaymentPreview | Refused> {
-    const checked = await this.#checkPayment(message, proposal);
+    const checked = await checkPayment(this.#d, message.id, proposal.payeeId, proposal.amountBaseUnits);
     if (!("payeeBlobId" in checked)) return checked;
     return { verdict: "PAY_PREVIEW", payeeId: proposal.payeeId, name: checked.name, address: checked.address, amountBaseUnits: checked.amount };
   }
 
   async #reservePayment(message: InboundMessage, proposal: Extract<Proposal, { kind: "pay" }>): Promise<Outcome> {
     const d = this.#d;
-    const checked = await this.#checkPayment(message, proposal);
+    const checked = await checkPayment(this.#d, message.id, proposal.payeeId, proposal.amountBaseUnits);
     if (!("payeeBlobId" in checked)) return checked;
     const now = d.clock.now().toISOString();
     const intent = { id: `pay_${d.nonces.next()}`, payeeId: proposal.payeeId, payeeVersion: checked.version, payeeBlobId: checked.payeeBlobId, address: checked.address, amountBaseUnits: checked.amount, period: now.slice(0, 10), createdAt: now };
@@ -141,27 +151,5 @@ export class Countersign {
     if (reservation === "PAYEE_CHANGED") return refuse(d, "REFUSED", "PAYEE_CHANGED", checked.subject, checked.trail, "PAYEE_VERIFIED");
     if (reservation !== "RESERVED") return refuse(d, "REFUSED", "CAP_EXCEEDED", checked.subject, checked.trail, "WITHIN_CAPS");
     return { verdict: "PAY_RESERVED", paymentId: intent.id, address: intent.address, amountBaseUnits: checked.amount };
-  }
-
-  async #checkPayment(message: InboundMessage, proposal: Extract<Proposal, { kind: "pay" }>): Promise<CheckedPayment | Refused> {
-    const d = this.#d;
-    const trail = new CheckTrail();
-    const subject = { ref: message.id, payeeId: proposal.payeeId, address: null, amountBaseUnits: proposal.amountBaseUnits };
-    const read = await d.memory.readAll(payeeNamespace(d.ownerId, proposal.payeeId));
-    if (!read.complete) return refuse(d, "REFUSED", "MEMORY_INCOMPLETE", subject, trail, "MEMORY_COMPLETE");
-    trail.pass("MEMORY_COMPLETE");
-    const stored = versionsFrom(d.signer, read.records, proposal.payeeId);
-    if (stored.length === 0) return refuse(d, "REFUSED", "UNKNOWN_PAYEE", subject, trail, "PAYEE_VERIFIED");
-    const head = headOf(stored.map((s) => s.record));
-    if (head.kind === "none") return refuse(d, "REFUSED", "PAYEE_NOT_VERIFIED", subject, trail, "PAYEE_VERIFIED");
-    if (head.kind === "conflict") return refuse(d, "REFUSED", "CONFLICT", subject, trail, "PAYEE_VERIFIED");
-    trail.pass("PAYEE_VERIFIED");
-    const payee = { ...subject, address: head.version.address };
-    if (!/^[1-9]\d*$/.test(proposal.amountBaseUnits)) return refuse(d, "REFUSED", "AMOUNT_INVALID", payee, trail, "AMOUNT_VALID");
-    trail.pass("AMOUNT_VALID");
-    const amount = BigInt(proposal.amountBaseUnits);
-    if (amount > d.caps.perPaymentBaseUnits) return refuse(d, "REFUSED", "CAP_EXCEEDED", payee, trail, "WITHIN_CAPS");
-    const payeeBlobId = stored.find((s) => s.record.version === head.version.version)?.blobId ?? null;
-    return { name: head.version.name, version: head.version.version, address: head.version.address, amount, payeeBlobId, subject: payee, trail };
   }
 }

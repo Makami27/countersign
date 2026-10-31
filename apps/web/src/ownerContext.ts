@@ -4,6 +4,7 @@ import type { OwnerAuth } from "./ownerAuth.ts";
 import type { OwnerSettings } from "./ownerSettings.ts";
 import type { OwnerApprovals } from "./ownerApprovals.ts";
 import type { OwnerWallets } from "./ownerWallet.ts";
+import type { Schedules } from "./schedules.ts";
 
 export type BalancesView =
   | { readonly status: "KNOWN"; readonly suiBaseUnits: bigint; readonly usdcBaseUnits: bigint }
@@ -39,4 +40,5 @@ export type OwnerContext = {
   readonly wallets: OwnerWallets;
   readonly approvals: OwnerApprovals;
   readonly notify: (text: string) => Promise<void>;
+  readonly schedules: Schedules;
 };

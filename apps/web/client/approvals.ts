@@ -8,7 +8,7 @@ function short(address: string): string {
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }
 
-export async function withApprovals<T>(method: "POST" | "PUT", path: string, body: Record<string, unknown>, network: "mainnet" | "testnet", status: HTMLElement): Promise<ApiResult<T>> {
+export async function withApprovals<T>(method: "POST" | "PUT" | "DELETE", path: string, body: Record<string, unknown>, network: "mainnet" | "testnet", status: HTMLElement): Promise<ApiResult<T>> {
   let current = body;
   for (let round = 0; ; round++) {
     const result = await api<T>(method, path, current);

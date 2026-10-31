@@ -6,11 +6,11 @@ No feature commits after 17:00 UTC on 10 Nov unless organisers confirm it's allo
 
 Revised 2026-10-30 (owner review of the phase plan): skeleton deploy moved to Phase 2, real mainnet use starts in Phase 2, Phase 3 gets an extra half day from Phase 4, submission deliverables added.
 
-## Where we are (2026-10-31, ~19:30 UTC)
-**Phase:** Phase 4 started; new features V20–V22 added to SHIP (team decision). Gate: `pnpm gate`, 97 tests green at commit `1d47c7f` (adds a promise lint step).
+## Where we are (2026-10-31, ~20:01 UTC)
+**Phase:** Phase 4; V20 and V21 committed, V22 next. Gate: `pnpm gate`, 105 tests green with V21.
 
 **Deployed vs committed — read this first**
-- Render runs `4e141ba` (https://countersign-agent-7u1c.onrender.com). Local `main` is ahead with **V20, committed and not pushed**.
+- Render runs `4e141ba` (https://countersign-agent-7u1c.onrender.com). Local `main` is ahead with **V20 and V21, committed and not pushed**.
 - **Render auto-deploys every push to `main`.** Pushing now would deploy V20, and the owner couldn't register an owner wallet there (Slush flags the onrender.com host, see Risks), which would block adding payees. Don't push until the custom domain is live, or turn auto-deploy off first.
 
 **Done**
@@ -21,6 +21,7 @@ Revised 2026-10-30 (owner review of the phase plan): skeleton deploy moved to Ph
 - Phase 4 so far: `/r/:receipt` (V14); `/api/status` (Postgres, Tatum gRPC and GraphQL, Walrus relayer, Telegram polling, Gemini stats); landing claims table generated from CLAIMS.md; owner-app timeouts and the promise lint.
 - Acts 2–3 on Render (`evidence/acts/act2`, `act3`, CL14). Look-alikes and known attacks are now refused by code before the model; Gemini retries once on 429/5xx.
 - V20 owner-wallet protection (D20, THREAT_MODEL.md): committed `1d47c7f`, **not deployed**.
+- V21 scheduled payments (D21): monthly or yearly, owner-wallet signature to create/change/delete, one payment per period (`schedule:<id>:<period>`), late boot run, hourly retry only for retryable refusals, Telegram notice with receipt link; panel on the payee page. Committed, **not deployed**.
 - Real-use memories: 6 of 10 (CL07).
 
 **Blocked / waiting**
@@ -29,10 +30,9 @@ Revised 2026-10-30 (owner review of the phase plan): skeleton deploy moved to Ph
 - Delegate key rotation after the relayer echoed it in an error (REALITY_SPIKES R4).
 
 **Next steps**
-1. V21 scheduled payments (SHIP V21): next, in a fresh session. Uses the V20 approval gate (`apps/web/src/ownerGate.ts`, kind to add) for create/change/delete.
-2. V22 shared scam memory (SHIP V22).
-3. Custom domain → deploy V20 → register the owner wallet → Act 4.
-4. Rest of Phase 4: `/proof` page, `/status` page, lab upgrade, preregistered measurement; real use to ≥10 memories.
+1. V22 shared scam memory (SHIP V22): next.
+2. Custom domain → deploy V20 → register the owner wallet → Act 4.
+3. Rest of Phase 4: `/proof` page, `/status` page, lab upgrade, preregistered measurement; real use to ≥10 memories.
 
 **Background jobs and how to check them**
 - None running. Deployed agent: Render service `srv-dbj08anf3r2c73ejrggg` (Ohio); health and dependency timings at `/api/health` and `/api/status`; an external 5-minute ping (cron-job.org) keeps it awake.

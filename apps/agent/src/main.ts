@@ -20,6 +20,8 @@ import { statusProbe } from "./statusChecks.ts";
 import { ModelStats } from "./modelStats.ts";
 import { OwnerWallets } from "@countersign/web/ownerWallet";
 import { OwnerApprovals } from "@countersign/web/ownerApprovals";
+import { Schedules } from "@countersign/web/schedules";
+import { ScheduleRunner } from "@countersign/web/scheduleRuns";
 
 const RECONCILE_EVERY_MS = 60_000;
 const BALANCE_CACHE_MS = 30_000;
@@ -44,6 +46,7 @@ const steps = await ChangeSteps.open(storage.rows);
 const recordSigner = recordSignerFromSeed(config.recordSigningKey);
 const wallets = await OwnerWallets.open({ rows: storage.rows, memory, signer: recordSigner, ownerId: config.ownerId, now: Date.now });
 const approvals = await OwnerApprovals.open(storage.rows, config.ownerId, (message, signature, address) => verifier.verifyPersonalMessage(message, signature, address));
+const schedules = await Schedules.open({ rows: storage.rows, memory, signer: recordSigner, ownerId: config.ownerId, now: Date.now });
 let bot: ReturnType<typeof startBot> | null = null;
 async function notify(text: string): Promise<void> {
   await bot?.api.sendMessage(config.telegram.ownerUserId, text).catch((error: Error) => console.error(`Telegram notice not sent: ${error.message.slice(0, 120)}`));
@@ -103,7 +106,7 @@ const owner: OwnerContext = {
   steps,
   cooldownMs: () => settings.values().cooldownSeconds * 1000,
   verifySignature: (message, signature, address) => verifier.verifyPersonalMessage(message, signature, address),
-  wallets, approvals, notify,
+  wallets, approvals, notify, schedules,
   memoryCounts: async () => {
     if (!walrus) return null;
     if (countsCache && Date.now() - countsCache.at < COUNTS_CACHE_MS) return countsCache.view;
@@ -126,7 +129,9 @@ async function ownerWalletTick(): Promise<void> {
   if (applied) await notify(`Owner wallet replaced after the 72-hour wait: it is now ${applied.address}. The previous wallet didn't cancel it.`);
 }
 await completeReadyChanges(owner, Date.now());
+const scheduleRunner = await ScheduleRunner.open({ rows: storage.rows, engine, ledger, schedules, sendPayment: owner.sendPayment, notify, publicUrl: config.publicUrl, now: Date.now });
 setInterval(() => void ownerWalletTick().catch((error: Error) => console.error(`Owner wallet check skipped: ${error.message.slice(0, 200)}`)), RECONCILE_EVERY_MS).unref();
+setInterval(() => void scheduleRunner.tick().catch((error: Error) => console.error(`Scheduled payments skipped: ${error.message.slice(0, 200)}`)), RECONCILE_EVERY_MS).unref();
 setInterval(() => void completeReadyChanges(owner, Date.now()).catch((error: Error) => console.error(`Change completion skipped: ${error.message.slice(0, 200)}`)), RECONCILE_EVERY_MS).unref();
 
 const modelStats = new ModelStats();
@@ -142,6 +147,7 @@ bot = startBot({
   answeredByCode: () => modelStats.answeredByCode(),
   sendPayment: send,
 });
+void scheduleRunner.tick().catch((error: Error) => console.error(`Boot run of scheduled payments skipped: ${error.message.slice(0, 200)}`));
 
 process.once("SIGTERM", () => {
   console.log("Stopping: Telegram polling ends first so a new instance can take over.");
