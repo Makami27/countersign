@@ -39,3 +39,15 @@ export async function signWith(wallet: Wallet, expected: string, message: string
     return { ok: false, message: "The wallet didn't sign. Nothing was signed or changed." };
   }
 }
+
+export async function connectedAddress(): Promise<{ readonly ok: true; readonly address: string } | { readonly ok: false; readonly message: string }> {
+  const wallet = signingWallets()[0];
+  const connect = wallet?.features["standard:connect"] as ConnectFeature | undefined;
+  if (!wallet || !connect) return { ok: false, message: "No Sui wallet was found in this browser. Nothing was changed." };
+  try {
+    const address = (await connect.connect()).accounts[0]?.address;
+    return address ? { ok: true, address } : { ok: false, message: `${wallet.name} shared no account. Nothing was changed.` };
+  } catch {
+    return { ok: false, message: `${wallet.name} didn't connect. Nothing was changed.` };
+  }
+}

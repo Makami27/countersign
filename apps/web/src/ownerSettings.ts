@@ -50,6 +50,16 @@ export class OwnerSettings {
     };
   }
 
+  validate(input: { readonly perPaymentBaseUnits: string; readonly perDayBaseUnits: string; readonly cooldownSeconds: string }): SettingsUpdate {
+    if (![input.perPaymentBaseUnits, input.perDayBaseUnits, input.cooldownSeconds].every((v) => BASE_UNITS.test(v))) return { ok: false, problem: "Use whole numbers only." };
+    const values = { perPaymentBaseUnits: BigInt(input.perPaymentBaseUnits), perDayBaseUnits: BigInt(input.perDayBaseUnits), cooldownSeconds: Number(input.cooldownSeconds) };
+    if (values.perPaymentBaseUnits === 0n || values.perDayBaseUnits === 0n) return { ok: false, problem: "Caps must be above zero." };
+    if (values.perPaymentBaseUnits > values.perDayBaseUnits) return { ok: false, problem: "The per-payment cap can't be above the daily cap." };
+    if (values.perDayBaseUnits > MAX_CAP_BASE_UNITS) return { ok: false, problem: "The daily cap can't be above 1,000 USDC in this build." };
+    if (values.cooldownSeconds > MAX_COOLDOWN_SECONDS) return { ok: false, problem: "The cooldown can't be longer than 7 days." };
+    return { ok: true, values };
+  }
+
   async update(input: { readonly perPaymentBaseUnits: string; readonly perDayBaseUnits: string; readonly cooldownSeconds: string }): Promise<SettingsUpdate> {
     if (![input.perPaymentBaseUnits, input.perDayBaseUnits, input.cooldownSeconds].every((v) => BASE_UNITS.test(v))) return { ok: false, problem: "Use whole numbers only." };
     const perPayment = BigInt(input.perPaymentBaseUnits);

@@ -1,5 +1,6 @@
 import { usdcToBaseUnits } from "@countersign/core";
 import { api } from "../api.ts";
+import { withApprovals } from "../approvals.ts";
 import { addressEl, h, liveRegion, networkWords, usdc, listen } from "../dom.ts";
 import type { Overview, PayeeDetail, PaymentStatus, Refusal } from "../types.ts";
 
@@ -82,7 +83,7 @@ export function paySheet(detail: PayeeDetail, overview: Overview, onClosed: () =
   }, onClosed);
 }
 
-export function addPayeeSheet(onClosed: () => void): void {
+export function addPayeeSheet(network: "mainnet" | "testnet", onClosed: () => void): void {
   openSheet("Add a payee", (close, body) => {
     const name = h("input", { id: "payee-name", name: "name", required: true, maxlength: "60", autocomplete: "off", placeholder: "Flat 4B rent" });
     const address = h("input", { id: "payee-address", name: "address", required: true, class: "mono", autocomplete: "off", spellcheck: "false", placeholder: "0x…" });
@@ -93,8 +94,8 @@ export function addPayeeSheet(onClosed: () => void): void {
     listen(form, "submit", async (event) => {
       event.preventDefault();
       submit.disabled = true;
-      status.textContent = "Writing the payee to Walrus Memory. This takes about 20 seconds; nothing can be paid yet.";
-      const result = await api<{ signUrl: string | null }>("POST", "/api/app/payees", { name: name.value, address: address.value.trim() });
+      status.textContent = "Asking your owner wallet to approve this payee…";
+      const result = await withApprovals<{ signUrl: string | null }>("POST", "/api/app/payees", { name: name.value, address: address.value.trim() }, network, status);
       submit.disabled = false;
       if (!result.ok) {
         const refusal = result.error.body?.["refusal"] as Refusal | undefined;

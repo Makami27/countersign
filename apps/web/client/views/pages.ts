@@ -1,4 +1,6 @@
 import { api } from "../api.ts";
+import { withApprovals } from "../approvals.ts";
+import { ownerWalletPanel } from "./ownerWallet.ts";
 import { addressEl, h, liveRegion, usdc, when, listen } from "../dom.ts";
 import type { ActivityItem, Overview } from "../types.ts";
 import { agentFacts } from "./firstRun.ts";
@@ -36,7 +38,7 @@ export function settingsPage(overview: Overview, onSaved: () => void): HTMLEleme
   listen(form, "submit", async (event) => {
     event.preventDefault();
     const toBase = (v: string) => (Number.isFinite(Number(v)) && Number(v) >= 0 ? Math.round(Number(v) * 1e6).toString() : "");
-    const result = await api("PUT", "/api/app/settings", { perPaymentBaseUnits: toBase(perPayment.value), perDayBaseUnits: toBase(perDay.value), cooldownSeconds: String(Math.round(Number(cooldown.value) * 3600)) });
+    const result = await withApprovals("PUT", "/api/app/settings", { perPaymentBaseUnits: toBase(perPayment.value), perDayBaseUnits: toBase(perDay.value), cooldownSeconds: String(Math.round(Number(cooldown.value) * 3600)) }, overview.network, status);
     status.textContent = result.ok ? "Saved. The agent uses the new caps from the next payment." : result.error.message;
     if (result.ok) onSaved();
   }, status);
@@ -45,7 +47,7 @@ export function settingsPage(overview: Overview, onSaved: () => void): HTMLEleme
     await api("DELETE", "/api/session");
     location.assign("/app/login");
   }, status);
-  return h("section", { class: "narrow", "aria-labelledby": "settings-title" }, h("h1", { id: "settings-title" }, "Settings"), agentFacts(overview), form,
+  return h("section", { class: "narrow", "aria-labelledby": "settings-title" }, h("h1", { id: "settings-title" }, "Settings"), agentFacts(overview), ownerWalletPanel(overview, onSaved), form,
     overview.cooldownSeconds < 24 * 3600 ? h("p", { class: "netlabel" }, `Demo value: changes you confirm yourself wait ${Math.round(overview.cooldownSeconds / 60)} minutes, not 24 hours.`) : null,
     h("div", { class: "actions" }, signOut));
 }

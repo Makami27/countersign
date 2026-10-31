@@ -18,6 +18,8 @@ import { startBot } from "./telegram.ts";
 import { openStorage } from "./storage.ts";
 import { statusProbe } from "./statusChecks.ts";
 import { ModelStats } from "./modelStats.ts";
+import { OwnerWallets } from "@countersign/web/ownerWallet";
+import { OwnerApprovals } from "@countersign/web/ownerApprovals";
 
 const RECONCILE_EVERY_MS = 60_000;
 const BALANCE_CACHE_MS = 30_000;
@@ -39,10 +41,17 @@ const auth = await OwnerAuth.open(storage.rows);
 const clock = { now: () => new Date() };
 const verifier = new TatumSignatureVerifier(grpc);
 const steps = await ChangeSteps.open(storage.rows);
+const recordSigner = recordSignerFromSeed(config.recordSigningKey);
+const wallets = await OwnerWallets.open({ rows: storage.rows, memory, signer: recordSigner, ownerId: config.ownerId, now: Date.now });
+const approvals = await OwnerApprovals.open(storage.rows, config.ownerId, (message, signature, address) => verifier.verifyPersonalMessage(message, signature, address));
+let bot: ReturnType<typeof startBot> | null = null;
+async function notify(text: string): Promise<void> {
+  await bot?.api.sendMessage(config.telegram.ownerUserId, text).catch((error: Error) => console.error(`Telegram notice not sent: ${error.message.slice(0, 120)}`));
+}
 
 const deps: EngineDeps = {
   ownerId: config.ownerId, network: config.network, memory, index, payments: ledger, clock,
-  signer: recordSignerFromSeed(config.recordSigningKey),
+  signer: recordSigner,
   signatures: verifier,
   roundTrips: new TatumRoundTripChecker(graphql, agentAddress, USDC_COIN_TYPE[config.network]),
   nonces: { next: () => randomBytes(16).toString("hex") },
@@ -94,6 +103,7 @@ const owner: OwnerContext = {
   steps,
   cooldownMs: () => settings.values().cooldownSeconds * 1000,
   verifySignature: (message, signature, address) => verifier.verifyPersonalMessage(message, signature, address),
+  wallets, approvals, notify,
   memoryCounts: async () => {
     if (!walrus) return null;
     if (countsCache && Date.now() - countsCache.at < COUNTS_CACHE_MS) return countsCache.view;
@@ -111,10 +121,14 @@ const owner: OwnerContext = {
   },
 };
 
+async function ownerWalletTick(): Promise<void> {
+  const applied = await wallets.applyDue();
+  if (applied) await notify(`Owner wallet replaced after the 72-hour wait: it is now ${applied.address}. The previous wallet didn't cancel it.`);
+}
 await completeReadyChanges(owner, Date.now());
+setInterval(() => void ownerWalletTick().catch((error: Error) => console.error(`Owner wallet check skipped: ${error.message.slice(0, 200)}`)), RECONCILE_EVERY_MS).unref();
 setInterval(() => void completeReadyChanges(owner, Date.now()).catch((error: Error) => console.error(`Change completion skipped: ${error.message.slice(0, 200)}`)), RECONCILE_EVERY_MS).unref();
 
-let bot: ReturnType<typeof startBot> | null = null;
 const modelStats = new ModelStats();
 const status = statusProbe({
   network: config.network, version: process.env["GIT_SHA"] ?? null, database: { label: storage.label, rows: storage.rows }, graphql,

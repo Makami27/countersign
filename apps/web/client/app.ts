@@ -89,11 +89,11 @@ async function renderPage(): Promise<void> {
   if (!payees.ok) return show(failure(payees.error.message));
   const match = /^\/app\/payees\/([^/]+)$/.exec(path);
   const selected = match?.[1] ? decodeURIComponent(match[1]) : (payees.data.payees[0]?.id ?? null);
-  const list = payeeList(payees.data.payees, overview.data, selected, () => addPayeeSheet(() => void render()));
+  const list = payeeList(payees.data.payees, overview.data, selected, () => addPayeeSheet(overview.data.network, () => void render()), () => void render());
   if (!selected) return show(h("div", { class: "owner single at-list" }, list));
   const detail = await api<PayeeDetail>("GET", `/api/app/payees/${encodeURIComponent(selected)}`);
   const rerender = () => void render();
-  const detailView = detail.ok ? payeeDetailView(detail.data, { onPay: () => paySheet(detail.data, overview.data, rerender), onRequestChange: () => requestChangeSheet(detail.data, rerender), onConfirm: (nonce) => confirmChangeSheet(nonce, overview.data.cooldownSeconds, rerender) }) : failure(detail.error.message);
+  const detailView = detail.ok ? payeeDetailView(detail.data, { onPay: () => paySheet(detail.data, overview.data, rerender), onRequestChange: () => requestChangeSheet(detail.data, rerender), onConfirm: (nonce) => confirmChangeSheet(nonce, overview.data.cooldownSeconds, overview.data.network, rerender) }) : failure(detail.error.message);
   if (detail.ok && (detail.data.pendingChanges.length > 0 || detail.data.waiting)) schedulePoll(path);
   show(h("div", { class: `owner ${match ? "at-detail" : "at-list"}` }, list, detailView));
 }

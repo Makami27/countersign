@@ -17,7 +17,9 @@
     "./addressGroups": "./client/addressGroups.ts",
     "./changeSteps": "./src/changeSteps.ts",
     "./changeCompletion": "./src/changeCompletion.ts",
-    "./status": "./src/status.ts"
+    "./status": "./src/status.ts",
+    "./ownerWallet": "./src/ownerWallet.ts",
+    "./ownerApprovals": "./src/ownerApprovals.ts"
   },
   "devDependencies": {
     "esbuild": "0.28.2"

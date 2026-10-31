@@ -13,11 +13,11 @@ function metaLine(payee: PayeeSummary): string {
   }
 }
 
-export function payeeList(payees: readonly PayeeSummary[], overview: Overview | null, selected: string | null, onAdd: () => void): HTMLElement {
+export function payeeList(payees: readonly PayeeSummary[], overview: Overview | null, selected: string | null, onAdd: () => void, onChanged: () => void): HTMLElement {
   const section = h("section", { class: "list", "aria-labelledby": "payees-title" },
     h("h1", { id: "payees-title" }, "Payees"),
     h("p", { class: "sub" }, "Your agent can only pay addresses marked verified."));
-  if (payees.length === 0 && overview) section.append(firstRun(overview));
+  if (payees.length === 0 && overview) section.append(firstRun(overview, onChanged));
   for (const payee of payees) {
     section.append(h("a", { class: "cheque", href: `/app/payees/${encodeURIComponent(payee.id)}`, "data-link": true, "aria-current": payee.id === selected ? "page" : undefined },
       h("span", { class: "name" }, payee.name, statusPill(payee.status)),
