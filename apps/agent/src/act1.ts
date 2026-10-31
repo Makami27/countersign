@@ -5,6 +5,7 @@ import { randomBytes } from "node:crypto";
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { decodeSuiPrivateKey } from "@mysten/sui/cryptography";
 import { Countersign, REASONS, parseSuiAddress, type SuiAddress } from "@countersign/core";
+import { SharedAttackList } from "@countersign/core/shared";
 import { SqliteIndex, SqlitePaymentLedger } from "@countersign/adapters/sqlite";
 import { MAINNET_RELAYER_URL, MemWalMemory } from "@countersign/adapters/memwal";
 import { PaymentRunner } from "@countersign/adapters/payments";
@@ -39,9 +40,10 @@ const memory = new MemWalMemory({ key: config.memwal.key, accountId: config.memw
 const payments = new SqlitePaymentLedger(join(workDir, "act1.sqlite"));
 const clock = { now: () => new Date() };
 const runner = new PaymentRunner({ ledger: payments, chain: tatumPaymentChain(grpc, wallet, "testnet"), clock });
+const signer = recordSignerFromSeed(config.recordSigningKey);
 const engine = new Countersign({
-  ownerId, network: "testnet", memory, index: new SqliteIndex(join(workDir, "act1.sqlite")), payments,
-  signer: recordSignerFromSeed(config.recordSigningKey), signatures: new TatumSignatureVerifier(grpc),
+  ownerId, network: "testnet", memory, shared: new SharedAttackList({ memory, signer, now: () => new Date() }), index: new SqliteIndex(join(workDir, "act1.sqlite")), payments,
+  signer, signatures: new TatumSignatureVerifier(grpc),
   roundTrips: new TatumRoundTripChecker(new TatumGraphql(TATUM_GRAPHQL_URL.testnet, config.tatumApiKey, gate), wallet.toSuiAddress() as SuiAddress, USDC_COIN_TYPE.testnet),
   clock, nonces: { next: () => randomBytes(16).toString("hex") }, caps: config.caps, cooldownMs: config.cooldownMs,
 });

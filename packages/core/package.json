@@ -2,5 +2,11 @@
   "name": "@countersign/core",
   "private": true,
   "type": "module",
-  "exports": { ".": "./src/index.ts" }
+  "exports": {
+    ".": "./src/index.ts",
+    "./shared": "./src/sharedAttacks.ts"
+  },
+  "dependencies": {
+    "zod": "4.6.7"
+  }
 }

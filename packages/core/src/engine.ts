@@ -9,9 +9,10 @@ import { CheckTrail, paymentOutcome } from "./receipts.ts";
 import { payeeVersion, refuse, writeReceipt, writeRecord, type ReceiptWrite } from "./engineWrites.ts";
 import { completeOnboarding, requestOnboarding } from "./onboarding.ts";
 import { KeyedMutex } from "./keyedMutex.ts";
+import { seenElsewhere } from "./sharedFlags.ts";
 import type { PaymentIntent } from "./payments.ts";
 import type { EngineDeps } from "./engineDeps.ts";
-import type { ContinuityProof, ControlProof, Evidence, InboundMessage, Outcome, PayeeHead, Proposal, ReceiptRecord, Refused, SuiAddress } from "./types.ts";
+import type { ContinuityProof, ControlProof, Evidence, InboundMessage, Outcome, PayeeHead, Proposal, ReceiptRecord, Refused, SeenElsewhere, SuiAddress } from "./types.ts";
 
 export type { RoundTripChecker, RoundTripResult } from "./changeProofs.ts";
 export type { RestoreResult } from "./memoryBook.ts";
@@ -49,6 +50,10 @@ export class Countersign {
     return this.#d.index.receipt(id);
   }
 
+  seenElsewhere(address: SuiAddress): Promise<SeenElsewhere | null> {
+    return seenElsewhere(this.#d, address);
+  }
+
   restore(): Promise<RestoreResult> {
     return restoreIndex(this.#d);
   }
@@ -73,6 +78,8 @@ export class Countersign {
     if (new Date(change.expires) < d.clock.now()) return refuse(d, "CHANGE_REJECTED", "EXPIRED", subject, trail);
     const head = headOf(await d.index.payeeVersions(change.payeeId));
     if (head.kind !== "verified" || head.version.address !== change.fromAddress) return refuse(d, "CHANGE_REJECTED", "CONFLICT", subject, trail);
+    const flagged = continuity.kind === "owner_confirmed" ? await seenElsewhere(d, change.toAddress) : null;
+    if (flagged) return refuse(d, "CHANGE_REJECTED", "SEEN_BY_OTHER_AGENT", { ...subject, seenElsewhere: flagged }, trail, "NOT_SEEN_ELSEWHERE");
     const message = changeMessage(change);
     const continuityStep = await checkContinuity(continuity, message, change.fromAddress, { signatures: d.signatures, nowMs: d.clock.now().getTime(), cooldownMs: d.cooldownMs }, trail);
     if (!continuityStep.ok) return refuse(d, "CHANGE_REJECTED", continuityStep.reason, subject, trail);
@@ -125,6 +132,8 @@ export class Countersign {
     trail.pass("NOT_KNOWN_ATTACK");
     if (imitatesAny(toAddress, await d.index.verifiedAddresses())) return refuse(d, "REFUSED", "LOOKALIKE_ADDRESS", subject, trail, "NOT_LOOKALIKE");
     trail.pass("NOT_LOOKALIKE");
+    const flagged = message.channel === "web" ? null : await seenElsewhere(d, toAddress);
+    if (flagged) return refuse(d, "REFUSED", "SEEN_BY_OTHER_AGENT", { ...subject, seenElsewhere: flagged }, trail, "NOT_SEEN_ELSEWHERE");
 
     const nonce = d.nonces.next();
     const expires = new Date(d.clock.now().getTime() + CHANGE_REQUEST_LIFETIME_MS).toISOString();

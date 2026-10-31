@@ -11,6 +11,7 @@ import { TookTooLong, within } from "./deadline.ts";
 import { ownerSigned } from "./ownerGate.ts";
 import { ownerWalletRoute } from "./ownerWalletRoutes.ts";
 import { scheduleList, scheduleRoute } from "./scheduleRoutes.ts";
+import { retractSharedReport } from "./sharedReportRoutes.ts";
 
 export const SESSION_COOKIE = "cs_owner";
 export const CSRF_HEADER = "x-countersign";
@@ -79,6 +80,7 @@ async function ownerRequest(ctx: OwnerContext, req: IncomingMessage, res: Server
   const input = await readJson(req);
   if (!input) return problem(res, 400, "Send a JSON object under 8 KB. Nothing was changed.");
   if (parts[0] === "schedules") return scheduleRoute(ctx, res, req.method ?? "", parts, input);
+  if (req.method === "POST" && parts[0] === "receipts" && parts[1] && parts[2] === "retract") return retractSharedReport(ctx, res, decodeURIComponent(parts[1]), input);
   if (req.method === "POST" && parts[0] === "owner" && parts[1] === "wallet") return ownerWalletRoute(ctx, res, parts, input);
   if (req.method === "PUT" && parts[0] === "settings") {
     const wanted = { perPaymentBaseUnits: String(input["perPaymentBaseUnits"] ?? ""), perDayBaseUnits: String(input["perDayBaseUnits"] ?? ""), cooldownSeconds: String(input["cooldownSeconds"] ?? "") };
@@ -128,6 +130,7 @@ async function ownerRequest(ctx: OwnerContext, req: IncomingMessage, res: Server
     const nonce = parts[1];
     const change = await ctx.index.pendingChange(nonce);
     if (!change || Date.parse(change.expires) <= now) return send(res, 410, { refusal: { reason: "EXPIRED", ...REASONS.EXPIRED } });
+    if (await ctx.engine.seenElsewhere(change.toAddress)) return send(res, 422, { refusal: { reason: "SEEN_BY_OTHER_AGENT", ...REASONS.SEEN_BY_OTHER_AGENT } });
     if (!(await ownerSigned(ctx, res, input, "confirm_owner_change", { nonce, payee: change.payeeId, to: change.toAddress }))) return;
     await ctx.steps.confirmByOwner(nonce, `owner:${randomBytes(6).toString("hex")}`, new Date(now).toISOString());
     await ctx.notify(`You confirmed the address change for ${change.payeeId} with your owner wallet. It can take effect after the waiting period, once the new wallet signs.`);

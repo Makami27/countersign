@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { decodeSuiPrivateKey } from "@mysten/sui/cryptography";
 import { Countersign, InMemoryMemory, isRealUseNamespace, type EngineDeps, type PaymentIntent, type SuiAddress } from "@countersign/core";
+import { SharedAttackList } from "@countersign/core/shared";
 import { MemWalMemory } from "@countersign/adapters/memwal";
 import { PaymentRunner } from "@countersign/adapters/payments";
 import { SharedRateGate, TATUM_FREE_TIER_INTERVAL_MS, TATUM_GRAPHQL_URL, TatumGraphql, TatumRoundTripChecker, TatumSignatureVerifier, USDC_COIN_TYPE, readAgentBalances, tatumGrpcClient, tatumPaymentChain, tatumRateGateName } from "@countersign/adapters/tatum";
@@ -24,6 +25,7 @@ import { Schedules } from "@countersign/web/schedules";
 import { ScheduleRunner } from "@countersign/web/scheduleRuns";
 
 const RECONCILE_EVERY_MS = 60_000;
+const SHARED_REFRESH_EVERY_MS = 10 * 60_000;
 const BALANCE_CACHE_MS = 30_000;
 const COUNTS_CACHE_MS = 60_000;
 
@@ -47,6 +49,9 @@ const recordSigner = recordSignerFromSeed(config.recordSigningKey);
 const wallets = await OwnerWallets.open({ rows: storage.rows, memory, signer: recordSigner, ownerId: config.ownerId, now: Date.now });
 const approvals = await OwnerApprovals.open(storage.rows, config.ownerId, (message, signature, address) => verifier.verifyPersonalMessage(message, signature, address));
 const schedules = await Schedules.open({ rows: storage.rows, memory, signer: recordSigner, ownerId: config.ownerId, now: Date.now });
+const shared = new SharedAttackList({ memory, signer: recordSigner, now: () => new Date() });
+console.log((await shared.refresh()) ? "Shared scam memory read." : "Shared scam memory could not be read completely; only local checks apply until it can.");
+setInterval(() => void shared.refresh().catch((error: Error) => console.error(`Shared scam memory refresh skipped: ${error.message.slice(0, 200)}`)), SHARED_REFRESH_EVERY_MS).unref();
 let bot: ReturnType<typeof startBot> | null = null;
 async function notify(text: string): Promise<void> {
   await bot?.api.sendMessage(config.telegram.ownerUserId, text).catch((error: Error) => console.error(`Telegram notice not sent: ${error.message.slice(0, 120)}`));
@@ -56,6 +61,7 @@ const deps: EngineDeps = {
   ownerId: config.ownerId, network: config.network, memory, index, payments: ledger, clock,
   signer: recordSigner,
   signatures: verifier,
+  shared,
   roundTrips: new TatumRoundTripChecker(graphql, agentAddress, USDC_COIN_TYPE[config.network]),
   nonces: { next: () => randomBytes(16).toString("hex") },
   caps: settings.caps(),
@@ -106,7 +112,7 @@ const owner: OwnerContext = {
   steps,
   cooldownMs: () => settings.values().cooldownSeconds * 1000,
   verifySignature: (message, signature, address) => verifier.verifyPersonalMessage(message, signature, address),
-  wallets, approvals, notify, schedules,
+  wallets, approvals, notify, schedules, shared,
   memoryCounts: async () => {
     if (!walrus) return null;
     if (countsCache && Date.now() - countsCache.at < COUNTS_CACHE_MS) return countsCache.view;

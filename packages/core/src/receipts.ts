@@ -20,7 +20,7 @@ export class CheckTrail {
 export function remembersAttack(receipt: ReceiptRecord): boolean {
   if (receipt.verdict !== "REFUSED" && receipt.verdict !== "CHANGE_REJECTED") return false;
   if (receipt.reason === null || receipt.address === null) return false;
-  return !REASONS[receipt.reason].retryable && receipt.reason !== "KNOWN_ATTACK_PATTERN";
+  return !REASONS[receipt.reason].retryable && receipt.reason !== "KNOWN_ATTACK_PATTERN" && receipt.reason !== "SEEN_BY_OTHER_AGENT";
 }
 
 export function isRefusal(receipt: ReceiptRecord): boolean {

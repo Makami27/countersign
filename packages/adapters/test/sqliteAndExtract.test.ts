@@ -5,6 +5,7 @@ import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Countersign, InMemoryMemory, changeMessage } from "@countersign/core";
+import { SharedAttackList } from "@countersign/core/shared";
 import { SqliteIndex } from "../src/sqlite/indexStore.ts";
 import { SqlitePaymentLedger } from "../src/sqlite/paymentLedger.ts";
 import { toProposal } from "../src/gemini/extract.ts";
@@ -15,8 +16,9 @@ async function sqliteWorld() {
   const memory = new InMemoryMemory();
   const path = join(mkdtempSync(join(tmpdir(), "countersign-sqlite-")), "agent.sqlite");
   const index = new SqliteIndex(path);
+  const signer = recordSignerFromSeed(randomBytes(32).toString("base64"));
   const deps = {
-    ownerId: "owner1", network: "testnet" as const, memory, index, payments: new SqlitePaymentLedger(path), signer: recordSignerFromSeed(randomBytes(32).toString("base64")), signatures: new StandInVerifier(),
+    ownerId: "owner1", network: "testnet" as const, memory, index, payments: new SqlitePaymentLedger(path), signer, signatures: new StandInVerifier(), shared: new SharedAttackList({ memory, signer, now: () => new Date() }),
     roundTrips: { check: async () => "NOT_PROVEN" as const }, clock: new FixedClock("2026-10-30T10:00:00Z"),
     nonces: { next: () => randomBytes(8).toString("hex") }, caps: { perPaymentBaseUnits: 50_000_000n, perDayBaseUnits: 100_000_000n }, cooldownMs: 1000,
   };

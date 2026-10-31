@@ -2,6 +2,8 @@ import { createHash, generateKeyPairSync, randomBytes, sign, verify, type KeyObj
 import { onboardingMessage } from "../src/changeMessage.ts";
 import { Countersign, type Caps, type RoundTripChecker } from "../src/engine.ts";
 import { InMemoryIndex, InMemoryMemory, InMemoryPaymentLedger } from "../src/testing/inMemory.ts";
+import { SharedAttackList } from "../src/sharedAttacks.ts";
+import { recordSignerFromSeed } from "../../adapters/src/signer.ts";
 import type { RecordSigner, SignatureCheck, SignatureVerifier } from "../src/ports.ts";
 import type { InboundMessage, SuiAddress } from "../src/types.ts";
 
@@ -44,17 +46,7 @@ function signedWith(key: KeyObject, message: string, signature: string): boolean
 }
 
 export function recordSigner(): RecordSigner {
-  const { publicKey, privateKey } = generateKeyPairSync("ed25519");
-  return {
-    sign: (canonical) => sign(null, Buffer.from(canonical), privateKey).toString("base64"),
-    verify: (canonical, signature) => {
-      try {
-        return verify(null, Buffer.from(canonical), publicKey, Buffer.from(signature, "base64"));
-      } catch {
-        return false;
-      }
-    },
-  };
+  return recordSignerFromSeed(randomBytes(32).toString("base64"));
 }
 
 export class FixedClock {
@@ -95,11 +87,13 @@ export async function world(caps: Caps = DEFAULT_CAPS, start = "2026-10-30T10:00
   let n = 0;
   const roundTrips: RoundTripChecker = { check: async () => "NOT_PROVEN" };
   const payments = new InMemoryPaymentLedger(index);
-  const deps = { ownerId: "owner1", network: "testnet" as const, memory, index, payments, signer, signatures, roundTrips, clock, nonces: { next: () => `n${++n}${randomBytes(4).toString("hex")}` }, caps, cooldownMs };
+  const shared = new SharedAttackList({ memory, signer, now: () => clock.now() });
+  await shared.refresh();
+  const deps = { ownerId: "owner1", network: "testnet" as const, memory, index, payments, signer, signatures, roundTrips, clock, nonces: { next: () => `n${++n}${randomBytes(4).toString("hex")}` }, caps, cooldownMs, shared };
   const agent = new Countersign(deps);
   const landlord = wallet();
   const designer = wallet();
   await onboard(agent, "Landlord", landlord);
   await onboard(agent, "Designer", designer);
-  return { agent, deps, memory, index, payments, signer, signatures, clock, landlord, designer };
+  return { agent, deps, memory, index, payments, signer, signatures, clock, landlord, designer, shared };
 }

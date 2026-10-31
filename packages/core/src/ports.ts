@@ -1,10 +1,12 @@
-import type { PayeeVersionRecord, ReceiptRecord, SignatureVerification, SuiAddress } from "./types.ts";
-import type { SignatureResult } from "./vocabulary.ts";
+import type { PayeeVersionRecord, ReceiptRecord, SeenElsewhere, SignatureVerification, SuiAddress } from "./types.ts";
+import type { SharedReason, SignatureResult } from "./vocabulary.ts";
 import type { NewPaymentIntent, PaymentIntent, PaymentMove } from "./payments.ts";
 
 export interface RecordSigner {
+  readonly agentKey: string;
   sign(canonical: string): string;
   verify(canonical: string, signature: string): boolean;
+  verifyAgent(agentKey: string, canonical: string, signature: string): boolean;
 }
 
 export type MemoryWrite = { readonly status: "WRITTEN"; readonly blobId: string } | { readonly status: "UNKNOWN" };
@@ -21,6 +23,13 @@ export interface MemoryPort {
 export type SignatureCheck =
   | { readonly result: "VALID"; readonly scheme: SignatureVerification["scheme"]; readonly maxEpoch: string | null; readonly checkedAtEpoch: string }
   | { readonly result: Exclude<SignatureResult, "VALID"> };
+
+export type SharedFlag = { readonly status: "UNKNOWN" } | { readonly status: "CLEAR" } | ({ readonly status: "SEEN" } & SeenElsewhere);
+
+export interface SharedAttackMemory {
+  flag(address: SuiAddress): SharedFlag;
+  report(sighting: { readonly address: SuiAddress; readonly reason: SharedReason; readonly receipt: string }): Promise<MemoryWrite>;
+}
 
 export interface SignatureVerifier {
   verifyPersonalMessage(message: string, signature: string, address: SuiAddress): Promise<SignatureCheck>;

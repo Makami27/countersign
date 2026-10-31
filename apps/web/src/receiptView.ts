@@ -1,4 +1,4 @@
-import { REASONS, formatUsdc, headOf, type CheckCode, type ReceiptRecord, type SuiAddress } from "@countersign/core";
+import { REASONS, formatUsdc, headOf, type CheckCode, type ReceiptRecord, type SeenElsewhere, type SuiAddress } from "@countersign/core";
 import type { OwnerContext } from "./ownerContext.ts";
 
 const WALRUS_AGGREGATOR = "https://aggregator.walrus-mainnet.walrus.space/v1/blobs/";
@@ -25,6 +25,7 @@ export const CHECK_WORDS: Record<CheckCode, string> = {
   COOLDOWN_ELAPSED: "The waiting period had passed",
   CONTROL: "The new wallet proved it is in control",
   SETTLED_ON_CHAIN: "The transfer settled on chain",
+  NOT_SEEN_ELSEWHERE: "Other Countersign agents have not refused this address",
 };
 
 export type BlobLink = { readonly id: string; readonly raw: string | null; readonly explorer: string | null };
@@ -38,6 +39,7 @@ export type ReceiptView = {
   readonly checks: readonly { readonly words: string; readonly passed: boolean }[];
   readonly attempt: { readonly address: SuiAddress; readonly verified: SuiAddress | null } | null;
   readonly cites: string | null;
+  readonly seenElsewhere: SeenElsewhere | null;
   readonly receiptBlob: BlobLink | null;
   readonly evidenceBlobs: readonly BlobLink[];
   readonly memoryLabel: string;
@@ -82,6 +84,7 @@ export async function receiptView(ctx: OwnerContext, id: string): Promise<Receip
     checks: record.checks.map((c) => ({ words: CHECK_WORDS[c.check], passed: c.result === "PASS" })),
     attempt: refused && record.address && record.address !== verified ? { address: record.address, verified } : null,
     cites: earlier && earlier.receipt !== id ? earlier.receipt : null,
+    seenElsewhere: record.seenElsewhere ?? null,
     receiptBlob: blobId ? blobLink(blobId, onWalrus) : null,
     evidenceBlobs: record.memoryBlobIds.map((b) => blobLink(b, onWalrus)),
     memoryLabel: onWalrus ? "Walrus Memory, mainnet relayer" : `${relayer}`,

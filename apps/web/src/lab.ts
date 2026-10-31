@@ -1,5 +1,7 @@
 import { createHash, generateKeyPairSync, randomBytes, sign, verify, type KeyObject } from "node:crypto";
 import { isRefusal, Countersign, InMemoryIndex, InMemoryMemory, InMemoryPaymentLedger, addressesIn, changeMessage, headOf, onboardingMessage, type Outcome, type PayeeVersionRecord, type ReceiptRecord, type SignatureCheck, type SuiAddress } from "@countersign/core";
+import { SharedAttackList } from "@countersign/core/shared";
+import { recordSignerFromSeed } from "@countersign/adapters/signer";
 import { traceFor, type TraceStep } from "./trace.ts";
 
 export const LAB_PAYEES = [
@@ -63,7 +65,7 @@ class LabSession {
   #seq = 0;
 
   constructor() {
-    const records = generateKeyPairSync("ed25519");
+    const signer = recordSignerFromSeed(randomBytes(32).toString("base64"));
     const wallets = this.wallets;
     this.engine = new Countersign({
       ownerId: "lab",
@@ -71,10 +73,7 @@ class LabSession {
       memory: this.memory,
       index: this.index,
       payments: new InMemoryPaymentLedger(this.index),
-      signer: {
-        sign: (c) => sign(null, Buffer.from(c), records.privateKey).toString("base64"),
-        verify: (c, s) => verify(null, Buffer.from(c), records.publicKey, Buffer.from(s, "base64")),
-      },
+      signer,
       signatures: {
         verifyPersonalMessage: async (message, signature, address) => labVerify(wallets, message, signature, address),
       },
@@ -83,6 +82,7 @@ class LabSession {
       nonces: { next: () => `${(++this.#seq).toString(36)}${randomBytes(3).toString("hex")}` },
       caps: { perPaymentBaseUnits: 5_000_000n, perDayBaseUnits: 1_000_000_000n },
       cooldownMs: 60_000,
+      shared: new SharedAttackList({ memory: this.memory, signer, now: () => new Date() }),
     });
   }
 
