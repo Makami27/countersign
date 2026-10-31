@@ -47,9 +47,9 @@ export type LabReply = { readonly outcome: Outcome; readonly trace: readonly Tra
 class LabIndex extends InMemoryIndex {
   readonly refusals: ReceiptRecord[] = [];
 
-  override async putReceipt(record: ReceiptRecord): Promise<void> {
+  override async putReceipt(record: ReceiptRecord, blobId: string | null): Promise<void> {
     if (isRefusal(record)) this.refusals.unshift(record);
-    await super.putReceipt(record);
+    await super.putReceipt(record, blobId);
   }
 }
 

@@ -51,7 +51,7 @@ export function startBot(deps: BotDeps): Bot {
     const proposal = extraction.proposal;
     if (proposal.kind === "pay") {
       const preview = await deps.engine.previewPayment(inbound, proposal);
-      if (preview.verdict === "REFUSED") return void (await ctx.reply(refusalHtml(preview, await deps.engine.receiptRecord(preview.receipt), null), HTML));
+      if (preview.verdict === "REFUSED") return void (await ctx.reply(refusalHtml(preview, await deps.engine.receiptRecord(preview.receipt), null, deps.publicUrl), HTML));
       const id = randomBytes(9).toString("base64url");
       confirmations.set(id, { inbound, proposal, expires: Date.now() + CONFIRMATION_LIFETIME_MS });
       const keyboard = new InlineKeyboard().text("Pay", `pay:${id}`).text("Cancel", `cancel:${id}`);
@@ -59,7 +59,7 @@ export function startBot(deps: BotDeps): Bot {
     }
     const outcome = await deps.engine.handle(inbound, proposal);
     const head = proposal.kind === "change_address" ? headOf(await deps.index.payeeVersions(proposal.payeeId)) : null;
-    if (outcome.verdict === "REFUSED") return void (await ctx.reply(refusalHtml(outcome, await deps.engine.receiptRecord(outcome.receipt), head?.kind === "verified" ? head.version.address : null), HTML));
+    if (outcome.verdict === "REFUSED") return void (await ctx.reply(refusalHtml(outcome, await deps.engine.receiptRecord(outcome.receipt), head?.kind === "verified" ? head.version.address : null, deps.publicUrl), HTML));
     if (outcome.verdict === "CHANGE_STARTED") return void (await ctx.reply(changeStartedHtml(outcome, signUrl(outcome.nonce)), HTML));
     await ctx.reply(replyFor(outcome));
   });
@@ -74,7 +74,7 @@ export function startBot(deps: BotDeps): Bot {
     if (action === "cancel") return void (await ctx.reply("Cancelled. Nothing was sent."));
     if (!pending || pending.expires < Date.now()) return void (await ctx.reply("This confirmation expired. Nothing was sent. Ask again."));
     const outcome = await deps.engine.handle(pending.inbound, pending.proposal);
-    if (outcome.verdict !== "PAY_RESERVED") return void (await ctx.reply(outcome.verdict === "REFUSED" ? refusalHtml(outcome, await deps.engine.receiptRecord(outcome.receipt), null) : replyFor(outcome), HTML));
+    if (outcome.verdict !== "PAY_RESERVED") return void (await ctx.reply(outcome.verdict === "REFUSED" ? refusalHtml(outcome, await deps.engine.receiptRecord(outcome.receipt), null, deps.publicUrl) : replyFor(outcome), HTML));
     await ctx.reply(paymentPendingReply(outcome.amountBaseUnits, outcome.address, deps.network));
     const payment = await deps.sendPayment(outcome.paymentId);
     await ctx.reply(paymentReply(payment, deps.network));

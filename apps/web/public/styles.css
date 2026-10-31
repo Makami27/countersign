@@ -297,6 +297,16 @@ textarea:focus-visible { border-color: var(--focus); }
 .badge { display: inline-block; font-weight: 600; padding: 0.15rem 0.55rem; border-radius: 4px; white-space: nowrap; }
 .badge.proven { background: var(--seal-wash); color: var(--seal); }
 .badge.open { background: var(--paper-deep); color: var(--ink-soft); }
+.badge { white-space: normal; }
+.claims code { font-family: var(--mono); font-size: 0.86em; word-break: break-all; }
+.claims a { color: inherit; }
+.claim-id { font-family: var(--mono); color: var(--ink-faint); font-size: 0.86em; }
+@media (max-width: 720px) {
+  .claims thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .claims tr { display: grid; gap: 0.4rem; padding: 0.9rem 0; border-bottom: 1px solid var(--line); }
+  .claims td { display: block; padding: 0; border: 0; max-width: none; }
+  .claims td:first-child { max-width: none; }
+}
 
 .colophon { max-width: 76rem; margin: clamp(3rem, 7vw, 5rem) auto 0; padding: 1.5rem var(--gutter) 2.5rem; color: var(--ink-soft); font-size: var(--step--1); border-top: 1px solid var(--line); }
 .colophon p { margin: 0; max-width: var(--measure); }

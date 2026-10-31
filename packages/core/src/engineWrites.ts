@@ -20,8 +20,9 @@ export async function writeReceipt(d: EngineDeps, verdict: ReceiptVerdict, reaso
     checks: trail.checks, memoryBlobIds, suiDigest, network: d.network, createdAt: at,
   };
   const written = await writeRecord(d, receiptsNamespace(d.ownerId), record, `receipt:${id}`);
-  await indexRecord(d.index, record);
-  return { receipt: id, blobId: written.status === "WRITTEN" ? written.blobId : null };
+  const blobId = written.status === "WRITTEN" ? written.blobId : null;
+  await indexRecord(d.index, record, blobId);
+  return { receipt: id, blobId };
 }
 
 export async function refuse(d: EngineDeps, verdict: "REFUSED" | "CHANGE_REJECTED", reason: ReasonCode, subject: Subject, trail: CheckTrail, failed: CheckCode | null = null, cites: string | null = null): Promise<Refused> {

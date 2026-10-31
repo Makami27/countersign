@@ -28,6 +28,7 @@ export type Overview = {
   readonly balances: { readonly status: "KNOWN"; readonly suiBaseUnits: string; readonly usdcBaseUnits: string } | { readonly status: "UNKNOWN"; readonly detail: string };
   readonly memory: { readonly relayer: string; readonly restored: boolean; readonly restoredAt: string | null; readonly legacyRecords: number; readonly ignoredRecords: number };
   readonly memoryCounts: { readonly realUseMemories: number; readonly namespaces: number } | null;
+  readonly memoryCountsWhy: string | null;
   readonly caps: { readonly perPaymentBaseUnits: string; readonly perDayBaseUnits: string; readonly usedTodayBaseUnits: string };
   readonly cooldownSeconds: number;
   readonly payeeCount: number;

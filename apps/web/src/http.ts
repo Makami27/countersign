@@ -13,8 +13,13 @@ export const SECURITY_HEADERS: Record<string, string> = {
 };
 
 export function send(res: ServerResponse, status: number, body: unknown, extra: Record<string, string> = {}): void {
+  if (res.headersSent) return;
+  const json = JSON.stringify(body, (_k, v: unknown) => {
+    if (v instanceof Promise) throw new Error("A response still held an unfinished value. Nothing was sent.");
+    return typeof v === "bigint" ? v.toString() : v;
+  });
   res.writeHead(status, { "content-type": "application/json; charset=utf-8", "cache-control": "no-store", ...SECURITY_HEADERS, ...extra });
-  res.end(JSON.stringify(body, (_k, v: unknown) => (typeof v === "bigint" ? v.toString() : v)));
+  res.end(json);
 }
 
 export function problem(res: ServerResponse, status: number, message: string, extra: Record<string, string> = {}): void {

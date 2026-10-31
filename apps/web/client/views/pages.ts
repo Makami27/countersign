@@ -50,16 +50,24 @@ export function settingsPage(overview: Overview, onSaved: () => void): HTMLEleme
     h("div", { class: "actions" }, signOut));
 }
 
-export function loginPage(onSignedIn: () => void): HTMLElement {
+export function loginPage(onSignedIn: () => void, why: string | null): HTMLElement {
   const code = h("input", { id: "code", autocomplete: "one-time-code", inputmode: "text", required: true, class: "mono", placeholder: "ABCDE-FGH23" });
   const status = h("p", { class: "error", role: "alert" });
+  const button = h("button", { class: "btn primary", type: "submit" }, "Sign in");
   const form = h("form", {}, h("label", { for: "code" }, "Code from the Telegram bot", h("span", { class: "hint" }, "Send /login to your Countersign bot. The code works once, for 10 minutes."), code), status,
-    h("div", { class: "actions" }, h("button", { class: "btn primary", type: "submit" }, "Sign in")));
+    h("div", { class: "actions" }, button));
   form.addEventListener("submit", async (event) => {
     event.preventDefault();
+    if (button.disabled) return;
+    button.disabled = true;
+    button.textContent = "Signing in…";
+    status.textContent = "";
     const result = await api("POST", "/api/session", { code: code.value });
-    if (result.ok) onSignedIn();
-    else status.textContent = result.error.message;
+    if (result.ok) return onSignedIn();
+    status.textContent = result.error.message;
+    button.disabled = false;
+    button.textContent = "Sign in";
   });
-  return h("section", { class: "narrow", "aria-labelledby": "login-title" }, h("h1", { id: "login-title" }, "Sign in to your agent"), form);
+  const notice = why ? h("p", { class: "note", role: "status" }, why) : "";
+  return h("section", { class: "narrow", "aria-labelledby": "login-title" }, h("h1", { id: "login-title" }, "Sign in to your agent"), notice, form);
 }

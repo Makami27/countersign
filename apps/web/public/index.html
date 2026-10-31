@@ -91,16 +91,9 @@
       <h2 id="proof-title">Proof</h2>
       <div class="proof-live" id="proof-live"></div>
       <table class="claims">
-        <caption>What's proven so far</caption>
+        <caption>What's proven so far, generated from <a href="https://github.com/Makami27/countersign/blob/main/CLAIMS.md" rel="noreferrer">CLAIMS.md</a></caption>
         <thead><tr><th scope="col">Claim</th><th scope="col">Status</th><th scope="col">Evidence</th></tr></thead>
-        <tbody>
-          <tr><td>The change logic never makes an attacker address payable, even with a fully fooled model (8 attack types, 1,000 random sequences)</td><td><span class="badge proven">Proven</span></td><td>core tests M1, P1</td></tr>
-          <tr><td>Sui signature checks match Mysten's published vectors byte for byte</td><td><span class="badge proven">Proven</span></td><td>feasibility F1</td></tr>
-          <tr><td>Tatum verifies payee signatures</td><td><span class="badge open">Not yet</span></td><td>spike S10</td></tr>
-          <tr><td>Payee records live on Walrus Memory mainnet and rebuild completely</td><td><span class="badge open">Not yet</span></td><td>spikes S2, S12</td></tr>
-          <tr><td>Payments execute through Tatum</td><td><span class="badge open">Not yet</span></td><td>spike S13</td></tr>
-          <tr><td>Attack block rate with a real model on testnet</td><td><span class="badge open">Not yet</span></td><td>measurement</td></tr>
-        </tbody>
+        <tbody id="claims-rows"></tbody>
       </table>
     </section>
   </main>

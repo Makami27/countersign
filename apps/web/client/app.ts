@@ -38,15 +38,36 @@ function schedulePoll(path: string): void {
   }, 5_000);
 }
 
+let signInWhy: string | null = null;
+
+function loading(): HTMLElement {
+  return h("p", { class: "narrow", role: "status" }, "Loading your agent…");
+}
+
 async function render(): Promise<void> {
+  try {
+    await renderPage();
+  } catch {
+    show(failure("This screen couldn't be drawn from the agent's answer. Nothing was changed."));
+  }
+}
+
+async function renderPage(): Promise<void> {
   window.clearTimeout(poll);
   const path = location.pathname;
   if (path === "/app/login") {
     setCurrent(null);
-    return show(loginPage(() => go("/app")));
+    return show(loginPage(() => {
+      signInWhy = null;
+      go("/app");
+    }, signInWhy));
   }
+  if (!root?.querySelector(".owner")) show(loading());
   const overview = await api<Overview>("GET", "/api/app/overview");
-  if (!overview.ok && overview.error.status === 401) return go("/app/login");
+  if (!overview.ok && overview.error.status === 401) {
+    signInWhy = overview.error.message;
+    return go("/app/login");
+  }
   if (!overview.ok) return show(failure(overview.error.message));
   if (netlabel) netlabel.textContent = networkWords(overview.data.network);
   if (banner) {

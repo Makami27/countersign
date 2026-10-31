@@ -7,11 +7,14 @@ import { SESSION_LIFETIME_MS } from "./ownerAuth.ts";
 import type { OwnerContext } from "./ownerContext.ts";
 import { activity, overview, payeeDetail, payeeSummary } from "./ownerViews.ts";
 import { tryCompleteChange } from "./changeCompletion.ts";
+import { TookTooLong, within } from "./deadline.ts";
 
 export const SESSION_COOKIE = "cs_owner";
 export const CSRF_HEADER = "x-countersign";
 const loginLimiter = new WindowLimiter(5, 10 * 60 * 1000);
 const writeLimiter = new WindowLimiter(30, 60 * 1000);
+const READ_DEADLINE_MS = 20_000;
+export const SIGNED_OUT = "You're signed out: your session ended or this browser has none. Send /login to the bot for a new code.";
 
 function sessionCookie(token: string, maxAgeSeconds: number): Record<string, string> {
   return { "set-cookie": `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${maxAgeSeconds}` };
@@ -38,7 +41,17 @@ export async function sessionRoute(ctx: OwnerContext, req: IncomingMessage, res:
 }
 
 export async function ownerRoute(ctx: OwnerContext, req: IncomingMessage, res: ServerResponse, path: string): Promise<void> {
-  if (!(await ctx.auth.sessionValid(cookie(req, SESSION_COOKIE)))) return problem(res, 401, "Sign in first. Send /login to the bot for a code.");
+  if (req.method !== "GET") return ownerRequest(ctx, req, res, path);
+  try {
+    await within(READ_DEADLINE_MS, `GET ${path}`, ownerRequest(ctx, req, res, path));
+  } catch (error) {
+    if (!(error instanceof TookTooLong) || res.headersSent) throw error;
+    problem(res, 503, `The agent didn't answer within ${READ_DEADLINE_MS / 1000} s. Nothing was changed. Try again in a moment.`);
+  }
+}
+
+async function ownerRequest(ctx: OwnerContext, req: IncomingMessage, res: ServerResponse, path: string): Promise<void> {
+  if (!(await ctx.auth.sessionValid(cookie(req, SESSION_COOKIE)))) return problem(res, 401, SIGNED_OUT);
   const writes = req.method !== "GET";
   if (writes && req.headers[CSRF_HEADER] !== "1") return problem(res, 403, "Missing request header. Nothing was changed.");
   if (writes && !writeLimiter.allow(clientAddress(req))) return problem(res, 429, "Too many requests. Nothing was changed. Wait a minute.");
@@ -46,12 +59,12 @@ export async function ownerRoute(ctx: OwnerContext, req: IncomingMessage, res: S
   const parts = path.split("/").slice(3);
 
   if (req.method === "GET" && parts[0] === "overview") return send(res, 200, await overview(ctx, now));
-  if (req.method === "GET" && parts[0] === "payees" && parts.length === 1) return send(res, 200, { payees: (await ctx.index.payeeIds()).map((id) => payeeSummary(ctx, id, now)) });
+  if (req.method === "GET" && parts[0] === "payees" && parts.length === 1) return send(res, 200, { payees: await Promise.all((await ctx.index.payeeIds()).map((id) => payeeSummary(ctx, id, now))) });
   if (req.method === "GET" && parts[0] === "payees" && parts[1]) {
-    const detail = payeeDetail(ctx, decodeURIComponent(parts[1]), now);
+    const detail = await payeeDetail(ctx, decodeURIComponent(parts[1]), now);
     return detail ? send(res, 200, detail) : problem(res, 404, "No payee with that name.");
   }
-  if (req.method === "GET" && parts[0] === "activity") return send(res, 200, { items: activity(ctx) });
+  if (req.method === "GET" && parts[0] === "activity") return send(res, 200, { items: await activity(ctx) });
   if (req.method === "GET" && parts[0] === "settings") return send(res, 200, ctx.settings.values());
   if (req.method === "GET" && parts[0] === "payments" && parts[1]) {
     const payment = await ctx.ledger.payment(parts[1]);

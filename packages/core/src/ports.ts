@@ -47,8 +47,9 @@ export interface IndexStore {
   payeeVersions(payeeId: string): Promise<readonly PayeeVersionRecord[]>;
   payeeIds(): Promise<readonly string[]>;
   verifiedAddresses(): Promise<readonly SuiAddress[]>;
-  putReceipt(record: ReceiptRecord): Promise<void>;
+  putReceipt(record: ReceiptRecord, blobId: string | null): Promise<void>;
   receipt(id: string): Promise<ReceiptRecord | null>;
+  receiptBlobId(id: string): Promise<string | null>;
   earlierRefusalFor(address: SuiAddress): Promise<ReceiptRecord | null>;
   insertPendingChange(change: PendingChange): Promise<void>;
   pendingChange(nonce: string): Promise<PendingChange | null>;

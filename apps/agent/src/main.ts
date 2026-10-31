@@ -16,9 +16,11 @@ import type { BalancesView, MemoryView, OwnerContext } from "@countersign/web/ow
 import { loadConfig } from "./config.ts";
 import { startBot } from "./telegram.ts";
 import { openStorage } from "./storage.ts";
+import { statusProbe } from "./statusChecks.ts";
 
 const RECONCILE_EVERY_MS = 60_000;
 const BALANCE_CACHE_MS = 30_000;
+const COUNTS_CACHE_MS = 60_000;
 
 const config = loadConfig(process.env);
 const storage = await openStorage(config.database);
@@ -76,6 +78,7 @@ console.log(paymentsOpen ? "Boot reconciliation: some payments are still open; t
 setInterval(() => void reconcileIfOpen().catch((error: Error) => console.error(`Reconciliation skipped: ${error.message.slice(0, 200)}`)), RECONCILE_EVERY_MS).unref();
 
 let balanceCache: { at: number; view: BalancesView } | null = null;
+let countsCache: { at: number; view: { realUseMemories: number; namespaces: number } } | null = null;
 async function balances(): Promise<BalancesView> {
   if (balanceCache && Date.now() - balanceCache.at < BALANCE_CACHE_MS) return balanceCache.view;
   const read = await readAgentBalances(grpc, config.network, agentAddress);
@@ -92,10 +95,13 @@ const owner: OwnerContext = {
   verifySignature: (message, signature, address) => verifier.verifyPersonalMessage(message, signature, address),
   memoryCounts: async () => {
     if (!walrus) return null;
+    if (countsCache && Date.now() - countsCache.at < COUNTS_CACHE_MS) return countsCache.view;
     const counts = await walrus.namespaceCounts(`countersign:${config.ownerId}:`);
     if (!counts) return null;
     const real = counts.filter((c) => isRealUseNamespace(config.ownerId, c.name));
-    return { realUseMemories: real.reduce((sum, c) => sum + c.count, 0), namespaces: real.length };
+    const view = { realUseMemories: real.reduce((sum, c) => sum + c.count, 0), namespaces: real.length };
+    countsCache = { at: Date.now(), view };
+    return view;
   },
   sendPayment: async (paymentId) => {
     const payment = await send(paymentId);
@@ -107,8 +113,14 @@ const owner: OwnerContext = {
 await completeReadyChanges(owner, Date.now());
 setInterval(() => void completeReadyChanges(owner, Date.now()).catch((error: Error) => console.error(`Change completion skipped: ${error.message.slice(0, 200)}`)), RECONCILE_EVERY_MS).unref();
 
-const server = startWebServer({ port: config.port, network: config.network, proof: storage.rows, version: process.env["GIT_SHA"] ?? null, owner });
-const bot = startBot({
+let bot: ReturnType<typeof startBot> | null = null;
+const status = statusProbe({
+  network: config.network, version: process.env["GIT_SHA"] ?? null, database: { label: storage.label, rows: storage.rows }, graphql,
+  grpcBalance: () => readAgentBalances(grpc, config.network, agentAddress), walrus, ownerPrefix: `countersign:${config.ownerId}:`,
+  memory: () => memoryView, telegramPolling: () => bot?.isRunning() ?? false,
+});
+const server = startWebServer({ port: config.port, network: config.network, proof: storage.rows, version: process.env["GIT_SHA"] ?? null, owner, status });
+bot = startBot({
   token: config.telegram.token, ownerUserId: config.telegram.ownerUserId, network: config.network, publicUrl: config.publicUrl, engine, index, auth,
   extract: (text, payeeIds) => extractProposal(config.gemini, text, payeeIds),
   sendPayment: send,
@@ -116,7 +128,7 @@ const bot = startBot({
 
 process.once("SIGTERM", () => {
   console.log("Stopping: Telegram polling ends first so a new instance can take over.");
-  void bot.stop().finally(() => {
+  void (bot?.stop() ?? Promise.resolve()).finally(() => {
     server.close();
     void storage.close().finally(() => process.exit(0));
   });
