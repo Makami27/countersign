@@ -4,17 +4,21 @@
 
 Built for Walrus × Tatum *Total Recall*, Track 2 (Smart Agents for Real Life).
 
-## Status (updated 2026-10-30)
+## Status (updated 2026-10-31, Phase 3 of 5)
+`pnpm gate`: 71 tests green. Money runs on **Sui testnet** (test USDC); memory runs on the **Walrus Memory mainnet relayer**. Full detail and next steps: `briefing/PLAN.md` → "Where we are".
+
 | Part | State |
 |---|---|
-| Core engine (`packages/core`): payee records with provenance, change verification, look-alike check, spend gate, signed memory records, restore | **built, 19 tests green** [claim:CL01] |
-| SQLite index + Gemini extraction guard (`packages/adapters`) | built, 4 tests green |
-| Walrus Memory adapter, Tatum gRPC/GraphQL adapters, payments | written, **not yet run against live services** (spikes pending) |
-| Telegram agent (`apps/agent`) | wired, not run |
-| Public site with live attack lab (`apps/web`): runs the real core engine in a per-visitor sandbox, check-by-check decision trace, payee slip with verified/stated records | **built, 4 tests green**; responsive to 390px, light and dark |
-| Proof section | built; reads the live agent's database when `PROOF_DATABASE_PATH` is set, otherwise says it isn't connected |
-| Owner app (wallet signing for changes, owner confirmation with cooldown) | **not built** |
-| Attack measurement with a real model | not run |
+| Core engine: payee provenance, onboarding only after the payee's wallet signs, two-signature changes, owner path with cooldown, look-alike and known-attack checks, spend gate, digest-first payments, one signed receipt per final outcome | built and tested [claim:CL01] |
+| Tatum (GraphQL + native gRPC, shared 2 req/s gate) | live suite green on testnet; payee signatures verified through our adapter, including a real Slush zkLogin signature [claim:CL03] |
+| Walrus Memory (signed records, completeness check, restore) | live on the mainnet relayer [claim:CL10]; relayer outage 30 Oct 22:37 → 31 Oct ~06:00 UTC recorded (REALITY_SPIKES R3) |
+| Payments | testnet payments settle through Tatum; Act 1 (model → engine → payment → receipt on Walrus mainnet) recorded in `evidence/acts/` |
+| Telegram bot (`apps/agent`) | built (preview + confirm, refusals with comparison, /login codes); not yet used by the owner |
+| Owner web app (`/app`) and signing page (`/sign/:nonce`) | built, tested over HTTP, screen-checked at 390 and 1440 px in light and dark |
+| Public site with attack lab (`/`) | built; lab payees go through the same onboarding rules as the agent |
+| Real use (≥10 mainnet memories) | 3 of 10 so far (CL07 NOT PROVEN) |
+| Deploy | Fly.io, in progress |
+| Receipt page, proof page, status page, measurement | not built (Phase 4) |
 
 ## How it works
 AI proposes. Code decides.
@@ -37,8 +41,9 @@ Live spikes against Tatum and Walrus Memory: see `spikes/README.md`.
 |---|---|
 | `packages/core` | pure engine, no network |
 | `packages/adapters` | SQLite, Walrus Memory, Tatum, Gemini, record signer |
-| `apps/agent` | Telegram bot |
-| `apps/web` | owner app + proof page (not built) |
+| `apps/agent` | agent process: engine, payment runner, Telegram bot, web server |
+| `apps/web` | public site and lab, owner app (`/app`), signing page (`/sign/:nonce`) |
 | `briefing/` | research, PRD, plan, decisions, failure modes |
 | `feasibility/` | offline feasibility tests and evidence |
 | `spikes/` | live integration checks to run with real keys |
+| `evidence/` | outputs of real runs: spikes, live tests, acts, screenshots |
