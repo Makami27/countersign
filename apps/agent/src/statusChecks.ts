@@ -2,7 +2,7 @@ import type { SqlRows } from "@countersign/adapters/sql";
 import type { MemWalMemory } from "@countersign/adapters/memwal";
 import type { TatumGraphql } from "@countersign/adapters/tatum";
 import type { MemoryView } from "@countersign/web/ownerContext";
-import type { StatusCheck, StatusView } from "@countersign/web/status";
+import type { ModelStatus, StatusCheck, StatusView } from "@countersign/web/status";
 
 const CHECK_DEADLINE_MS = 8_000;
 const STATUS_CACHE_MS = 30_000;
@@ -17,6 +17,7 @@ export type StatusDeps = {
   readonly ownerPrefix: string;
   readonly memory: () => MemoryView;
   readonly telegramPolling: () => boolean;
+  readonly model: () => ModelStatus | null;
 };
 
 async function check(name: string, work: () => Promise<string | null>): Promise<StatusCheck> {
@@ -35,7 +36,7 @@ async function check(name: string, work: () => Promise<string | null>): Promise<
 export function statusProbe(deps: StatusDeps): () => Promise<StatusView> {
   let cache: { at: number; view: StatusView } | null = null;
   return async () => {
-    if (cache && Date.now() - cache.at < STATUS_CACHE_MS) return cache.view;
+    if (cache && Date.now() - cache.at < STATUS_CACHE_MS) return { ...cache.view, model: deps.model() };
     const checks = await Promise.all([
       check(`Database (${deps.database.label})`, async () => ((await deps.database.rows.get("SELECT 1 AS ok")) ? null : "no row returned")),
       check("Tatum gRPC", async () => {
@@ -53,7 +54,7 @@ export function statusProbe(deps: StatusDeps): () => Promise<StatusView> {
       check("Telegram polling", async () => (deps.telegramPolling() ? null : "the bot isn't polling right now")),
     ]);
     const memory = deps.memory();
-    const view: StatusView = { checkedAt: new Date().toISOString(), network: deps.network, version: deps.version, restore: { relayer: memory.relayer, complete: memory.restored, at: memory.restoredAt }, checks };
+    const view: StatusView = { checkedAt: new Date().toISOString(), network: deps.network, version: deps.version, restore: { relayer: memory.relayer, complete: memory.restored, at: memory.restoredAt }, checks, model: deps.model() };
     cache = { at: Date.now(), view };
     return view;
   };

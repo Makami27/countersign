@@ -74,7 +74,7 @@ let receipt = null;
 if (payment.state === "SETTLED" || payment.state === "FAILED") {
   say(RECEIPT_PENDING_REPLY);
   receipt = await engine.recordPaymentOutcome(payment);
-  say(receiptReply(receipt));
+  say(receiptReply(receipt, null));
 }
 const bigints = (_key: string, value: unknown) => (typeof value === "bigint" ? value.toString() : value);
 const evidence = {

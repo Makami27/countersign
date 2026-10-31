@@ -34,7 +34,7 @@ export type ModelProblem = "TIMEOUT" | "NETWORK" | "RATE_LIMITED" | "UNAVAILABLE
 
 export type Extraction =
   | { readonly status: "READ"; readonly proposal: Proposal; readonly modelVersion: string | null; readonly modelText: string }
-  | { readonly status: "UNKNOWN"; readonly problem: ModelProblem };
+  | { readonly status: "UNKNOWN"; readonly problem: ModelProblem; readonly httpStatus: number | null; readonly attempts: number };
 
 type GenerateResponse = { readonly candidates?: readonly { readonly content?: { readonly parts?: readonly { readonly text?: unknown }[] } }[]; readonly modelVersion?: unknown };
 
@@ -44,20 +44,17 @@ function problemForStatus(status: number): ModelProblem {
   return "HTTP";
 }
 
-const RETRYABLE: readonly ModelProblem[] = ["RATE_LIMITED", "UNAVAILABLE", "TIMEOUT"];
-const RETRY_DELAYS_MS = [2_000, 5_000] as const;
+const RETRYABLE: readonly ModelProblem[] = ["RATE_LIMITED", "UNAVAILABLE"];
+const RETRY_DELAY_MS = 2_000;
 
 export async function extractProposal(config: GeminiConfig, text: string, payeeIds: readonly string[], sleep: (ms: number) => Promise<void> = (ms) => new Promise((resolve) => setTimeout(resolve, ms))): Promise<Extraction> {
-  let result = await extractOnce(config, text, payeeIds);
-  for (const delay of RETRY_DELAYS_MS) {
-    if (result.status !== "UNKNOWN" || !RETRYABLE.includes(result.problem)) return result;
-    await sleep(delay);
-    result = await extractOnce(config, text, payeeIds);
-  }
-  return result;
+  const first = await extractOnce(config, text, payeeIds, 1);
+  if (first.status !== "UNKNOWN" || !RETRYABLE.includes(first.problem)) return first;
+  await sleep(RETRY_DELAY_MS);
+  return extractOnce(config, text, payeeIds, 2);
 }
 
-async function extractOnce(config: GeminiConfig, text: string, payeeIds: readonly string[]): Promise<Extraction> {
+async function extractOnce(config: GeminiConfig, text: string, payeeIds: readonly string[], attempts: number): Promise<Extraction> {
   const url = `${config.baseUrl ?? GEMINI_BASE_URL}/models/${encodeURIComponent(config.model)}:generateContent`;
   let response: Response;
   try {
@@ -72,12 +69,12 @@ async function extractOnce(config: GeminiConfig, text: string, payeeIds: readonl
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
   } catch (error) {
-    return { status: "UNKNOWN", problem: error instanceof DOMException && error.name === "TimeoutError" ? "TIMEOUT" : "NETWORK" };
+    return { status: "UNKNOWN", problem: error instanceof DOMException && error.name === "TimeoutError" ? "TIMEOUT" : "NETWORK", httpStatus: null, attempts };
   }
-  if (!response.ok) return { status: "UNKNOWN", problem: problemForStatus(response.status) };
+  if (!response.ok) return { status: "UNKNOWN", problem: problemForStatus(response.status), httpStatus: response.status, attempts };
   const body = (await response.json().catch(() => null)) as GenerateResponse | null;
   const candidateText = body?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (typeof candidateText !== "string") return { status: "UNKNOWN", problem: "NO_ANSWER" };
+  if (typeof candidateText !== "string") return { status: "UNKNOWN", problem: "NO_ANSWER", httpStatus: response.status, attempts };
   const modelVersion = typeof body?.modelVersion === "string" ? body.modelVersion : null;
   let parsed: unknown;
   try {
