@@ -38,7 +38,7 @@ test("V22 a look-alike refusal shares a signed attack_seen record with the addre
   assert.equal((await sharedTexts(w)).length, 2);
 });
 
-test("V22 an address other agents refused is SEEN_BY_OTHER_AGENT, citing the first receipt and counting distinct agent keys; it is not re-shared or remembered as our own attack", async () => {
+test("V22 an address other agents refused is SEEN_BY_OTHER_AGENT, citing the first receipt and counting distinct agent keys; a repeat stays SEEN_BY_OTHER_AGENT and is never re-shared under our key", async () => {
   const w = await world();
   const scam = wallet().address;
   const [first, second] = [otherAgent(w), otherAgent(w)];
@@ -52,8 +52,10 @@ test("V22 an address other agents refused is SEEN_BY_OTHER_AGENT, citing the fir
   assert.equal(refused.reason, "SEEN_BY_OTHER_AGENT");
   assert.deepEqual(refused.seenElsewhere, { firstReceipt: "rcpt_first0001", agents: 2 });
   assert.deepEqual((await w.agent.receiptRecord(refused.receipt))?.seenElsewhere, { firstReceipt: "rcpt_first0001", agents: 2 });
+  const repeat = await changeTo(w, scam);
+  assert.equal(repeat.verdict === "REFUSED" && repeat.reason, "SEEN_BY_OTHER_AGENT");
+  assert.equal(repeat.verdict === "REFUSED" && repeat.cites, refused.receipt);
   assert.equal((await sharedTexts(w)).filter((t) => t.includes(w.signer.agentKey)).length, 0);
-  assert.equal(await w.index.earlierRefusalFor(scam), null);
   const onboarding = await w.agent.requestOnboarding("Plumber", scam, "owner-confirm-plumber");
   assert.equal(onboarding.verdict === "REFUSED" && onboarding.reason, "SEEN_BY_OTHER_AGENT");
 });

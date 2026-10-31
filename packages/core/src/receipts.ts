@@ -1,5 +1,5 @@
 import type { ReceiptCheck, ReceiptRecord, ReceiptVerdict } from "./types.ts";
-import { REASONS, type CheckCode, type ReasonCode } from "./vocabulary.ts";
+import type { CheckCode, ReasonCode } from "./vocabulary.ts";
 
 export class CheckTrail {
   readonly #checks: ReceiptCheck[] = [];
@@ -17,10 +17,12 @@ export class CheckTrail {
   }
 }
 
+const ATTACK_REASONS: readonly ReasonCode[] = ["LOOKALIKE_ADDRESS", "KNOWN_ATTACK_PATTERN", "SEEN_BY_OTHER_AGENT"];
+
 export function remembersAttack(receipt: ReceiptRecord): boolean {
-  if (receipt.verdict !== "REFUSED" && receipt.verdict !== "CHANGE_REJECTED") return false;
   if (receipt.reason === null || receipt.address === null) return false;
-  return !REASONS[receipt.reason].retryable && receipt.reason !== "KNOWN_ATTACK_PATTERN" && receipt.reason !== "SEEN_BY_OTHER_AGENT";
+  if (receipt.verdict === "REFUSED") return ATTACK_REASONS.includes(receipt.reason);
+  return receipt.verdict === "CHANGE_REJECTED" && (ATTACK_REASONS.includes(receipt.reason) || receipt.reason === "SIGNATURE_INVALID");
 }
 
 export function isRefusal(receipt: ReceiptRecord): boolean {

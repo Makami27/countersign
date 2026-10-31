@@ -1,4 +1,4 @@
-import { addressesIn, headOf, isLookalike, type IndexStore, type Proposal } from "@countersign/core";
+import { addressesIn, headOf, isLookalike, knownAttackFor, type IndexStore, type Proposal } from "@countersign/core";
 import type { Extraction } from "@countersign/adapters/gemini";
 
 export type ChangeProposal = Extract<Proposal, { kind: "change_address" }>;
@@ -9,7 +9,7 @@ export async function screenAddresses(index: IndexStore, text: string): Promise<
   if (found.length === 0) return null;
   const heads = await Promise.all((await index.payeeIds()).map(async (payeeId) => ({ payeeId, head: headOf(await index.payeeVersions(payeeId)) })));
   for (const address of found) {
-    const earlier = await index.earlierRefusalFor(address);
+    const earlier = await knownAttackFor(index, address);
     if (earlier?.payeeId) return { kind: "change_address", payeeId: earlier.payeeId, newAddress: address, reasonQuote: address };
     const imitated = heads.find((h) => h.head.kind === "verified" && isLookalike(address, h.head.version.address));
     if (imitated) return { kind: "change_address", payeeId: imitated.payeeId, newAddress: address, reasonQuote: address };
