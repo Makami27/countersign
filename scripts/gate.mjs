@@ -4,6 +4,7 @@ import { existsSync } from "node:fs";
 const steps = [
   ["typecheck", existsSync("node_modules/typescript") ? ["node_modules/typescript/bin/tsc", "-p", "tsconfig.json"] : null],
   ["client typecheck", existsSync("node_modules/typescript") ? ["node_modules/typescript/bin/tsc", "-p", "apps/web/client/tsconfig.json"] : null],
+  ["promise lint", existsSync("node_modules/eslint") ? ["node_modules/eslint/bin/eslint.js", "--max-warnings", "0", "."] : null],
   ["no comments", ["scripts/check-no-comments.mjs"]],
   ["secrets", ["scripts/check-secrets.mjs"]],
   ["tests", ["--test", "--test-reporter=spec", "packages/*/test/*.test.ts", "apps/*/test/*.test.ts"]],
@@ -13,7 +14,7 @@ const steps = [
 let failed = 0;
 for (const [name, args] of steps) {
   if (args === null) {
-    console.error(`✖ ${name}: typescript is not installed (run pnpm install). Gate fails rather than skipping.`);
+    console.error(`✖ ${name}: a dev tool is not installed (run pnpm install). Gate fails rather than skipping.`);
     failed++;
     continue;
   }
