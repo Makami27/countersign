@@ -1,0 +1,621 @@
+{
+  "runId": "2026-10-31T05-57-57-893Z",
+  "relayer": "mainnet relayer",
+  "namespace": "countersign-test:s12-scale-2026-10-31T05-57-57-893Z",
+  "classification": "S12 at scale: labelled test data in a countersign-test: namespace, excluded from real-use counts",
+  "countedAsRealUse": false,
+  "records": 100,
+  "spacingMs": 60000,
+  "writes": [
+    {
+      "i": 1,
+      "ms": 30286,
+      "status": "WRITTEN",
+      "blobId": "F6GcK6HL_vfvEU1loLvMMVVPYUdYj2MdZ4QSvVYsflI",
+      "problem": null
+    },
+    {
+      "i": 2,
+      "ms": 23281,
+      "status": "WRITTEN",
+      "blobId": "b51sZAnfOoqQXrUCCkoVPCwPOUtsxpNUN_BSQRkjDTk",
+      "problem": null
+    },
+    {
+      "i": 3,
+      "ms": 25621,
+      "status": "WRITTEN",
+      "blobId": "tqCvR2vIPilstrZjdYwcDN9dldVot_RIiUnI3uRmOEE",
+      "problem": null
+    },
+    {
+      "i": 4,
+      "ms": 39560,
+      "status": "WRITTEN",
+      "blobId": "xfQ5cslNnG-z_CZtHfWvwt_HLoPm5xHGUgOQXWDw9HU",
+      "problem": null
+    },
+    {
+      "i": 5,
+      "ms": 32619,
+      "status": "WRITTEN",
+      "blobId": "2xI63RIV1W6DoZWoE9Fo8BUmo2aYLotIbQ34ZTfxe50",
+      "problem": null
+    },
+    {
+      "i": 6,
+      "ms": 40102,
+      "status": "WRITTEN",
+      "blobId": "UA3KX0eXlpXLq8qEASMSpUf1Jy0eRDvrvitTb3oqzUE",
+      "problem": null
+    },
+    {
+      "i": 7,
+      "ms": 19947,
+      "status": "WRITTEN",
+      "blobId": "7yUS3-m8_0IvjvrkHtHNg9lNyWiVA9QFRikJz8eUb20",
+      "problem": null
+    },
+    {
+      "i": 8,
+      "ms": 22601,
+      "status": "WRITTEN",
+      "blobId": "yj0VGOhg4NUgaiBABvm0_91NS-n0zo2Uv1q3htIyBmI",
+      "problem": null
+    },
+    {
+      "i": 9,
+      "ms": 21651,
+      "status": "WRITTEN",
+      "blobId": "qbJfEzKN8fgsU2_EWC9SFAr0D723biq402lFOHIRUeg",
+      "problem": null
+    },
+    {
+      "i": 10,
+      "ms": 23160,
+      "status": "WRITTEN",
+      "blobId": "jTGdkeR78T7bQSONDBEQa-BDHxkbB5noSuuo34afoqY",
+      "problem": null
+    },
+    {
+      "i": 11,
+      "ms": 23151,
+      "status": "WRITTEN",
+      "blobId": "FagMsJmKGWs8-WHye1bCtS7ShIzuZ0MwKH643bvpgrk",
+      "problem": null
+    },
+    {
+      "i": 12,
+      "ms": 22043,
+      "status": "WRITTEN",
+      "blobId": "GSMHhzt_pKHgNmfSSL3JrSwh6uhUSfIp_Ds8ENDvV30",
+      "problem": null
+    },
+    {
+      "i": 13,
+      "ms": 22532,
+      "status": "WRITTEN",
+      "blobId": "7E6mOuStm3__0Y8_-AT3ugVRn_sWbz1QZucwR8NQjqE",
+      "problem": null
+    },
+    {
+      "i": 14,
+      "ms": 20537,
+      "status": "WRITTEN",
+      "blobId": "0ZwR4oRapvhsOM6U8E9zHoSvkeAH3SNP1wXYHLRmbWM",
+      "problem": null
+    },
+    {
+      "i": 15,
+      "ms": 21716,
+      "status": "WRITTEN",
+      "blobId": "srjNSXa-lGvLwEMJPOf66ssc0QPKP2fD99QRaQN_N7I",
+      "problem": null
+    },
+    {
+      "i": 16,
+      "ms": 22353,
+      "status": "WRITTEN",
+      "blobId": "bO_BTYUTBtaT2xCVs8Xz7x83ue6XB-W32TFd014ul0k",
+      "problem": null
+    },
+    {
+      "i": 17,
+      "ms": 20972,
+      "status": "WRITTEN",
+      "blobId": "LMVxs1OFZn0kwcoFTh9Tp4NxwrBgRGO89Z-XX7NyC5Y",
+      "problem": null
+    },
+    {
+      "i": 18,
+      "ms": 21218,
+      "status": "WRITTEN",
+      "blobId": "BHpgSqSti8OTU17IQ_xAXT0bYERJPxwwPPUiiD_2fME",
+      "problem": null
+    },
+    {
+      "i": 19,
+      "ms": 20347,
+      "status": "WRITTEN",
+      "blobId": "qzGpD5ZtGIuTzJIrk6Mz3OQpeyR7el4SPgx7ADJbaYI",
+      "problem": null
+    },
+    {
+      "i": 20,
+      "ms": 19532,
+      "status": "WRITTEN",
+      "blobId": "qHgtWYDLwwBjY1mSMiXrPkhUDaS06Lu5RSaZc7MzaAo",
+      "problem": null
+    },
+    {
+      "i": 21,
+      "ms": 20851,
+      "status": "WRITTEN",
+      "blobId": "v4AmZbMd-BovB0KaULXJLJemBYEEuCxtUaLpK6rHcS4",
+      "problem": null
+    },
+    {
+      "i": 22,
+      "ms": 28061,
+      "status": "WRITTEN",
+      "blobId": "Rk3Ks0SBxysvy8c6i77tVFBj96SBp_SY8h4V_yEZmYc",
+      "problem": null
+    },
+    {
+      "i": 23,
+      "ms": 19709,
+      "status": "WRITTEN",
+      "blobId": "ONRTysu3Li5Ydec2YEJIwg8cuhzsGwfAsj8iaGQMa7I",
+      "problem": null
+    },
+    {
+      "i": 24,
+      "ms": 21616,
+      "status": "WRITTEN",
+      "blobId": "JPhHyypAeDaVB1Snd5aiIuBEeWpniC5fcdeeA_PBR44",
+      "problem": null
+    },
+    {
+      "i": 25,
+      "ms": 25785,
+      "status": "WRITTEN",
+      "blobId": "tPwSPFH8g1T_JJoUtAuHQu5-3hZtp-nZe80SSmNik8c",
+      "problem": null
+    },
+    {
+      "i": 26,
+      "ms": 23404,
+      "status": "WRITTEN",
+      "blobId": "9-ku18lEWhj7bNrrLfnf2zcgd-fCxuYcidghK1YZXLo",
+      "problem": null
+    },
+    {
+      "i": 27,
+      "ms": 21438,
+      "status": "WRITTEN",
+      "blobId": "dnBfmkbTI6EtVBMHEOw5EbOrT9ASI0XNYVJJZUEQvDE",
+      "problem": null
+    },
+    {
+      "i": 28,
+      "ms": 21081,
+      "status": "WRITTEN",
+      "blobId": "lWvfm7kodxqhbzhfwmVqdqVfeN_VAgrSZmFJOJDiLqI",
+      "problem": null
+    },
+    {
+      "i": 29,
+      "ms": 20333,
+      "status": "WRITTEN",
+      "blobId": "YE4YO37H1Zo_GEDNLcf4l48R-2hu-Wv72etOnpCeTAQ",
+      "problem": null
+    },
+    {
+      "i": 30,
+      "ms": 24010,
+      "status": "WRITTEN",
+      "blobId": "-Iz1c6CvisuEsZeraAvpNVguZ1PWofH9rz5AsAKD_Mk",
+      "problem": null
+    },
+    {
+      "i": 31,
+      "ms": 22081,
+      "status": "WRITTEN",
+      "blobId": "y5eCk5Zv6FWzyGFRMWwYaLYnukwy-j8m1O4ujx-BLh4",
+      "problem": null
+    },
+    {
+      "i": 32,
+      "ms": 25665,
+      "status": "WRITTEN",
+      "blobId": "8bBm483HosE532JPBWlfgCxc-6LoTz0EEAUyuCjB4Bk",
+      "problem": null
+    },
+    {
+      "i": 33,
+      "ms": 20851,
+      "status": "WRITTEN",
+      "blobId": "XnrUV2sdJ672HJWoCRMp4DMbyHaCxOfIbld5o13P_jk",
+      "problem": null
+    },
+    {
+      "i": 34,
+      "ms": 22634,
+      "status": "WRITTEN",
+      "blobId": "lkv1ucC7S8C2QpCvepuiNEuXunynw9mpDf25cbNfOhM",
+      "problem": null
+    },
+    {
+      "i": 35,
+      "ms": 21262,
+      "status": "WRITTEN",
+      "blobId": "6g3_mYYlonh6AAdwQXx-4NwDotJKKBSbEfr0DKJuGEw",
+      "problem": null
+    },
+    {
+      "i": 36,
+      "ms": 25054,
+      "status": "WRITTEN",
+      "blobId": "ro1nRZeTs8cdJCdUHUpfNVZ0Iiz6iarb74WxibQZzgw",
+      "problem": null
+    },
+    {
+      "i": 37,
+      "ms": 20113,
+      "status": "WRITTEN",
+      "blobId": "iOewIY7PUB9RiQGyQ4K2pejiht5ReG1B-twG4_B2u-M",
+      "problem": null
+    },
+    {
+      "i": 38,
+      "ms": 20416,
+      "status": "WRITTEN",
+      "blobId": "ln6H7ZOITG70GCj3KPaIeRWo2zLpM-2xtK1JJHtSAp4",
+      "problem": null
+    },
+    {
+      "i": 39,
+      "ms": 19052,
+      "status": "WRITTEN",
+      "blobId": "63wh0Qevcc7uzxIyD5RtG_AhFIVBIRng2ADKRKfbwyw",
+      "problem": null
+    },
+    {
+      "i": 40,
+      "ms": 22563,
+      "status": "WRITTEN",
+      "blobId": "6ruaipaS5ueKa2fbBESfT-Nv8NPOKLz_0fbqTdcFy5o",
+      "problem": null
+    },
+    {
+      "i": 41,
+      "ms": 22286,
+      "status": "WRITTEN",
+      "blobId": "MiqmTqHIZCgYQPOGOEusWnpjD4PCWoj5q0r7TwMAXQM",
+      "problem": null
+    },
+    {
+      "i": 42,
+      "ms": 22052,
+      "status": "WRITTEN",
+      "blobId": "8uKg0BCsZxQdEt9cvWQbcroABd1wGIoSQ6cklFdMBZk",
+      "problem": null
+    },
+    {
+      "i": 43,
+      "ms": 21879,
+      "status": "WRITTEN",
+      "blobId": "s-ocJytvDUIKosF5oII5424FASb4ZOyCsJx8ilSJgHw",
+      "problem": null
+    },
+    {
+      "i": 44,
+      "ms": 22287,
+      "status": "WRITTEN",
+      "blobId": "LxGjGoP0tYoN7sM9UJ1dfY4dUTdjL6GlLTIk73Mf5VQ",
+      "problem": null
+    },
+    {
+      "i": 45,
+      "ms": 20550,
+      "status": "WRITTEN",
+      "blobId": "ZpnR6DMRqp0ao3Kmd6aG-ZGNGO9_a3t5bLTxQRXBuGY",
+      "problem": null
+    },
+    {
+      "i": 46,
+      "ms": 22698,
+      "status": "WRITTEN",
+      "blobId": "GqnNeU1sM5BjAv2G3aXPyGn2ezR436BOgR16B8ta4mo",
+      "problem": null
+    },
+    {
+      "i": 47,
+      "ms": 27717,
+      "status": "WRITTEN",
+      "blobId": "gu6f57vJ9OAZ5tFti1yn9WABLnjG4cq0NWdgh089V9w",
+      "problem": null
+    },
+    {
+      "i": 48,
+      "ms": 23113,
+      "status": "WRITTEN",
+      "blobId": "O8qiqQkql-Xw2UtUJKa1zg3VBma0xccpYrko7G12yUE",
+      "problem": null
+    },
+    {
+      "i": 49,
+      "ms": 22291,
+      "status": "WRITTEN",
+      "blobId": "fAGEpd4pNQ6a46CqJWP56CXLZlSASdRpXxC7ba7JGPc",
+      "problem": null
+    },
+    {
+      "i": 50,
+      "ms": 22498,
+      "status": "WRITTEN",
+      "blobId": "bOu3y4Q4gRXICVMAftYhHti8HwxnSwqoxbi6iBaK1R0",
+      "problem": null
+    },
+    {
+      "i": 51,
+      "ms": 21302,
+      "status": "WRITTEN",
+      "blobId": "lDZu0jgivmOZrFcFSzYekvrOZy0QygkIqFn113iT0Bg",
+      "problem": null
+    },
+    {
+      "i": 52,
+      "ms": 27513,
+      "status": "WRITTEN",
+      "blobId": "BWWEugI5R6WWiyN4hYt17FtKkSySWKR6yJUBS5JW--A",
+      "problem": null
+    },
+    {
+      "i": 53,
+      "ms": 25774,
+      "status": "WRITTEN",
+      "blobId": "hrjrKytWWYz1v8Mj9wGY45j9FLZx2eQkLkAf80ejmLA",
+      "problem": null
+    },
+    {
+      "i": 54,
+      "ms": 22485,
+      "status": "WRITTEN",
+      "blobId": "gQKMUDG9rErpXzVtTB73ao9xOd1Yve8Am5N2LA3_nM4",
+      "problem": null
+    },
+    {
+      "i": 55,
+      "ms": 21366,
+      "status": "WRITTEN",
+      "blobId": "8WGtWMIPqZSwNz8DCIZ16lCBiI6KawCm_cMcbLMna3A",
+      "problem": null
+    },
+    {
+      "i": 56,
+      "ms": 19259,
+      "status": "WRITTEN",
+      "blobId": "1lyytHoqL8LndOjNpwJFx4il9WW35zTIjrykbBbQoYg",
+      "problem": null
+    },
+    {
+      "i": 57,
+      "ms": 26503,
+      "status": "WRITTEN",
+      "blobId": "dz5ZJ-VGXbgJ9m0dYc4LK_RqnZFqeZodNRE9pygJ18A",
+      "problem": null
+    },
+    {
+      "i": 58,
+      "ms": 25896,
+      "status": "WRITTEN",
+      "blobId": "HONimUQ6MU45VvkjoytiULw30Cn3fx3UmiZjPHA0Zbg",
+      "problem": null
+    },
+    {
+      "i": 59,
+      "ms": 23550,
+      "status": "WRITTEN",
+      "blobId": "glMSeTbLUAWapaTptwJA0ekAbEj5IF1N94smlF-uwwA",
+      "problem": null
+    },
+    {
+      "i": 60,
+      "ms": 20700,
+      "status": "WRITTEN",
+      "blobId": "cUOQJ9IDhtQr7cCd3D4zW97azhxQjkBAM2jTUTSqXkY",
+      "problem": null
+    },
+    {
+      "i": 61,
+      "ms": 19836,
+      "status": "WRITTEN",
+      "blobId": "7WSiUqilB5DT3V8oW0XT6Wmj6hpO3z9u4DhkUqFJIA8",
+      "problem": null
+    },
+    {
+      "i": 62,
+      "ms": 23199,
+      "status": "WRITTEN",
+      "blobId": "IGT_8Shn911faaMd4G8clrmVwBfF8x1M517OUK_hA_E",
+      "problem": null
+    },
+    {
+      "i": 63,
+      "ms": 31198,
+      "status": "WRITTEN",
+      "blobId": "qcspGjyT33pTOpEs_cW8KqqePcseQpf54MeyXDZWrio",
+      "problem": null
+    },
+    {
+      "i": 64,
+      "ms": 27898,
+      "status": "WRITTEN",
+      "blobId": "KKim8D0UGOZwIF2SVJFQ9kajprrJegJvC7_lY13j6ok",
+      "problem": null
+    },
+    {
+      "i": 65,
+      "ms": 27308,
+      "status": "WRITTEN",
+      "blobId": "PFmrVnHXKPtUPRhd8VWIZDhYZDh_3LjkZcoKgXI7_qI",
+      "problem": null
+    },
+    {
+      "i": 66,
+      "ms": 22453,
+      "status": "WRITTEN",
+      "blobId": "5Km4khqbrOe57hUukkbAYwx43WQka1T9mtFoIF7-vM0",
+      "problem": null
+    },
+    {
+      "i": 67,
+      "ms": 27726,
+      "status": "WRITTEN",
+      "blobId": "JBKV-F6TOkhQ6VQ_H83PvgMUdl8fVjpdY6lRv8lNk7A",
+      "problem": null
+    },
+    {
+      "i": 68,
+      "ms": 20749,
+      "status": "WRITTEN",
+      "blobId": "x2rV7C2Ed_q48hWDJk7IVm_uT6OYMTN-fqQ2pypADwo",
+      "problem": null
+    },
+    {
+      "i": 69,
+      "ms": 21384,
+      "status": "WRITTEN",
+      "blobId": "wQYLO1PeACJIiW_BB-GY2M64qfbN8BH9cAQAZth3L4o",
+      "problem": null
+    },
+    {
+      "i": 70,
+      "ms": 21889,
+      "status": "WRITTEN",
+      "blobId": "jsxUCJoTkgL5Gkn8ld2_b7wBBVGkrzpYx7jrqny70-U",
+      "problem": null
+    },
+    {
+      "i": 71,
+      "ms": 21377,
+      "status": "WRITTEN",
+      "blobId": "p159ulH0RwwDXAj37gmQSw1VQIcHOLtj4iFXoIcycOI",
+      "problem": null
+    },
+    {
+      "i": 72,
+      "ms": 22164,
+      "status": "WRITTEN",
+      "blobId": "hvx2G3waXlKq8irGS3yZT-clP_e8suWoi4pUtdK3mag",
+      "problem": null
+    },
+    {
+      "i": 73,
+      "ms": 22811,
+      "status": "WRITTEN",
+      "blobId": "O0XmRnxV_omLV1mGGv6RxA-a3hDt_cpt4jAjPV7fDGA",
+      "problem": null
+    },
+    {
+      "i": 74,
+      "ms": 22654,
+      "status": "WRITTEN",
+      "blobId": "eLkwZUaHi3PxboGJ21yq-0gjoYpnDjiYarueB6q06PU",
+      "problem": null
+    },
+    {
+      "i": 75,
+      "ms": 22654,
+      "status": "WRITTEN",
+      "blobId": "q7F9dk7QdXeS9Y7dWIqAh6wNkEt3DtpUb11dKSFbZvs",
+      "problem": null
+    },
+    {
+      "i": 76,
+      "ms": 21077,
+      "status": "WRITTEN",
+      "blobId": "xDYcbLhEbelcj59Ye-nmffzzK_3SE79YLkwZSoA7k5s",
+      "problem": null
+    },
+    {
+      "i": 77,
+      "ms": 19564,
+      "status": "WRITTEN",
+      "blobId": "d1XF-cPn0wuK1pDXoRRrf1RPxB1EgHJapF_cK3pD-hM",
+      "problem": null
+    },
+    {
+      "i": 78,
+      "ms": 20767,
+      "status": "WRITTEN",
+      "blobId": "uvo4yKoqCTV9Z7-E8qsOi2oWXEbglFBq2_bRkAX5kDA",
+      "problem": null
+    },
+    {
+      "i": 79,
+      "ms": 21871,
+      "status": "WRITTEN",
+      "blobId": "xXnLq6eWP3PY_B8ZldmcLyyblTQyDfTiLaFKC5447BU",
+      "problem": null
+    },
+    {
+      "i": 80,
+      "ms": 22284,
+      "status": "WRITTEN",
+      "blobId": "G3FW4S1csDrXkaY5A5zVRLbNKZbvuxPK9LueGKbToCY",
+      "problem": null
+    },
+    {
+      "i": 81,
+      "ms": 20239,
+      "status": "WRITTEN",
+      "blobId": "Yls2hSod88k-oaK8f20sAdAlQZRE6lhOtcB56fhnMn8",
+      "problem": null
+    },
+    {
+      "i": 82,
+      "ms": 29969,
+      "status": "WRITTEN",
+      "blobId": "zyBdMD937rJBQcKfK_Ns3mvr0qHiNWYueJLur1l30kc",
+      "problem": null
+    },
+    {
+      "i": 83,
+      "ms": 22023,
+      "status": "WRITTEN",
+      "blobId": "yN3lyJ8D6wzn8GiSqsp_MpKwJOFl3dqv4DyyIjp1ljQ",
+      "problem": null
+    },
+    {
+      "i": 84,
+      "ms": 20691,
+      "status": "WRITTEN",
+      "blobId": "pYLILv2k2aUnUiwbRyWCAV8acyAlsHn1AAzlv2G6F3o",
+      "problem": null
+    },
+    {
+      "i": 85,
+      "ms": 19419,
+      "status": "WRITTEN",
+      "blobId": "Rtt9cuWl-43hhFq2UdqZ_XvbMlcUK9_P3Pn2FwJVCzo",
+      "problem": null
+    },
+    {
+      "i": 86,
+      "ms": 20237,
+      "status": "WRITTEN",
+      "blobId": "KgOj1i4Oux0ts9Ezf4UBhQ-2ZHMovBF0GEyEt5GqJMM",
+      "problem": null
+    },
+    {
+      "i": 87,
+      "ms": 23076,
+      "status": "WRITTEN",
+      "blobId": "35wOr5CfvLqA9LfJG_jLJZTn4u8NZebdilHMfwHjsGw",
+      "problem": null
+    }
+  ],
+  "phase": "writing"
+}
