@@ -65,7 +65,7 @@ export async function ownerRoute(ctx: OwnerContext, req: IncomingMessage, res: S
     const updated = ctx.settings.update({ perPaymentBaseUnits: String(input["perPaymentBaseUnits"] ?? ""), perDayBaseUnits: String(input["perDayBaseUnits"] ?? ""), cooldownSeconds: String(input["cooldownSeconds"] ?? "") });
     return updated.ok ? send(res, 200, updated.values) : problem(res, 400, `${updated.problem} Nothing was changed.`);
   }
-  if (req.method === "POST" && parts[0] === "payees") {
+  if (req.method === "POST" && parts[0] === "payees" && parts.length === 1) {
     const name = input["name"];
     const address = input["address"];
     if (typeof name !== "string" || typeof address !== "string") return problem(res, 400, "Give a name and an address. Nothing was added.");
