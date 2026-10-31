@@ -52,6 +52,6 @@ export async function ownerServer(t: TestContext) {
     }
     return call(method, path, { ...body, approvals });
   };
-  return { ...w, owner, rows, extras, call, signedBy, advance: (ms: number) => void (now += ms) };
+  return { ...w, owner, rows, extras, call, signedBy, base, cookie, advance: (ms: number) => void (now += ms) };
 }
 

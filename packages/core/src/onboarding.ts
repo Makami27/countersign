@@ -4,6 +4,7 @@ import { checkControl } from "./changeProofs.ts";
 import { headOf, payeeNamespace } from "./payeeBook.ts";
 import { CheckTrail } from "./receipts.ts";
 import { payeeVersion, refuse, writeReceipt, writeRecord } from "./engineWrites.ts";
+import { seenElsewhere } from "./sharedFlags.ts";
 import type { EngineDeps } from "./engineDeps.ts";
 import type { ControlProof, Outcome } from "./types.ts";
 
@@ -32,6 +33,8 @@ export async function requestOnboarding(d: EngineDeps, name: string, address: st
   trail.pass("NOT_KNOWN_ATTACK");
   if (imitatesAny(parsed, await d.index.verifiedAddresses())) return refuse(d, "REFUSED", "LOOKALIKE_ADDRESS", subject, trail, "NOT_LOOKALIKE");
   trail.pass("NOT_LOOKALIKE");
+  const flagged = await seenElsewhere(d, parsed);
+  if (flagged) return refuse(d, "REFUSED", "SEEN_BY_OTHER_AGENT", { ...subject, seenElsewhere: flagged }, trail, "NOT_SEEN_ELSEWHERE");
 
   const nonce = d.nonces.next();
   const expires = new Date(d.clock.now().getTime() + CHANGE_REQUEST_LIFETIME_MS).toISOString();

@@ -7,10 +7,10 @@ No feature commits after 17:00 UTC on 10 Nov unless organisers confirm it's allo
 Revised 2026-10-30 (owner review of the phase plan): skeleton deploy moved to Phase 2, real mainnet use starts in Phase 2, Phase 3 gets an extra half day from Phase 4, submission deliverables added.
 
 ## Where we are (2026-10-31, ~20:01 UTC)
-**Phase:** Phase 4; V20 and V21 committed, V22 next. Gate: `pnpm gate`, 105 tests green with V21.
+**Phase:** Phase 4; V20–V22 committed, none deployed. Gate: `pnpm gate`, 112 tests green with V22.
 
 **Deployed vs committed — read this first**
-- Render runs `4e141ba` (https://countersign-agent-7u1c.onrender.com). Local `main` is ahead with **V20 and V21, committed and not pushed**.
+- Render runs `4e141ba` (https://countersign-agent-7u1c.onrender.com). Local `main` is ahead with **V20, V21 and V22, committed and not pushed**.
 - **Render auto-deploys every push to `main`.** Pushing now would deploy V20, and the owner couldn't register an owner wallet there (Slush flags the onrender.com host, see Risks), which would block adding payees. Don't push until the custom domain is live, or turn auto-deploy off first.
 
 **Done**
@@ -22,6 +22,7 @@ Revised 2026-10-30 (owner review of the phase plan): skeleton deploy moved to Ph
 - Acts 2–3 on Render (`evidence/acts/act2`, `act3`, CL14). Look-alikes and known attacks are now refused by code before the model; Gemini retries once on 429/5xx.
 - V20 owner-wallet protection (D20, THREAT_MODEL.md): committed `1d47c7f`, **not deployed**.
 - V21 scheduled payments (D21): monthly or yearly, owner-wallet signature to create/change/delete, one payment per period (`schedule:<id>:<period>`), late boot run, hourly retry only for retryable refusals, Telegram notice with receipt link; panel on the payee page. Committed, **not deployed**.
+- V22 shared scam memory (D22): look-alike and known-attack refusals share a signed attack_seen record; other agents refuse that address with SEEN_BY_OTHER_AGENT (first receipt, distinct agent keys); never blocks a VERIFIED payee, continuity overrides, 90-day window, owner-signed retraction, no endpoint lists it. No retract button in the owner app yet (API only). Committed, **not deployed**.
 - Real-use memories: 6 of 10 (CL07).
 
 **Blocked / waiting**
@@ -30,9 +31,8 @@ Revised 2026-10-30 (owner review of the phase plan): skeleton deploy moved to Ph
 - Delegate key rotation after the relayer echoed it in an error (REALITY_SPIKES R4).
 
 **Next steps**
-1. V22 shared scam memory (SHIP V22): next.
-2. Custom domain → deploy V20 → register the owner wallet → Act 4.
-3. Rest of Phase 4: `/proof` page, `/status` page, lab upgrade, preregistered measurement; real use to ≥10 memories.
+1. Custom domain → deploy V20 → register the owner wallet → Act 4.
+2. Rest of Phase 4: `/proof` page, `/status` page, lab upgrade, preregistered measurement; real use to ≥10 memories.
 
 **Background jobs and how to check them**
 - None running. Deployed agent: Render service `srv-dbj08anf3r2c73ejrggg` (Ohio); health and dependency timings at `/api/health` and `/api/status`; an external 5-minute ping (cron-job.org) keeps it awake.

@@ -1,3 +1,4 @@
+import type { SharedAttackList } from "@countersign/core/shared";
 import type { Countersign, IndexStore, PaymentIntent, PaymentLedger, SignatureCheck, SuiAddress } from "@countersign/core";
 import type { ChangeSteps } from "./changeSteps.ts";
 import type { OwnerAuth } from "./ownerAuth.ts";
@@ -41,4 +42,5 @@ export type OwnerContext = {
   readonly approvals: OwnerApprovals;
   readonly notify: (text: string) => Promise<void>;
   readonly schedules: Schedules;
+  readonly shared: SharedAttackList;
 };

@@ -1,4 +1,5 @@
 import { REASONS, formatUsdc, type Outcome, type PaymentIntent, type ReceiptWrite, type SuiAddress } from "@countersign/core";
+import { seenWords } from "./telegramText.ts";
 
 export const RECEIPT_PENDING_REPLY = "Writing the receipt to Walrus Memory. This takes about 20 seconds; the payment outcome above is already final.";
 
@@ -49,7 +50,7 @@ export function replyFor(outcome: Outcome): string {
       return `Payee address verified (version ${outcome.version}).`;
     case "REFUSED": {
       const info = REASONS[outcome.reason];
-      const cites = outcome.cites ? ` Same as refusal ${outcome.cites}.` : "";
+      const cites = `${outcome.cites ? ` Same as refusal ${outcome.cites}.` : ""}${outcome.seenElsewhere ? ` ${seenWords(outcome.seenElsewhere)}` : ""}`;
       return `Refused. Nothing was sent and nothing was changed. ${[info.message, info.nextAction].filter(Boolean).join(" ")}${cites} Receipt ${outcome.receipt}.`;
     }
     case "ONBOARDING_STARTED":

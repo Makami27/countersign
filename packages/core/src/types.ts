@@ -1,4 +1,4 @@
-import type { CheckCode, PayeeStatus, ReasonCode } from "./vocabulary.ts";
+import type { CheckCode, PayeeStatus, ReasonCode, SharedReason } from "./vocabulary.ts";
 
 export type SuiAddress = string & { readonly __brand: "SuiAddress" };
 
@@ -52,6 +52,8 @@ export type PayeeVersionRecord = {
 
 export type ReceiptCheck = { readonly check: CheckCode; readonly result: "PASS" | "FAIL" };
 
+export type SeenElsewhere = { readonly firstReceipt: string; readonly agents: number };
+
 export type ReceiptVerdict = "PAID" | "PAYMENT_FAILED" | "REFUSED" | "CHANGE_VERIFIED" | "CHANGE_REJECTED";
 
 export type ReceiptRecord = {
@@ -68,6 +70,7 @@ export type ReceiptRecord = {
   readonly suiDigest: string | null;
   readonly network: "mainnet" | "testnet";
   readonly createdAt: string;
+  readonly seenElsewhere?: SeenElsewhere;
 };
 
 export type OwnerWalletRecord = {
@@ -105,7 +108,11 @@ export type MemoryRecord = PayeeVersionRecord | ReceiptRecord | OwnerWalletRecor
 
 export type Envelope = { readonly record: MemoryRecord; readonly sig: string };
 
-export type Refused = { readonly verdict: "REFUSED"; readonly reason: ReasonCode; readonly receipt: string; readonly cites: string | null };
+export type AttackSeenRecord = { readonly type: "attack_seen"; readonly address: SuiAddress; readonly reason: SharedReason; readonly receipt: string; readonly agentKey: string; readonly seenAt: string };
+export type AttackRetractedRecord = { readonly type: "attack_retracted"; readonly address: SuiAddress; readonly receipt: string; readonly agentKey: string; readonly retractedAt: string };
+export type SharedRecord = AttackSeenRecord | AttackRetractedRecord;
+
+export type Refused = { readonly verdict: "REFUSED"; readonly reason: ReasonCode; readonly receipt: string; readonly cites: string | null; readonly seenElsewhere?: SeenElsewhere };
 export type ChangeStarted = { readonly verdict: "CHANGE_STARTED"; readonly nonce: string; readonly expires: string; readonly fromAddress: SuiAddress; readonly toAddress: SuiAddress };
 export type ChangeVerified = { readonly verdict: "CHANGE_VERIFIED"; readonly version: number; readonly blobId: string; readonly receipt: string };
 export type PayReserved = { readonly verdict: "PAY_RESERVED"; readonly paymentId: string; readonly address: SuiAddress; readonly amountBaseUnits: bigint };

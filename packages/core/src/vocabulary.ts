@@ -22,6 +22,7 @@ export const REASON_CODES = [
   "PAYMENT_NOT_BUILT",
   "PAYMENT_FAILED_ON_CHAIN",
   "PAYMENT_EXPIRED",
+  "SEEN_BY_OTHER_AGENT",
 ] as const;
 
 export type ReasonCode = (typeof REASON_CODES)[number];
@@ -56,6 +57,7 @@ export const REASONS = {
   PAYMENT_NOT_BUILT: { message: "The transfer could not be built, so nothing was sent.", retryable: true, nextAction: "No USDC moved. Check the agent wallet balance, then ask again." },
   PAYMENT_FAILED_ON_CHAIN: { message: "The transfer executed and failed on chain.", retryable: true, nextAction: "No USDC moved; only gas was spent. Ask again." },
   PAYMENT_EXPIRED: { message: "The transfer never reached the chain and can no longer execute.", retryable: true, nextAction: "No USDC moved. Ask again." },
+  SEEN_BY_OTHER_AGENT: { message: "Other Countersign agents refused this address as an attack.", retryable: false, nextAction: "Nothing was changed. If the payee really moved, request the change in the owner app and have them sign it with their current wallet." },
 } as const satisfies Record<ReasonCode, ReasonInfo>;
 
 export const VERDICTS = ["PAY_RESERVED", "REFUSED", "CHANGE_STARTED", "CHANGE_VERIFIED", "ONBOARDING_STARTED", "NONE"] as const;
@@ -80,6 +82,10 @@ export const CHECK_CODES = [
   "COOLDOWN_ELAPSED",
   "CONTROL",
   "SETTLED_ON_CHAIN",
+  "NOT_SEEN_ELSEWHERE",
 ] as const;
 
 export type CheckCode = (typeof CHECK_CODES)[number];
+
+export const SHARED_REASONS = ["LOOKALIKE_ADDRESS", "KNOWN_ATTACK_PATTERN"] as const satisfies readonly ReasonCode[];
+export type SharedReason = (typeof SHARED_REASONS)[number];

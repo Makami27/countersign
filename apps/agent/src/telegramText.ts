@@ -1,4 +1,4 @@
-import { REASONS, formatUsdc, type Outcome, type ReceiptRecord, type SuiAddress } from "@countersign/core";
+import { REASONS, formatUsdc, type Outcome, type ReceiptRecord, type SeenElsewhere, type SuiAddress } from "@countersign/core";
 import { groupAddress } from "@countersign/web/addressGroups";
 
 export function escapeHtml(text: string): string {
@@ -26,6 +26,10 @@ function receiptLink(id: string, publicUrl: string | null): string {
   return `<a href="${url}">${url}</a>`;
 }
 
+export function seenWords(seen: SeenElsewhere): string {
+  return `Refused by ${seen.agents} other Countersign agent${seen.agents === 1 ? "" : "s"}; the first was their receipt ${seen.firstReceipt}.`;
+}
+
 export function refusalHtml(outcome: Extract<Outcome, { verdict: "REFUSED" }>, receipt: ReceiptRecord | null, verifiedAddress: SuiAddress | null, publicUrl: string | null): string {
   const info = REASONS[outcome.reason];
   const lines = [`<b>${REFUSED_HEADLINE}</b>`, ...[info.message, info.nextAction].map((text) => text.replace(ALREADY_SAID, "")).filter(Boolean).map(escapeHtml)];
@@ -33,6 +37,7 @@ export function refusalHtml(outcome: Extract<Outcome, { verdict: "REFUSED" }>, r
     lines.push("", "Address in the message (differing groups underlined):", groupedHtml(receipt.address, verifiedAddress), "", "Verified address:", groupedHtml(verifiedAddress));
   }
   if (outcome.cites) lines.push("", `First refused here: ${receiptLink(outcome.cites, publicUrl)}`);
+  if (outcome.seenElsewhere) lines.push("", escapeHtml(seenWords(outcome.seenElsewhere)));
   lines.push("", `Receipt: ${receiptLink(outcome.receipt, publicUrl)}`);
   return lines.join("\n");
 }

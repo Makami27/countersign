@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { decodeSuiPrivateKey } from "@mysten/sui/cryptography";
 import { Countersign, parseSuiAddress, type SuiAddress } from "@countersign/core";
+import { SharedAttackList } from "@countersign/core/shared";
 import { MemWalMemory } from "@countersign/adapters/memwal";
 import { recordSignerFromSeed } from "@countersign/adapters/signer";
 import { SharedRateGate, TATUM_FREE_TIER_INTERVAL_MS, TATUM_GRAPHQL_URL, TatumGraphql, TatumRoundTripChecker, TatumSignatureVerifier, USDC_COIN_TYPE, tatumGrpcClient, tatumRateGateName } from "@countersign/adapters/tatum";
@@ -18,9 +19,11 @@ const gate = new SharedRateGate(storage.rows, tatumRateGateName(config.network),
 const grpc = tatumGrpcClient(config.network, config.tatumApiKey, gate);
 const graphql = new TatumGraphql(TATUM_GRAPHQL_URL[config.network], config.tatumApiKey, gate);
 const agentAddress = Ed25519Keypair.fromSecretKey(decodeSuiPrivateKey(config.agentWalletKey).secretKey).toSuiAddress() as SuiAddress;
+const memory = new MemWalMemory(config.memwal);
+const signer = recordSignerFromSeed(config.recordSigningKey);
 const engine = new Countersign({
-  ownerId: config.ownerId, network: config.network, memory: new MemWalMemory(config.memwal), index: storage.index, payments: storage.ledger, clock: { now: () => new Date() },
-  signer: recordSignerFromSeed(config.recordSigningKey), signatures: new TatumSignatureVerifier(grpc),
+  ownerId: config.ownerId, network: config.network, memory, shared: new SharedAttackList({ memory, signer, now: () => new Date() }), index: storage.index, payments: storage.ledger, clock: { now: () => new Date() },
+  signer, signatures: new TatumSignatureVerifier(grpc),
   roundTrips: new TatumRoundTripChecker(graphql, agentAddress, USDC_COIN_TYPE[config.network]),
   nonces: { next: () => randomBytes(16).toString("hex") }, caps: config.caps, cooldownMs: config.cooldownMs,
 });
