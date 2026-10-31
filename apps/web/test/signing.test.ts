@@ -13,6 +13,7 @@ import { OwnerSettings } from "../src/ownerSettings.ts";
 import { ChangeSteps } from "../src/changeSteps.ts";
 import { tryCompleteChange } from "../src/changeCompletion.ts";
 import type { OwnerContext } from "../src/ownerContext.ts";
+import { ownerExtras } from "./support/ownerExtras.ts";
 
 async function setup(t: TestContext, start = new Date().toISOString(), cooldownSeconds = 0) {
   const w = await world(DEFAULT_CAPS, start, cooldownSeconds * 1000);
@@ -24,6 +25,7 @@ async function setup(t: TestContext, start = new Date().toISOString(), cooldownS
     balances: async () => ({ status: "UNKNOWN", detail: "test" }), memory: () => ({ relayer: "sandbox (not Walrus Memory)", restored: true, restoredAt: null, legacyRecords: 0, ignoredRecords: 0 }),
     memoryCounts: async () => null, sendPayment: async () => assert.fail("no payments here"), steps: await ChangeSteps.open(rows), cooldownMs: () => w.deps.cooldownMs,
     verifySignature: (m, s, a) => w.signatures.verifyPersonalMessage(m, s, a),
+    ...(await ownerExtras(rows, w)),
   };
   const server = startWebServer({ port: 0, network: "testnet", proof: undefined, version: null, owner });
   await new Promise<void>((resolve) => server.once("listening", () => resolve()));

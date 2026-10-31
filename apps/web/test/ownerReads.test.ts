@@ -11,6 +11,7 @@ import { OwnerAuth } from "../src/ownerAuth.ts";
 import { OwnerSettings } from "../src/ownerSettings.ts";
 import { ChangeSteps } from "../src/changeSteps.ts";
 import type { OwnerContext } from "../src/ownerContext.ts";
+import { ownerExtras } from "./support/ownerExtras.ts";
 
 type Slow = { balances?: () => Promise<never>; memoryCounts?: () => Promise<never> };
 const never = () => new Promise<never>(() => undefined);
@@ -27,6 +28,7 @@ async function signedIn(t: TestContext, slow: Slow = {}) {
     memoryCounts: slow.memoryCounts ?? (async () => ({ realUseMemories: 3, namespaces: 1 })),
     sendPayment: async () => assert.fail("no payments here"), steps: await ChangeSteps.open(rows), cooldownMs: () => 60_000,
     verifySignature: (m, s, a) => w.signatures.verifyPersonalMessage(m, s, a),
+    ...(await ownerExtras(rows, w)),
   };
   const server = startWebServer({ port: 0, network: "testnet", proof: undefined, version: null, owner });
   await new Promise<void>((resolve) => server.once("listening", () => resolve()));

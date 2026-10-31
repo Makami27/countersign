@@ -2,6 +2,8 @@ import type { Countersign, IndexStore, PaymentIntent, PaymentLedger, SignatureCh
 import type { ChangeSteps } from "./changeSteps.ts";
 import type { OwnerAuth } from "./ownerAuth.ts";
 import type { OwnerSettings } from "./ownerSettings.ts";
+import type { OwnerApprovals } from "./ownerApprovals.ts";
+import type { OwnerWallets } from "./ownerWallet.ts";
 
 export type BalancesView =
   | { readonly status: "KNOWN"; readonly suiBaseUnits: bigint; readonly usdcBaseUnits: bigint }
@@ -34,4 +36,7 @@ export type OwnerContext = {
   readonly steps: ChangeSteps;
   readonly cooldownMs: () => number;
   readonly verifySignature: (message: string, signature: string, address: SuiAddress) => Promise<SignatureCheck>;
+  readonly wallets: OwnerWallets;
+  readonly approvals: OwnerApprovals;
+  readonly notify: (text: string) => Promise<void>;
 };

@@ -32,6 +32,9 @@ export type Overview = {
   readonly caps: { readonly perPaymentBaseUnits: string; readonly perDayBaseUnits: string; readonly usedTodayBaseUnits: string };
   readonly cooldownSeconds: number;
   readonly payeeCount: number;
+  readonly ownerWallet:
+    | { readonly known: true; readonly current: { readonly address: string; readonly version: number; readonly since: string } | null; readonly waiting: { readonly address: string; readonly readyAt: string } | null }
+    | { readonly known: false; readonly why: string };
 };
 
 export type Refusal = { readonly reason: string; readonly message: string; readonly nextAction: string; readonly receipt: string; readonly cites: string | null };

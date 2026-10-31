@@ -26,6 +26,10 @@ export function receiptsNamespace(ownerId: string): string {
   return `countersign:${ownerId}:receipts`;
 }
 
+export function ownerNamespace(ownerId: string): string {
+  return `countersign:${ownerId}:owner`;
+}
+
 export function payeeIdFromNamespace(ownerId: string, namespace: string): string | null {
   const prefix = `countersign:${ownerId}:payee:`;
   return namespace.startsWith(prefix) ? namespace.slice(prefix.length) : null;

@@ -8,11 +8,13 @@ import type { OwnerContext } from "./ownerContext.ts";
 import { activity, overview, payeeDetail, payeeSummary } from "./ownerViews.ts";
 import { tryCompleteChange } from "./changeCompletion.ts";
 import { TookTooLong, within } from "./deadline.ts";
+import { ownerSigned } from "./ownerGate.ts";
+import { ownerWalletRoute } from "./ownerWalletRoutes.ts";
 
 export const SESSION_COOKIE = "cs_owner";
 export const CSRF_HEADER = "x-countersign";
 const loginLimiter = new WindowLimiter(5, 10 * 60 * 1000);
-const writeLimiter = new WindowLimiter(30, 60 * 1000);
+const writeLimiter = new WindowLimiter(60, 60 * 1000);
 const READ_DEADLINE_MS = 20_000;
 export const SIGNED_OUT = "You're signed out: your session ended or this browser has none. Send /login to the bot for a new code.";
 
@@ -74,15 +76,26 @@ async function ownerRequest(ctx: OwnerContext, req: IncomingMessage, res: Server
 
   const input = await readJson(req);
   if (!input) return problem(res, 400, "Send a JSON object under 8 KB. Nothing was changed.");
+  if (req.method === "POST" && parts[0] === "owner" && parts[1] === "wallet") return ownerWalletRoute(ctx, res, parts, input);
   if (req.method === "PUT" && parts[0] === "settings") {
-    const updated = await ctx.settings.update({ perPaymentBaseUnits: String(input["perPaymentBaseUnits"] ?? ""), perDayBaseUnits: String(input["perDayBaseUnits"] ?? ""), cooldownSeconds: String(input["cooldownSeconds"] ?? "") });
-    return updated.ok ? send(res, 200, updated.values) : problem(res, 400, `${updated.problem} Nothing was changed.`);
+    const wanted = { perPaymentBaseUnits: String(input["perPaymentBaseUnits"] ?? ""), perDayBaseUnits: String(input["perDayBaseUnits"] ?? ""), cooldownSeconds: String(input["cooldownSeconds"] ?? "") };
+    const checked = ctx.settings.validate(wanted);
+    if (!checked.ok) return problem(res, 400, `${checked.problem} Nothing was changed.`);
+    const before = ctx.settings.values();
+    const looser = checked.values.perPaymentBaseUnits > before.perPaymentBaseUnits || checked.values.perDayBaseUnits > before.perDayBaseUnits || checked.values.cooldownSeconds < before.cooldownSeconds;
+    if (looser && !(await ownerSigned(ctx, res, input, "raise_limits", wanted))) return;
+    const updated = await ctx.settings.update(wanted);
+    if (!updated.ok) return problem(res, 400, `${updated.problem} Nothing was changed.`);
+    await ctx.notify(`Limits changed${looser ? " with your owner wallet's signature" : ""}: ${formatUsdc(updated.values.perPaymentBaseUnits)} USDC per payment, ${formatUsdc(updated.values.perDayBaseUnits)} USDC per day, ${Math.round(updated.values.cooldownSeconds / 3600)} h waiting period.`);
+    return send(res, 200, updated.values);
   }
   if (req.method === "POST" && parts[0] === "payees" && parts.length === 1) {
     const name = input["name"];
     const address = input["address"];
     if (typeof name !== "string" || typeof address !== "string") return problem(res, 400, "Give a name and an address. Nothing was added.");
+    if (!(await ownerSigned(ctx, res, input, "add_payee", { name: name.trim(), address: address.trim().toLowerCase() }))) return;
     const outcome = await ctx.engine.requestOnboarding(name, address, `web:${randomBytes(6).toString("hex")}`);
+    if (outcome.verdict === "ONBOARDING_STARTED") await ctx.notify(`Payee "${name.trim()}" was added with your owner wallet's signature. Nothing can be paid to them until their own wallet signs.`);
     const signUrl = outcome.verdict === "ONBOARDING_STARTED" ? `${ctx.publicUrl ?? ""}/sign/${outcome.nonce}` : null;
     return send(res, outcome.verdict === "REFUSED" ? 422 : 200, { ...refusalBody(outcome), signUrl });
   }
@@ -112,8 +125,9 @@ async function ownerRequest(ctx: OwnerContext, req: IncomingMessage, res: Server
     const nonce = parts[1];
     const change = await ctx.index.pendingChange(nonce);
     if (!change || Date.parse(change.expires) <= now) return send(res, 410, { refusal: { reason: "EXPIRED", ...REASONS.EXPIRED } });
-    if (!(await ctx.auth.consumeCode(String(input["code"] ?? "")))) return problem(res, 401, "That code is wrong, used or expired. Nothing was confirmed. Send /login to the bot for a fresh one.");
+    if (!(await ownerSigned(ctx, res, input, "confirm_owner_change", { nonce, payee: change.payeeId, to: change.toAddress }))) return;
     await ctx.steps.confirmByOwner(nonce, `owner:${randomBytes(6).toString("hex")}`, new Date(now).toISOString());
+    await ctx.notify(`You confirmed the address change for ${change.payeeId} with your owner wallet. It can take effect after the waiting period, once the new wallet signs.`);
     return send(res, 200, { completion: await tryCompleteChange(ctx, nonce, now) });
   }
   return problem(res, 404, "Not found.");

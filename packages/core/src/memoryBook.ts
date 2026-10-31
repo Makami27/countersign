@@ -1,4 +1,4 @@
-import { payeeIdFromNamespace, receiptsNamespace } from "./payeeBook.ts";
+import { ownerNamespace, payeeIdFromNamespace, receiptsNamespace } from "./payeeBook.ts";
 import { openRecord } from "./records.ts";
 import type { IndexStore, MemoryPort, RecordSigner, StoredText } from "./ports.ts";
 import type { MemoryRecord, PayeeVersionRecord } from "./types.ts";
@@ -16,7 +16,7 @@ export type RestoreDeps = {
 
 export async function indexRecord(index: IndexStore, record: MemoryRecord, blobId: string | null): Promise<void> {
   if (record.type === "payee_version") await index.putPayeeVersion(record);
-  else await index.putReceipt(record, blobId);
+  else if (record.type === "receipt") await index.putReceipt(record, blobId);
 }
 
 export function versionsFrom(signer: RecordSigner, records: readonly StoredText[], payeeId: string): StoredVersion[] {
@@ -30,6 +30,7 @@ export function versionsFrom(signer: RecordSigner, records: readonly StoredText[
 
 function belongs(ownerId: string, record: MemoryRecord, namespace: string, payeeId: string | null): boolean {
   if (record.type === "payee_version") return payeeId !== null && record.payeeId === payeeId;
+  if (record.type === "owner_wallet") return namespace === ownerNamespace(ownerId) && record.ownerId === ownerId;
   return namespace === receiptsNamespace(ownerId);
 }
 

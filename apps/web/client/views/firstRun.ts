@@ -1,4 +1,5 @@
 import { addressEl, h, networkWords, usdc } from "../dom.ts";
+import { ownerWalletPanel } from "./ownerWallet.ts";
 import type { Overview } from "../types.ts";
 
 export function agentFacts(overview: Overview): HTMLElement {
@@ -18,7 +19,8 @@ export function agentFacts(overview: Overview): HTMLElement {
     h("div", {}, h("dt", {}, "Caps"), h("dd", {}, `${usdc(overview.caps.perPaymentBaseUnits)} per payment, ${usdc(overview.caps.perDayBaseUnits)} per day (${usdc(overview.caps.usedTodayBaseUnits)} used today)`)));
 }
 
-export function firstRun(overview: Overview): HTMLElement {
+export function firstRun(overview: Overview, onChanged: () => void): HTMLElement {
+  if (overview.ownerWallet.known && !overview.ownerWallet.current) return h("div", {}, ownerWalletPanel(overview, onChanged), h("div", { class: "card" }, agentFacts(overview)));
   return h("div", { class: "card" },
     h("h2", {}, "Your agent is ready"),
     h("p", {}, "Add your first payee. They get a link to prove the address is theirs, and only then can the agent pay it."),

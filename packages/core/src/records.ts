@@ -44,7 +44,7 @@ function isEnvelopeShape(value: unknown): value is Envelope {
   const candidate = value as { record?: unknown; sig?: unknown };
   if (typeof candidate.sig !== "string") return false;
   const record = candidate.record as { type?: unknown } | null | undefined;
-  return record !== null && typeof record === "object" && (record.type === "payee_version" || record.type === "receipt");
+  return record !== null && typeof record === "object" && (record.type === "payee_version" || record.type === "receipt" || record.type === "owner_wallet");
 }
 
 function isLegacyRefusal(value: unknown): boolean {

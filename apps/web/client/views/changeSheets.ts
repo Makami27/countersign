@@ -1,4 +1,5 @@
 import { api } from "../api.ts";
+import { withApprovals } from "../approvals.ts";
 import { addressEl, h, liveRegion, when, listen } from "../dom.ts";
 import type { PayeeDetail, Refusal } from "../types.ts";
 import { openSheet } from "./sheets.ts";
@@ -32,18 +33,17 @@ export function requestChangeSheet(detail: PayeeDetail, onClosed: () => void): v
   }, onClosed);
 }
 
-export function confirmChangeSheet(nonce: string, cooldownSeconds: number, onClosed: () => void): void {
+export function confirmChangeSheet(nonce: string, cooldownSeconds: number, network: "mainnet" | "testnet", onClosed: () => void): void {
   openSheet("Confirm the change yourself", (close, body) => {
-    const code = h("input", { id: "confirm-code", required: true, class: "mono", autocomplete: "one-time-code", placeholder: "ABCDE-FGH23" });
     const status = liveRegion();
     const hours = cooldownSeconds / 3600;
     const form = h("form", {},
       h("p", {}, `Use this when the payee can't sign with their old wallet. After you confirm, the change waits ${hours >= 1 ? `${Math.round(hours)} hours` : `${Math.round(cooldownSeconds / 60)} minutes (demo value)`} before it can take effect, and the new wallet still has to sign.`),
-      h("label", { for: "confirm-code" }, "A fresh code from the bot", h("span", { class: "hint" }, "Send /login to your Countersign bot. The code works once."), code), status,
+      h("p", { class: "note" }, "Your owner wallet signs this confirmation. A Telegram code alone is not enough."), status,
       h("div", { class: "actions" }, h("button", { class: "btn primary", type: "submit" }, "Confirm"), h("button", { class: "btn", type: "button", onclick: close }, "Cancel")));
     listen(form, "submit", async (event) => {
       event.preventDefault();
-      const result = await api<{ completion: { state: string; readyAt?: string | null } }>("POST", `/api/app/changes/${nonce}/confirm`, { code: code.value });
+      const result = await withApprovals<{ completion: { state: string; readyAt?: string | null } }>("POST", `/api/app/changes/${nonce}/confirm`, {}, network, status);
       if (!result.ok) return void (status.textContent = refusalLine(result.error.body, result.error.message));
       const readyAt = result.data.completion.readyAt;
       form.replaceChildren(h("p", { class: "money" }, "Confirmed. Nothing has changed yet."), h("p", {}, readyAt ? `The change can take effect after ${when(readyAt)}, once the new wallet has signed.` : "The change takes effect once the new wallet signs."),

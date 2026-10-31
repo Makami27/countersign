@@ -41,6 +41,11 @@ v1 = a stranger can open the URL on a phone, set up an agent, add payees, pay th
 - **V18** Records on Walrus Memory, signed by the agent; restore on boot with the completeness check; incomplete → payments disabled with a banner saying so.
 - **V19** All chain reads, signature checks and payments through Tatum (or disclosed fallback per DECISIONS).
 
+### Added 2026-10-31 (team decision)
+- **V20** Owner wallet protection: the owner registers their own Sui wallet by signing in the web app. Adding a payee, confirming an address change yourself, loosening caps or the cooldown, creating/changing/deleting a schedule and retracting a shared report each need a fresh owner-wallet signature over the exact action. Telegram alone can only pay already-verified payees within caps, and gets a notice for every sensitive action. Replacing the owner wallet needs the old wallet's signature or a 72 h wait with Telegram notices. THREAT_MODEL.md says what a hacked Telegram can and can't do.
+- **V21** Scheduled payments (monthly or yearly), created or changed only with the owner-wallet signature. Each run is a normal payment (verified head at run time, caps, memory completeness, receipt, Telegram notice), exactly once per period (`schedule:<id>:<period>` unique in the ledger), missed periods run once on boot and are reported late, and UNKNOWN or MEMORY_INCOMPLETE never pays. Stored in Postgres and as signed records on Walrus Memory.
+- **V22** Shared scam memory: LOOKALIKE_ADDRESS and KNOWN_ATTACK_PATTERN refusals write a signed attack_seen record (attacker address, reason, receipt id, agent key, time; nothing about the victim) to `countersign:shared:attacks`; a blacklist rebuilt from it refuses matching unproven addresses with SEEN_BY_OTHER_AGENT, citing the first receipt and the number of distinct reporting agents. Never blocks a VERIFIED payee; 90-day window; retractable; UNKNOWN shared memory → local checks only.
+
 ## 3. Quality bar (each is checked before submit)
 | ID | Bar | Check |
 |---|---|---|

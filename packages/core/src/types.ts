@@ -70,8 +70,19 @@ export type ReceiptRecord = {
   readonly createdAt: string;
 };
 
+export type OwnerWalletRecord = {
+  readonly type: "owner_wallet";
+  readonly ownerId: string;
+  readonly version: number;
+  readonly address: SuiAddress;
+  readonly previous: SuiAddress | null;
+  readonly how: "first_registration" | "old_wallet_signed" | "cooldown_elapsed";
+  readonly proofs: readonly { readonly signer: SuiAddress; readonly message: string; readonly signature: string }[];
+  readonly verifications: readonly SignatureVerification[];
+  readonly createdAt: string;
+};
 
-export type MemoryRecord = PayeeVersionRecord | ReceiptRecord;
+export type MemoryRecord = PayeeVersionRecord | ReceiptRecord | OwnerWalletRecord;
 
 export type Envelope = { readonly record: MemoryRecord; readonly sig: string };
 

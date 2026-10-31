@@ -92,7 +92,7 @@ export async function overview(ctx: OwnerContext, now: number) {
   return {
     network: ctx.network, agentAddress: ctx.agentAddress, balances, memory: ctx.memory(), memoryCounts: memoryCounts.counts, memoryCountsWhy: memoryCounts.why,
     caps: { perPaymentBaseUnits: settings.perPaymentBaseUnits, perDayBaseUnits: settings.perDayBaseUnits, usedTodayBaseUnits: await ctx.ledger.reservedFor(today) },
-    cooldownSeconds: settings.cooldownSeconds, payeeCount: (await ctx.index.payeeIds()).length,
+    cooldownSeconds: settings.cooldownSeconds, payeeCount: (await ctx.index.payeeIds()).length, ownerWallet: ctx.wallets.state(),
   };
 }
 
