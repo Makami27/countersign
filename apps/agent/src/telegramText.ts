@@ -19,7 +19,7 @@ export function confirmPaymentHtml(name: string, address: SuiAddress, amountBase
 
 export function refusalHtml(outcome: Extract<Outcome, { verdict: "REFUSED" }>, receipt: ReceiptRecord | null, verifiedAddress: SuiAddress | null): string {
   const info = REASONS[outcome.reason];
-  const lines = [`<b>Refused.</b> ${escapeHtml(info.nextAction)}`, escapeHtml(info.message)];
+  const lines = info.nextAction ? [`<b>Refused.</b> ${escapeHtml(info.nextAction)}`, escapeHtml(info.message)] : [`<b>Refused.</b> ${escapeHtml(info.message)}`];
   if (receipt?.address && verifiedAddress && receipt.address !== verifiedAddress && (outcome.reason === "LOOKALIKE_ADDRESS" || outcome.reason === "KNOWN_ATTACK_PATTERN")) {
     lines.push("", "Address in the message (differing groups underlined):", groupedHtml(receipt.address, verifiedAddress), "", "Verified address:", groupedHtml(verifiedAddress));
   }

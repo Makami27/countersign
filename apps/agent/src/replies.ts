@@ -48,7 +48,7 @@ export function replyFor(outcome: Outcome): string {
     case "REFUSED": {
       const info = REASONS[outcome.reason];
       const cites = outcome.cites ? ` Same as refusal ${outcome.cites}.` : "";
-      return `Refused: ${info.message} ${info.nextAction}${cites} Receipt ${outcome.receipt}.`;
+      return `Refused: ${[info.message, info.nextAction].filter(Boolean).join(" ")}${cites} Receipt ${outcome.receipt}.`;
     }
     case "ONBOARDING_STARTED":
       return `Payee ${outcome.payeeId} added and waiting for the payee's wallet. Nothing can be paid to ${outcome.address} until that wallet signs. The signing link expires ${outcome.expires}.`;

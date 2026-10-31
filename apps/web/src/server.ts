@@ -33,6 +33,7 @@ export function startWebServer(options: WebServerOptions): Server {
       if (path.startsWith("/api/")) return problem(res, 404, "Not found.");
       if (path.startsWith("/build/") && (await serveFile(res, DIST_DIR, path.slice("/build/".length), 200, "no-cache"))) return;
       if ((path === "/app" || path.startsWith("/app/")) && (await serveFile(res, PUBLIC_DIR, "app.html", 200, "no-cache"))) return;
+      if (path.startsWith("/sign/") && (await serveFile(res, PUBLIC_DIR, "sign.html", 200, "no-cache"))) return;
       if (await serveFile(res, PUBLIC_DIR, path === "/" ? "index.html" : path)) return;
       if (!(await serveFile(res, PUBLIC_DIR, "index.html", 404, "no-cache"))) problem(res, 404, "Not found.");
     };

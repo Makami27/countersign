@@ -4,6 +4,7 @@ import type { ActivityItem, Overview, PayeeDetail, PayeeSummary } from "./types.
 import { payeeList } from "./views/payees.ts";
 import { payeeDetailView } from "./views/payeeDetail.ts";
 import { addPayeeSheet, paySheet } from "./views/sheets.ts";
+import { confirmChangeSheet, requestChangeSheet } from "./views/changeSheets.ts";
 import { activityPage, loginPage, settingsPage } from "./views/pages.ts";
 
 const root = document.querySelector<HTMLElement>("#app");
@@ -29,7 +30,16 @@ function failure(message: string): HTMLElement {
   return h("section", { class: "narrow" }, h("h1", { tabindex: "-1" }, "Couldn't load this"), h("p", {}, message), h("div", { class: "actions" }, h("button", { class: "btn", type: "button", onclick: () => void render() }, "Try again")));
 }
 
+let poll: number | undefined;
+function schedulePoll(path: string): void {
+  window.clearTimeout(poll);
+  poll = window.setTimeout(() => {
+    if (location.pathname === path && !document.querySelector("dialog[open]")) void render();
+  }, 5_000);
+}
+
 async function render(): Promise<void> {
+  window.clearTimeout(poll);
   const path = location.pathname;
   if (path === "/app/login") {
     setCurrent(null);
@@ -61,7 +71,9 @@ async function render(): Promise<void> {
   const list = payeeList(payees.data.payees, overview.data, selected, () => addPayeeSheet(() => void render()));
   if (!selected) return show(h("div", { class: "owner single at-list" }, list));
   const detail = await api<PayeeDetail>("GET", `/api/app/payees/${encodeURIComponent(selected)}`);
-  const detailView = detail.ok ? payeeDetailView(detail.data, () => paySheet(detail.data, overview.data, () => void render())) : failure(detail.error.message);
+  const rerender = () => void render();
+  const detailView = detail.ok ? payeeDetailView(detail.data, { onPay: () => paySheet(detail.data, overview.data, rerender), onRequestChange: () => requestChangeSheet(detail.data, rerender), onConfirm: (nonce) => confirmChangeSheet(nonce, overview.data.cooldownSeconds, rerender) }) : failure(detail.error.message);
+  if (detail.ok && (detail.data.pendingChanges.length > 0 || detail.data.waiting)) schedulePoll(path);
   show(h("div", { class: `owner ${match ? "at-detail" : "at-list"}` }, list, detailView));
 }
 

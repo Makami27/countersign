@@ -1,4 +1,5 @@
-import type { Countersign, IndexStore, PaymentIntent, PaymentLedger, SuiAddress } from "@countersign/core";
+import type { Countersign, IndexStore, PaymentIntent, PaymentLedger, SignatureCheck, SuiAddress } from "@countersign/core";
+import type { ChangeSteps } from "./changeSteps.ts";
 import type { OwnerAuth } from "./ownerAuth.ts";
 import type { OwnerSettings } from "./ownerSettings.ts";
 
@@ -30,4 +31,7 @@ export type OwnerContext = {
   readonly memory: () => MemoryView;
   readonly memoryCounts: () => Promise<MemoryCounts>;
   readonly sendPayment: (paymentId: string) => Promise<PaymentIntent>;
+  readonly steps: ChangeSteps;
+  readonly cooldownMs: () => number;
+  readonly verifySignature: (message: string, signature: string, address: SuiAddress) => Promise<SignatureCheck>;
 };

@@ -56,7 +56,22 @@ function paymentsList(detail: PayeeDetail): HTMLElement {
     items.length ? h("ol", { class: "rows" }, ...items) : h("p", { class: "empty" }, "No payments yet."));
 }
 
-export function payeeDetailView(detail: PayeeDetail, onPay: () => void): HTMLElement {
+export type DetailActions = { readonly onPay: () => void; readonly onRequestChange: () => void; readonly onConfirm: (nonce: string) => void };
+
+function pendingChangeCard(c: PayeeDetail["pendingChanges"][number], current: string | null, onConfirm: (nonce: string) => void): HTMLElement {
+  const first = c.ownerConfirmedAt ? `Confirmed by you ${when(c.ownerConfirmedAt)}; waiting period ends ${when(c.readyAt ?? c.ownerConfirmedAt)}` : c.currentSignedAt ? `Signed ${when(c.currentSignedAt)}` : "Waiting";
+  return h("section", { class: "card stated", "aria-labelledby": `change-${c.nonce}` },
+    h("h3", { id: `change-${c.nonce}` }, "Change waiting for proof"),
+    h("p", { class: "money" }, "Nothing will be paid to the new address yet. Payments still go to the verified address."),
+    h("span", { class: "label" }, "Requested address"), addressEl(c.toAddress, current ? { against: current } : {}),
+    h("ol", { class: "steps" },
+      h("li", { class: c.currentSignedAt || c.ownerConfirmedAt ? "done" : "" }, h("span", { class: "n", "aria-hidden": "true" }, "1"), h("span", {}, "Current wallet signs, or you confirm"), h("span", { class: "when" }, first)),
+      h("li", { class: c.newSignedAt ? "done" : "" }, h("span", { class: "n", "aria-hidden": "true" }, "2"), h("span", {}, "New wallet proves control"), h("span", { class: "when" }, c.newSignedAt ? `Signed ${when(c.newSignedAt)}` : "Waiting"))),
+    h("p", { class: "note" }, `Signing link for the payee (expires ${when(c.expires)}): ${c.signUrl}`),
+    h("div", { class: "actions" }, copyButton(c.signUrl, "Copy signing link"), c.ownerConfirmedAt || c.currentSignedAt ? null : h("button", { class: "btn", type: "button", onclick: () => onConfirm(c.nonce) }, "I confirm this change myself")));
+}
+
+export function payeeDetailView(detail: PayeeDetail, actions: DetailActions): HTMLElement {
   const now = Date.now();
   const verified = detail.payTo !== null && detail.summary.status !== "conflict";
   return h("section", { class: "detail", "aria-labelledby": "payee-title" },
@@ -65,10 +80,10 @@ export function payeeDetailView(detail: PayeeDetail, onPay: () => void): HTMLEle
       h("p", { class: "lede" }, verified ? "Payments go to the address below. Nothing anyone sends the agent can change that without proof." : "This payee can't be paid yet.")),
     detail.payTo ? h("div", { class: "payto" }, h("span", { class: "label" }, "Pays to"), addressEl(detail.payTo.address), verifiedLine(detail)) : null,
     waitingCard(detail),
-    ...detail.pendingChanges.map((c) => h("section", { class: "card stated" }, h("h3", {}, "Change waiting for proof"), h("p", { class: "money" }, "Nothing will be paid to the new address yet."), addressEl(c.toAddress, detail.payTo ? { against: detail.payTo.address } : {}), h("p", { class: "note" }, `Expires ${when(c.expires)}. Signing link: ${c.signUrl}`))),
+    ...detail.pendingChanges.map((c) => pendingChangeCard(c, detail.payTo?.address ?? null, actions.onConfirm)),
     refusalCard(detail, now),
     detail.latestRefusal ? null : h("p", { class: "empty" }, "Nothing refused for this payee."),
     historyList(detail),
     paymentsList(detail),
-    verified ? h("div", { class: "actions sticky" }, h("button", { class: "btn primary", type: "button", onclick: onPay }, `Pay ${detail.summary.name}`)) : null);
+    verified ? h("div", { class: "actions sticky" }, h("button", { class: "btn primary", type: "button", onclick: actions.onPay }, `Pay ${detail.summary.name}`), detail.pendingChanges.length === 0 ? h("button", { class: "btn", type: "button", onclick: actions.onRequestChange }, "Request an address change") : null) : null);
 }
