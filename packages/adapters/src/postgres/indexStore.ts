@@ -42,8 +42,13 @@ export class PostgresIndex implements IndexStore {
     return (await this.#rows("SELECT DISTINCT address FROM payee_versions WHERE status = 'VERIFIED'")).map((row) => String(row["address"]) as SuiAddress);
   }
 
-  async putReceipt(record: ReceiptRecord): Promise<void> {
-    await query(this.#pool, "INSERT INTO receipts VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (receipt) DO UPDATE SET verdict = excluded.verdict, attack_address = excluded.attack_address, payee_id = excluded.payee_id, created_at = excluded.created_at, record = excluded.record", [record.receipt, record.verdict, remembersAttack(record) ? record.address : null, record.payeeId, record.createdAt, JSON.stringify(record)]);
+  async putReceipt(record: ReceiptRecord, blobId: string | null): Promise<void> {
+    await query(this.#pool, "INSERT INTO receipts (receipt, verdict, attack_address, payee_id, created_at, record, blob_id) VALUES ($1,$2,$3,$4,$5,$6,$7) ON CONFLICT (receipt) DO UPDATE SET verdict = excluded.verdict, attack_address = excluded.attack_address, payee_id = excluded.payee_id, created_at = excluded.created_at, record = excluded.record, blob_id = COALESCE(excluded.blob_id, receipts.blob_id)", [record.receipt, record.verdict, remembersAttack(record) ? record.address : null, record.payeeId, record.createdAt, JSON.stringify(record), blobId]);
+  }
+
+  async receiptBlobId(id: string): Promise<string | null> {
+    const row = (await this.#rows("SELECT blob_id FROM receipts WHERE receipt = $1", [id]))[0];
+    return row && row["blob_id"] !== null ? String(row["blob_id"]) : null;
   }
 
   async receipt(id: string): Promise<ReceiptRecord | null> {

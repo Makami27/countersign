@@ -1,7 +1,9 @@
 import { REASONS, headOf, isRefusal, remembersAttack, type PayeeVersionRecord, type ReceiptRecord, type SignatureVerification, type SuiAddress } from "@countersign/core";
-import type { OwnerContext } from "./ownerContext.ts";
+import type { BalancesView, OwnerContext } from "./ownerContext.ts";
+import { TookTooLong, within } from "./deadline.ts";
 
 const DAY_MS = 24 * 3600 * 1000;
+const PART_DEADLINE_MS = 8_000;
 
 export type PayeeStatus = "verified" | "change_pending" | "attempt_refused" | "waiting_wallet" | "conflict" | "not_payable";
 
@@ -83,8 +85,12 @@ export async function payeeDetail(ctx: OwnerContext, id: string, now: number) {
 export async function overview(ctx: OwnerContext, now: number) {
   const settings = ctx.settings.values();
   const today = new Date(now).toISOString().slice(0, 10);
+  const [balances, memoryCounts] = await Promise.all([
+    within(PART_DEADLINE_MS, "Tatum (agent balance)", ctx.balances()).catch((error: Error): BalancesView => ({ status: "UNKNOWN", detail: error instanceof TookTooLong ? error.message : "Tatum didn't give a balance." })),
+    within(PART_DEADLINE_MS, "Walrus Memory (memory count)", ctx.memoryCounts()).then((counts) => ({ counts, why: counts ? null : "Walrus Memory didn't list the namespaces." }), (error: Error) => ({ counts: null, why: error instanceof TookTooLong ? error.message : "Walrus Memory didn't list the namespaces." })),
+  ]);
   return {
-    network: ctx.network, agentAddress: ctx.agentAddress, balances: await ctx.balances(), memory: ctx.memory(), memoryCounts: await ctx.memoryCounts(),
+    network: ctx.network, agentAddress: ctx.agentAddress, balances, memory: ctx.memory(), memoryCounts: memoryCounts.counts, memoryCountsWhy: memoryCounts.why,
     caps: { perPaymentBaseUnits: settings.perPaymentBaseUnits, perDayBaseUnits: settings.perDayBaseUnits, usedTodayBaseUnits: await ctx.ledger.reservedFor(today) },
     cooldownSeconds: settings.cooldownSeconds, payeeCount: (await ctx.index.payeeIds()).length,
   };

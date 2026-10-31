@@ -16,7 +16,8 @@
     "./ownerContext": "./src/ownerContext.ts",
     "./addressGroups": "./client/addressGroups.ts",
     "./changeSteps": "./src/changeSteps.ts",
-    "./changeCompletion": "./src/changeCompletion.ts"
+    "./changeCompletion": "./src/changeCompletion.ts",
+    "./status": "./src/status.ts"
   },
   "devDependencies": {
     "esbuild": "0.28.2"

@@ -41,6 +41,7 @@ export class InMemoryMemory implements MemoryPort {
 export class InMemoryIndex implements IndexStore {
   #versions: PayeeVersionRecord[] = [];
   #receipts: ReceiptRecord[] = [];
+  readonly #receiptBlobs = new Map<string, string | null>();
   readonly #pending = new Map<string, { change: PendingChange; used: boolean }>();
   readonly #onboardings = new Map<string, { onboarding: PendingOnboarding; used: boolean }>();
 
@@ -59,11 +60,15 @@ export class InMemoryIndex implements IndexStore {
   async verifiedAddresses(): Promise<readonly SuiAddress[]> {
     return [...new Set(this.#versions.filter((v) => v.status === "VERIFIED").map((v) => v.address))];
   }
-  async putReceipt(record: ReceiptRecord): Promise<void> {
+  async putReceipt(record: ReceiptRecord, blobId: string | null): Promise<void> {
+    this.#receiptBlobs.set(record.receipt, blobId);
     this.#receipts = [...this.#receipts.filter((r) => r.receipt !== record.receipt), record];
   }
   async receipt(id: string): Promise<ReceiptRecord | null> {
     return this.#receipts.find((r) => r.receipt === id) ?? null;
+  }
+  async receiptBlobId(id: string): Promise<string | null> {
+    return this.#receiptBlobs.get(id) ?? null;
   }
   async earlierRefusalFor(address: SuiAddress): Promise<ReceiptRecord | null> {
     return this.#receipts.find((r) => remembersAttack(r) && r.address === address) ?? null;

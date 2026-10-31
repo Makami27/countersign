@@ -68,5 +68,5 @@ export async function signRoute(ctx: OwnerContext, req: IncomingMessage, res: Se
   await ctx.steps.record(nonce, role, signature, new Date(now).toISOString());
   const completion = await tryCompleteChange(ctx, nonce, now);
   if (completion.state === "COMPLETED" && completion.outcome.verdict === "REFUSED") return named(res, 422, completion.outcome.reason);
-  return send(res, 200, { completion, view: changeView(ctx, nonce, now) });
+  return send(res, 200, { completion, view: await changeView(ctx, nonce, now) });
 }

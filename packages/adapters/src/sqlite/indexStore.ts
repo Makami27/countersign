@@ -6,7 +6,7 @@ const SCHEMA = `
 CREATE TABLE IF NOT EXISTS receipts (
   receipt TEXT PRIMARY KEY,
   verdict TEXT NOT NULL CHECK (verdict IN ('PAID','PAYMENT_FAILED','REFUSED','CHANGE_VERIFIED','CHANGE_REJECTED')),
-  attack_address TEXT, record TEXT NOT NULL);
+  attack_address TEXT, record TEXT NOT NULL, blob_id TEXT);
 CREATE TABLE IF NOT EXISTS pending_onboardings (
   nonce TEXT PRIMARY KEY, payee_id TEXT NOT NULL, name TEXT NOT NULL, address TEXT NOT NULL,
   expires TEXT NOT NULL, used INTEGER NOT NULL DEFAULT 0 CHECK (used IN (0,1)));
@@ -23,6 +23,8 @@ export class SqliteIndex implements IndexStore {
     this.#db.exec("PRAGMA journal_mode = WAL;");
     this.#db.exec(PAYEE_VERSIONS_TABLE);
     this.#db.exec(SCHEMA);
+    const columns = this.#db.prepare("PRAGMA table_info(receipts)").all().map((row) => String(row["name"]));
+    if (!columns.includes("blob_id")) this.#db.exec("ALTER TABLE receipts ADD COLUMN blob_id TEXT");
   }
 
   async putPayeeVersion(record: PayeeVersionRecord): Promise<void> {
@@ -42,8 +44,13 @@ export class SqliteIndex implements IndexStore {
     return this.#db.prepare("SELECT DISTINCT address FROM payee_versions WHERE status = 'VERIFIED'").all().map((row) => String(row["address"]) as SuiAddress);
   }
 
-  async putReceipt(record: ReceiptRecord): Promise<void> {
-    this.#db.prepare("INSERT OR REPLACE INTO receipts VALUES (?,?,?,?)").run(record.receipt, record.verdict, remembersAttack(record) ? record.address : null, JSON.stringify(record));
+  async putReceipt(record: ReceiptRecord, blobId: string | null): Promise<void> {
+    this.#db.prepare("INSERT OR REPLACE INTO receipts (receipt, verdict, attack_address, record, blob_id) VALUES (?,?,?,?,?)").run(record.receipt, record.verdict, remembersAttack(record) ? record.address : null, JSON.stringify(record), blobId);
+  }
+
+  async receiptBlobId(id: string): Promise<string | null> {
+    const row = this.#db.prepare("SELECT blob_id FROM receipts WHERE receipt = ?").get(id);
+    return row && row["blob_id"] !== null ? String(row["blob_id"]) : null;
   }
 
   async receipt(id: string): Promise<ReceiptRecord | null> {

@@ -14,9 +14,9 @@ export type RestoreDeps = {
   readonly signer: RecordSigner;
 };
 
-export async function indexRecord(index: IndexStore, record: MemoryRecord): Promise<void> {
+export async function indexRecord(index: IndexStore, record: MemoryRecord, blobId: string | null): Promise<void> {
   if (record.type === "payee_version") await index.putPayeeVersion(record);
-  else await index.putReceipt(record);
+  else await index.putReceipt(record, blobId);
 }
 
 export function versionsFrom(signer: RecordSigner, records: readonly StoredText[], payeeId: string): StoredVersion[] {
@@ -46,11 +46,11 @@ export async function restoreIndex(deps: RestoreDeps): Promise<RestoreResult> {
     if (!read.complete) continue;
     const payeeId = payeeIdFromNamespace(deps.ownerId, ns);
     if (payeeId) payees += 1;
-    for (const { text } of read.records) {
+    for (const { text, blobId } of read.records) {
       const opened = openRecord(deps.signer, text);
       if (!opened.ok && opened.why === "LEGACY_RECORD") legacy += 1;
       else if (!opened.ok || !belongs(deps.ownerId, opened.record, ns, payeeId)) ignored += 1;
-      else await indexRecord(deps.index, opened.record);
+      else await indexRecord(deps.index, opened.record, blobId);
     }
   }
   return { ok: true, ignored, legacy, payees };
