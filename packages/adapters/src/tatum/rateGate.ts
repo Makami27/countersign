@@ -1,48 +1,49 @@
-import { DatabaseSync } from "node:sqlite";
 import { UnaryCall, type RpcInterceptor } from "@protobuf-ts/runtime-rpc";
+import type { SqlRows } from "../sql/rows.ts";
+import { SqliteRows } from "../sqlite/rows.ts";
 
 export interface RateGate {
   acquire(): Promise<void>;
 }
 
 export const TATUM_FREE_TIER_INTERVAL_MS = 500;
-const BUSY_TIMEOUT_MS = 5_000;
-const SCHEMA = "CREATE TABLE IF NOT EXISTS rate_slots (name TEXT PRIMARY KEY, next_at INTEGER NOT NULL CHECK (next_at >= 0))";
+const SCHEMA = "CREATE TABLE IF NOT EXISTS rate_slots (name TEXT PRIMARY KEY, next_at BIGINT NOT NULL CHECK (next_at >= 0))";
 
-export class SqliteRateGate implements RateGate {
-  readonly #db: DatabaseSync;
+export class SharedRateGate implements RateGate {
+  readonly #rows: SqlRows;
   readonly #name: string;
   readonly #intervalMs: number;
+  readonly #ready: Promise<void>;
 
-  constructor(databasePath: string, name: string, intervalMs: number) {
-    this.#db = new DatabaseSync(databasePath);
-    this.#db.exec(`PRAGMA busy_timeout = ${BUSY_TIMEOUT_MS};`);
-    this.#db.exec(SCHEMA);
+  constructor(rows: SqlRows, name: string, intervalMs: number) {
+    this.#rows = rows;
     this.#name = name;
     this.#intervalMs = intervalMs;
+    this.#ready = rows.exec(SCHEMA);
+    this.#ready.catch(() => undefined);
   }
 
   async acquire(): Promise<void> {
-    const waitMs = this.#reserveSlot(Date.now());
+    await this.#ready;
+    const now = Date.now();
+    const larger = this.#rows.dialect === "postgres" ? "GREATEST" : "max";
+    const row = await this.#rows.get(`INSERT INTO rate_slots (name, next_at) VALUES (?, ?) ON CONFLICT (name) DO UPDATE SET next_at = ${larger}(rate_slots.next_at, excluded.next_at - ?) + ? RETURNING next_at`, [this.#name, now + this.#intervalMs, this.#intervalMs, this.#intervalMs]);
+    const waitMs = Number(row?.["next_at"] ?? now) - this.#intervalMs - now;
     if (waitMs > 0) await new Promise((resolve) => setTimeout(resolve, waitMs));
+  }
+}
+
+export class SqliteRateGate extends SharedRateGate {
+  readonly #rows: SqliteRows;
+
+  constructor(databasePath: string, name: string, intervalMs: number) {
+    const rows = new SqliteRows(databasePath);
+    super(rows, name, intervalMs);
+    this.#rows = rows;
   }
 
   close(): void {
-    this.#db.close();
-  }
-
-  #reserveSlot(now: number): number {
-    this.#db.exec("BEGIN IMMEDIATE");
-    try {
-      const row = this.#db.prepare("SELECT next_at FROM rate_slots WHERE name = ?").get(this.#name);
-      const slot = Math.max(now, row ? Number(row["next_at"]) : 0);
-      this.#db.prepare("INSERT INTO rate_slots (name, next_at) VALUES (?, ?) ON CONFLICT(name) DO UPDATE SET next_at = excluded.next_at").run(this.#name, slot + this.#intervalMs);
-      this.#db.exec("COMMIT");
-      return slot - now;
-    } catch (error) {
-      this.#db.exec("ROLLBACK");
-      throw error;
-    }
+    this.#rows.close();
   }
 }
 

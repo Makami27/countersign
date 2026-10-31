@@ -1,5 +1,6 @@
 import { DatabaseSync } from "node:sqlite";
-import { PAYMENT_STATES, PAYMENT_TRANSITIONS, statesThatMayMoveTo, type ReasonCode, type NewPaymentIntent, type PaymentIntent, type PaymentLedger, type PaymentMove, type PaymentState, type SuiAddress } from "@countersign/core";
+import { PAYEE_VERSIONS_TABLE } from "./payeeVersionsTable.ts";
+import { isPayeeHead, PAYMENT_STATES, PAYMENT_TRANSITIONS, statesThatMayMoveTo, type ReasonCode, type NewPaymentIntent, type PaymentIntent, type PaymentLedger, type PaymentMove, type PaymentState, type PayeeVersionRecord, type Reservation, type SuiAddress } from "@countersign/core";
 
 const BUSY_TIMEOUT_MS = 5_000;
 const stateList = PAYMENT_STATES.map((s) => `'${s}'`).join(",");
@@ -57,22 +58,25 @@ export class SqlitePaymentLedger implements PaymentLedger {
   constructor(path: string) {
     this.#db = new DatabaseSync(path);
     this.#db.exec(`PRAGMA busy_timeout = ${BUSY_TIMEOUT_MS};`);
+    this.#db.exec(PAYEE_VERSIONS_TABLE);
     this.#db.exec(SCHEMA);
   }
 
-  reservePayment(intent: NewPaymentIntent, perDayCapBaseUnits: bigint): boolean {
-    return this.#transaction(() => {
+  async reservePayment(intent: NewPaymentIntent, perDayCapBaseUnits: bigint): Promise<Reservation> {
+    return this.#transaction((): Reservation => {
+      const versions = this.#db.prepare("SELECT record FROM payee_versions WHERE payee_id = ?").all(intent.payeeId).map((row) => JSON.parse(String(row["record"])) as PayeeVersionRecord);
+      if (!isPayeeHead(versions, intent)) return "PAYEE_CHANGED";
       const reserved = this.#reserved(intent.period);
-      if (reserved + intent.amountBaseUnits > perDayCapBaseUnits) return false;
-      if (this.#db.prepare("SELECT 1 FROM payment_intents WHERE id = ?").get(intent.id)) return false;
+      if (this.#db.prepare("SELECT 1 FROM payment_intents WHERE id = ?").get(intent.id)) return "DUPLICATE";
+      if (reserved + intent.amountBaseUnits > perDayCapBaseUnits) return "CAP_EXCEEDED";
       this.#db.prepare("INSERT INTO payment_intents (id, payee_id, payee_version, payee_blob_id, address, amount, period, state, created_at, updated_at) VALUES (?,?,?,?,?,?,?,'RESERVED',?,?)")
         .run(intent.id, intent.payeeId, intent.payeeVersion, intent.payeeBlobId, intent.address, intent.amountBaseUnits.toString(), intent.period, intent.createdAt, intent.createdAt);
       this.#setReserved(intent.period, reserved + intent.amountBaseUnits);
-      return true;
+      return "RESERVED";
     });
   }
 
-  movePayment(id: string, move: PaymentMove): boolean {
+  async movePayment(id: string, move: PaymentMove): Promise<boolean> {
     return this.#transaction(() => {
       const row = this.#db.prepare("SELECT * FROM payment_intents WHERE id = ?").get(id);
       if (!row) return false;
@@ -88,23 +92,23 @@ export class SqlitePaymentLedger implements PaymentLedger {
     });
   }
 
-  payment(id: string): PaymentIntent | null {
+  async payment(id: string): Promise<PaymentIntent | null> {
     const row = this.#db.prepare("SELECT * FROM payment_intents WHERE id = ?").get(id);
     return row ? toIntent(row) : null;
   }
 
-  unresolvedPayments(): readonly PaymentIntent[] {
+  async unresolvedPayments(): Promise<readonly PaymentIntent[]> {
     return this.#db.prepare("SELECT * FROM payment_intents WHERE state IN ('SENDING','SENT','UNKNOWN') ORDER BY created_at").all().map(toIntent);
   }
 
-  recentPayments(limit: number, payeeId: string | null): readonly PaymentIntent[] {
+  async recentPayments(limit: number, payeeId: string | null): Promise<readonly PaymentIntent[]> {
     const rows = payeeId === null
       ? this.#db.prepare("SELECT * FROM payment_intents ORDER BY created_at DESC LIMIT ?").all(limit)
       : this.#db.prepare("SELECT * FROM payment_intents WHERE payee_id = ? ORDER BY created_at DESC LIMIT ?").all(payeeId, limit);
     return rows.map(toIntent);
   }
 
-  reservedFor(period: string): bigint {
+  async reservedFor(period: string): Promise<bigint> {
     return this.#reserved(period);
   }
 

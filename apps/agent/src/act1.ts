@@ -52,14 +52,14 @@ const restored = await engine.restore();
 if (!restored.ok) throw new Error("Walrus Memory could not be read completely. Nothing was sent.");
 say(`Restored ${restored.payees} payee namespace(s); ${restored.ignored} record(s) ignored.`);
 
-const head = engine.payeeHead(PAYEE_ID);
+const head = await engine.payeeHead(PAYEE_ID);
 if (head.kind !== "verified" || head.version.address !== payeeAddress) {
   say(`Payee "${PAYEE_ID}" is not verified at ${payeeAddress}. Nothing was sent. Add the payee in the owner app and have the payee sign on the signing page first.`);
   process.exit(1);
 } else say(`Payee "${PAYEE_ID}" is already verified at ${payeeAddress} (version ${head.version.version}).`);
 
 say(`Owner: "${text}"`);
-const extraction = await extractProposal(config.gemini, text, engine.payeeIds());
+const extraction = await extractProposal(config.gemini, text, await engine.payeeIds());
 if (extraction.status === "UNKNOWN") throw new Error(`The language model did not answer (${extraction.problem}). Nothing was sent.`);
 say(`Model (${extraction.modelVersion ?? "version not reported"}) answered ${extraction.modelText}; after code checks: ${JSON.stringify(extraction.proposal)}.`);
 const outcome = await engine.handle({ id: `cli:${runId}`, channel: "cli", from: "owner", text, receivedAt: new Date().toISOString() }, extraction.proposal);
@@ -80,7 +80,7 @@ const bigints = (_key: string, value: unknown) => (typeof value === "bigint" ? v
 const evidence = {
   runId, act: 1, classification: "testnet demo: test USDC from our own agent wallet to the owner's demo wallet; memory on the Walrus Memory mainnet relayer under a demo owner excluded from real-use counts",
   network: "testnet", relayer: memory.environment, ownerId, text, modelVersion: extraction.modelVersion, modelText: extraction.modelText, proposal: extraction.proposal, payment, receipt,
-  receiptRecord: receipt ? engine.receiptRecord(receipt.receipt) : null, reasons: payment.reason ? REASONS[payment.reason] : null, transcript,
+  receiptRecord: receipt ? (await engine.receiptRecord(receipt.receipt)) : null, reasons: payment.reason ? REASONS[payment.reason] : null, transcript,
 };
 writeFileSync(`evidence/acts/act1-${runId}.json`, JSON.stringify(evidence, bigints, 2));
 say(`Evidence: evidence/acts/act1-${runId}.json`);

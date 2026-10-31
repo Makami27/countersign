@@ -1,4 +1,5 @@
-import type { IndexStore, MemoryPort, MemoryRead, MemoryWrite, PaymentLedger, PendingChange, PendingOnboarding, StoredText } from "../ports.ts";
+import type { IndexStore, MemoryPort, MemoryRead, MemoryWrite, PaymentLedger, PendingChange, PendingOnboarding, Reservation, StoredText } from "../ports.ts";
+import { isPayeeHead } from "../payeeBook.ts";
 import { remembersAttack } from "../receipts.ts";
 import { statesThatMayMoveTo, type NewPaymentIntent, type PaymentIntent, type PaymentMove } from "../payments.ts";
 import type { PayeeVersionRecord, ReceiptRecord, SuiAddress } from "../types.ts";
@@ -43,63 +44,66 @@ export class InMemoryIndex implements IndexStore {
   readonly #pending = new Map<string, { change: PendingChange; used: boolean }>();
   readonly #onboardings = new Map<string, { onboarding: PendingOnboarding; used: boolean }>();
 
-  putPayeeVersion(record: PayeeVersionRecord): void {
+  async putPayeeVersion(record: PayeeVersionRecord): Promise<void> {
     this.#versions = [...this.#versions.filter((v) => !(v.payeeId === record.payeeId && v.version === record.version)), record];
   }
-  payeeVersions(payeeId: string): readonly PayeeVersionRecord[] {
+  async payeeVersions(payeeId: string): Promise<readonly PayeeVersionRecord[]> {
+    return this.versionsNow(payeeId);
+  }
+  versionsNow(payeeId: string): readonly PayeeVersionRecord[] {
     return this.#versions.filter((v) => v.payeeId === payeeId);
   }
-  payeeIds(): readonly string[] {
+  async payeeIds(): Promise<readonly string[]> {
     return [...new Set(this.#versions.map((v) => v.payeeId))].sort();
   }
-  verifiedAddresses(): readonly SuiAddress[] {
+  async verifiedAddresses(): Promise<readonly SuiAddress[]> {
     return [...new Set(this.#versions.filter((v) => v.status === "VERIFIED").map((v) => v.address))];
   }
-  putReceipt(record: ReceiptRecord): void {
+  async putReceipt(record: ReceiptRecord): Promise<void> {
     this.#receipts = [...this.#receipts.filter((r) => r.receipt !== record.receipt), record];
   }
-  receipt(id: string): ReceiptRecord | null {
+  async receipt(id: string): Promise<ReceiptRecord | null> {
     return this.#receipts.find((r) => r.receipt === id) ?? null;
   }
-  earlierRefusalFor(address: SuiAddress): ReceiptRecord | null {
+  async earlierRefusalFor(address: SuiAddress): Promise<ReceiptRecord | null> {
     return this.#receipts.find((r) => remembersAttack(r) && r.address === address) ?? null;
   }
-  insertPendingChange(change: PendingChange): void {
+  async insertPendingChange(change: PendingChange): Promise<void> {
     this.#pending.set(change.nonce, { change, used: false });
   }
-  pendingChange(nonce: string): PendingChange | null {
+  async pendingChange(nonce: string): Promise<PendingChange | null> {
     const entry = this.#pending.get(nonce);
     return entry && !entry.used ? entry.change : null;
   }
-  consumePendingChange(nonce: string): boolean {
+  async consumePendingChange(nonce: string): Promise<boolean> {
     const entry = this.#pending.get(nonce);
     if (!entry || entry.used) return false;
     entry.used = true;
     return true;
   }
-  insertPendingOnboarding(onboarding: PendingOnboarding): void {
+  async insertPendingOnboarding(onboarding: PendingOnboarding): Promise<void> {
     this.#onboardings.set(onboarding.nonce, { onboarding, used: false });
   }
-  pendingOnboarding(nonce: string): PendingOnboarding | null {
+  async pendingOnboarding(nonce: string): Promise<PendingOnboarding | null> {
     const entry = this.#onboardings.get(nonce);
     return entry && !entry.used ? entry.onboarding : null;
   }
-  consumePendingOnboarding(nonce: string): boolean {
+  async consumePendingOnboarding(nonce: string): Promise<boolean> {
     const entry = this.#onboardings.get(nonce);
     if (!entry || entry.used) return false;
     entry.used = true;
     return true;
   }
-  receiptsFor(payeeId: string | null, limit: number): readonly ReceiptRecord[] {
+  async receiptsFor(payeeId: string | null, limit: number): Promise<readonly ReceiptRecord[]> {
     return this.#receipts.filter((r) => payeeId === null || r.payeeId === payeeId).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit);
   }
-  pendingChangesFor(payeeId: string): readonly PendingChange[] {
+  async pendingChangesFor(payeeId: string): Promise<readonly PendingChange[]> {
     return [...this.#pending.values()].filter((e) => !e.used && e.change.payeeId === payeeId).map((e) => e.change);
   }
-  pendingOnboardingFor(payeeId: string): PendingOnboarding | null {
+  async pendingOnboardingFor(payeeId: string): Promise<PendingOnboarding | null> {
     return [...this.#onboardings.values()].find((e) => !e.used && e.onboarding.payeeId === payeeId)?.onboarding ?? null;
   }
-  clearIndex(): void {
+  async clearIndex(): Promise<void> {
     this.#versions = [];
     this.#receipts = [];
   }
@@ -108,16 +112,23 @@ export class InMemoryIndex implements IndexStore {
 export class InMemoryPaymentLedger implements PaymentLedger {
   readonly #payments = new Map<string, PaymentIntent>();
   readonly #reserved = new Map<string, bigint>();
+  readonly #index: InMemoryIndex;
 
-  reservePayment(intent: NewPaymentIntent, perDayCapBaseUnits: bigint): boolean {
-    const current = this.#reserved.get(intent.period) ?? 0n;
-    if (this.#payments.has(intent.id) || current + intent.amountBaseUnits > perDayCapBaseUnits) return false;
-    this.#reserved.set(intent.period, current + intent.amountBaseUnits);
-    this.#payments.set(intent.id, { ...intent, state: "RESERVED", digest: null, validUntilEpoch: null, detail: null, reason: null, updatedAt: intent.createdAt });
-    return true;
+  constructor(index: InMemoryIndex) {
+    this.#index = index;
   }
 
-  movePayment(id: string, move: PaymentMove): boolean {
+  async reservePayment(intent: NewPaymentIntent, perDayCapBaseUnits: bigint): Promise<Reservation> {
+    if (!isPayeeHead(this.#index.versionsNow(intent.payeeId), intent)) return "PAYEE_CHANGED";
+    const current = this.#reserved.get(intent.period) ?? 0n;
+    if (this.#payments.has(intent.id)) return "DUPLICATE";
+    if (current + intent.amountBaseUnits > perDayCapBaseUnits) return "CAP_EXCEEDED";
+    this.#reserved.set(intent.period, current + intent.amountBaseUnits);
+    this.#payments.set(intent.id, { ...intent, state: "RESERVED", digest: null, validUntilEpoch: null, detail: null, reason: null, updatedAt: intent.createdAt });
+    return "RESERVED";
+  }
+
+  async movePayment(id: string, move: PaymentMove): Promise<boolean> {
     const payment = this.#payments.get(id);
     if (!payment || !statesThatMayMoveTo(move.to).includes(payment.state)) return false;
     if (move.to === "FAILED") this.#reserved.set(payment.period, (this.#reserved.get(payment.period) ?? 0n) - payment.amountBaseUnits);
@@ -133,19 +144,19 @@ export class InMemoryPaymentLedger implements PaymentLedger {
     return true;
   }
 
-  payment(id: string): PaymentIntent | null {
+  async payment(id: string): Promise<PaymentIntent | null> {
     return this.#payments.get(id) ?? null;
   }
 
-  unresolvedPayments(): readonly PaymentIntent[] {
+  async unresolvedPayments(): Promise<readonly PaymentIntent[]> {
     return [...this.#payments.values()].filter((p) => p.state === "SENDING" || p.state === "SENT" || p.state === "UNKNOWN");
   }
 
-  recentPayments(limit: number, payeeId: string | null): readonly PaymentIntent[] {
+  async recentPayments(limit: number, payeeId: string | null): Promise<readonly PaymentIntent[]> {
     return [...this.#payments.values()].filter((p) => payeeId === null || p.payeeId === payeeId).sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, limit);
   }
 
-  reservedFor(period: string): bigint {
+  async reservedFor(period: string): Promise<bigint> {
     return this.#reserved.get(period) ?? 0n;
   }
 }

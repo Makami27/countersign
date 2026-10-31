@@ -5,7 +5,7 @@ import { randomBytes } from "node:crypto";
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { decodeSuiPrivateKey } from "@mysten/sui/cryptography";
 import { formatUsdc, parseSuiAddress, type SuiAddress } from "@countersign/core";
-import { SqlitePaymentLedger } from "@countersign/adapters/sqlite";
+import { SqliteIndex, SqlitePaymentLedger } from "@countersign/adapters/sqlite";
 import { PaymentRunner } from "@countersign/adapters/payments";
 import { SqliteRateGate, TATUM_FREE_TIER_INTERVAL_MS, readAgentBalances, tatumGrpcClient, tatumPaymentChain, tatumRateGateName } from "@countersign/adapters/tatum";
 import { usdcToBaseUnits } from "@countersign/adapters/gemini";
@@ -37,7 +37,13 @@ const runner = new PaymentRunner({ ledger, chain: tatumPaymentChain(client, sign
 const runId = new Date().toISOString().replace(/[:.]/g, "-");
 const paymentId = `pay_testnet_${randomBytes(6).toString("hex")}`;
 const before = await readAgentBalances(client, "testnet", agentAddress);
-if (!ledger.reservePayment({ id: paymentId, payeeId: "testnet-check", payeeVersion: 1, payeeBlobId: null, address: recipient, amountBaseUnits, period: clock.now().toISOString().slice(0, 10), createdAt: clock.now().toISOString() }, MAX_TEST_PAYMENT_BASE_UNITS)) fail("The test reservation was refused.");
+await new SqliteIndex(join(workDir, "ledger.sqlite")).putPayeeVersion({
+  type: "payee_version", payeeId: "testnet-check", name: "testnet check (scratch, not a real payee)", version: 1, address: recipient, status: "VERIFIED", supersedes: null,
+  evidence: { kind: "payee_onboarding", ownerConfirmationId: "testnet-spike", nonce: paymentId, control: { kind: "signature", signature: "none: scratch database for this script only" }, verifications: [] },
+  createdAt: clock.now().toISOString(),
+});
+const reservation = await ledger.reservePayment({ id: paymentId, payeeId: "testnet-check", payeeVersion: 1, payeeBlobId: null, address: recipient, amountBaseUnits, period: clock.now().toISOString().slice(0, 10), createdAt: clock.now().toISOString() }, MAX_TEST_PAYMENT_BASE_UNITS);
+if (reservation !== "RESERVED") fail(`The test reservation was refused (${reservation}).`);
 console.log(`Nothing has been sent yet. Sending ${formatUsdc(amountBaseUnits)} test USDC to ${recipient} on Sui testnet through Tatum…`);
 const started = Date.now();
 const final = await runner.send(paymentId);

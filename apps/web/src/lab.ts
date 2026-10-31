@@ -47,9 +47,9 @@ export type LabReply = { readonly outcome: Outcome; readonly trace: readonly Tra
 class LabIndex extends InMemoryIndex {
   readonly refusals: ReceiptRecord[] = [];
 
-  override putReceipt(record: ReceiptRecord): void {
+  override async putReceipt(record: ReceiptRecord): Promise<void> {
     if (isRefusal(record)) this.refusals.unshift(record);
-    super.putReceipt(record);
+    await super.putReceipt(record);
   }
 }
 
@@ -70,7 +70,7 @@ class LabSession {
       network: "testnet",
       memory: this.memory,
       index: this.index,
-      payments: new InMemoryPaymentLedger(),
+      payments: new InMemoryPaymentLedger(this.index),
       signer: {
         sign: (c) => sign(null, Buffer.from(c), records.privateKey).toString("base64"),
         verify: (c, s) => verify(null, Buffer.from(c), records.publicKey, Buffer.from(s, "base64")),
@@ -101,7 +101,7 @@ class LabSession {
   view(): LabView {
     return {
       payees: LAB_PAYEES.map((p) => {
-        const versions = this.index.payeeVersions(p.id);
+        const versions = this.index.versionsNow(p.id);
         const head = headOf(versions);
         return { id: p.id, name: p.name, payableAddress: head.kind === "verified" ? head.version.address : null, versions };
       }),

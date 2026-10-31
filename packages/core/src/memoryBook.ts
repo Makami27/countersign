@@ -14,9 +14,9 @@ export type RestoreDeps = {
   readonly signer: RecordSigner;
 };
 
-export function indexRecord(index: IndexStore, record: MemoryRecord): void {
-  if (record.type === "payee_version") index.putPayeeVersion(record);
-  else index.putReceipt(record);
+export async function indexRecord(index: IndexStore, record: MemoryRecord): Promise<void> {
+  if (record.type === "payee_version") await index.putPayeeVersion(record);
+  else await index.putReceipt(record);
 }
 
 export function versionsFrom(signer: RecordSigner, records: readonly StoredText[], payeeId: string): StoredVersion[] {
@@ -38,7 +38,7 @@ export async function restoreIndex(deps: RestoreDeps): Promise<RestoreResult> {
   if (!namespaces) return { ok: false, reason: "MEMORY_INCOMPLETE" };
   const reads = await Promise.all(namespaces.map(async (ns) => ({ ns, read: await deps.memory.readAll(ns) })));
   if (reads.some((r) => !r.read.complete)) return { ok: false, reason: "MEMORY_INCOMPLETE" };
-  deps.index.clearIndex();
+  await deps.index.clearIndex();
   let ignored = 0;
   let legacy = 0;
   let payees = 0;
@@ -50,7 +50,7 @@ export async function restoreIndex(deps: RestoreDeps): Promise<RestoreResult> {
       const opened = openRecord(deps.signer, text);
       if (!opened.ok && opened.why === "LEGACY_RECORD") legacy += 1;
       else if (!opened.ok || !belongs(deps.ownerId, opened.record, ns, payeeId)) ignored += 1;
-      else indexRecord(deps.index, opened.record);
+      else await indexRecord(deps.index, opened.record);
     }
   }
   return { ok: true, ignored, legacy, payees };

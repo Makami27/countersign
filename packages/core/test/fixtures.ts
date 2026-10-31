@@ -94,7 +94,7 @@ export async function world(caps: Caps = DEFAULT_CAPS, start = "2026-10-30T10:00
   const clock = new FixedClock(start);
   let n = 0;
   const roundTrips: RoundTripChecker = { check: async () => "NOT_PROVEN" };
-  const payments = new InMemoryPaymentLedger();
+  const payments = new InMemoryPaymentLedger(index);
   const deps = { ownerId: "owner1", network: "testnet" as const, memory, index, payments, signer, signatures, roundTrips, clock, nonces: { next: () => `n${++n}${randomBytes(4).toString("hex")}` }, caps, cooldownMs };
   const agent = new Countersign(deps);
   const landlord = wallet();

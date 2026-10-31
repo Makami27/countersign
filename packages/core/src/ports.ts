@@ -43,31 +43,33 @@ export type PendingOnboarding = {
 };
 
 export interface IndexStore {
-  putPayeeVersion(record: PayeeVersionRecord): void;
-  payeeVersions(payeeId: string): readonly PayeeVersionRecord[];
-  payeeIds(): readonly string[];
-  verifiedAddresses(): readonly SuiAddress[];
-  putReceipt(record: ReceiptRecord): void;
-  receipt(id: string): ReceiptRecord | null;
-  earlierRefusalFor(address: SuiAddress): ReceiptRecord | null;
-  insertPendingChange(change: PendingChange): void;
-  pendingChange(nonce: string): PendingChange | null;
-  consumePendingChange(nonce: string): boolean;
-  insertPendingOnboarding(onboarding: PendingOnboarding): void;
-  pendingOnboarding(nonce: string): PendingOnboarding | null;
-  consumePendingOnboarding(nonce: string): boolean;
-  receiptsFor(payeeId: string | null, limit: number): readonly ReceiptRecord[];
-  pendingChangesFor(payeeId: string): readonly PendingChange[];
-  pendingOnboardingFor(payeeId: string): PendingOnboarding | null;
-  clearIndex(): void;
+  putPayeeVersion(record: PayeeVersionRecord): Promise<void>;
+  payeeVersions(payeeId: string): Promise<readonly PayeeVersionRecord[]>;
+  payeeIds(): Promise<readonly string[]>;
+  verifiedAddresses(): Promise<readonly SuiAddress[]>;
+  putReceipt(record: ReceiptRecord): Promise<void>;
+  receipt(id: string): Promise<ReceiptRecord | null>;
+  earlierRefusalFor(address: SuiAddress): Promise<ReceiptRecord | null>;
+  insertPendingChange(change: PendingChange): Promise<void>;
+  pendingChange(nonce: string): Promise<PendingChange | null>;
+  consumePendingChange(nonce: string): Promise<boolean>;
+  insertPendingOnboarding(onboarding: PendingOnboarding): Promise<void>;
+  pendingOnboarding(nonce: string): Promise<PendingOnboarding | null>;
+  consumePendingOnboarding(nonce: string): Promise<boolean>;
+  receiptsFor(payeeId: string | null, limit: number): Promise<readonly ReceiptRecord[]>;
+  pendingChangesFor(payeeId: string): Promise<readonly PendingChange[]>;
+  pendingOnboardingFor(payeeId: string): Promise<PendingOnboarding | null>;
+  clearIndex(): Promise<void>;
 }
 
+export type Reservation = "RESERVED" | "CAP_EXCEEDED" | "DUPLICATE" | "PAYEE_CHANGED";
+
 export interface PaymentLedger {
-  reservePayment(intent: NewPaymentIntent, perDayCapBaseUnits: bigint): boolean;
-  movePayment(id: string, move: PaymentMove): boolean;
-  payment(id: string): PaymentIntent | null;
-  unresolvedPayments(): readonly PaymentIntent[];
-  recentPayments(limit: number, payeeId: string | null): readonly PaymentIntent[];
+  reservePayment(intent: NewPaymentIntent, perDayCapBaseUnits: bigint): Promise<Reservation>;
+  movePayment(id: string, move: PaymentMove): Promise<boolean>;
+  payment(id: string): Promise<PaymentIntent | null>;
+  unresolvedPayments(): Promise<readonly PaymentIntent[]>;
+  recentPayments(limit: number, payeeId: string | null): Promise<readonly PaymentIntent[]>;
 }
 
 export interface Clock {

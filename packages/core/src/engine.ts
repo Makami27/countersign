@@ -6,6 +6,7 @@ import { restoreIndex, versionsFrom, type RestoreResult } from "./memoryBook.ts"
 import { CheckTrail, paymentOutcome } from "./receipts.ts";
 import { payeeVersion, refuse, writeReceipt, writeRecord, type ReceiptWrite, type Subject } from "./engineWrites.ts";
 import { completeOnboarding, requestOnboarding } from "./onboarding.ts";
+import { KeyedMutex } from "./keyedMutex.ts";
 import type { PaymentIntent } from "./payments.ts";
 import type { EngineDeps } from "./engineDeps.ts";
 import type { ContinuityProof, ControlProof, Evidence, InboundMessage, Outcome, PayeeHead, Proposal, ReceiptRecord, Refused, SuiAddress } from "./types.ts";
@@ -20,6 +21,7 @@ type CheckedPayment = { readonly name: string; readonly version: number; readonl
 
 export class Countersign {
   readonly #d: EngineDeps;
+  readonly #payees = new KeyedMutex();
 
   constructor(deps: EngineDeps) {
     this.#d = deps;
@@ -33,15 +35,15 @@ export class Countersign {
     return completeOnboarding(this.#d, nonce, control);
   }
 
-  payeeIds(): readonly string[] {
+  payeeIds(): Promise<readonly string[]> {
     return this.#d.index.payeeIds();
   }
 
-  payeeHead(payeeId: string): PayeeHead {
-    return headOf(this.#d.index.payeeVersions(payeeId));
+  async payeeHead(payeeId: string): Promise<PayeeHead> {
+    return headOf(await this.#d.index.payeeVersions(payeeId));
   }
 
-  receiptRecord(id: string): ReceiptRecord | null {
+  receiptRecord(id: string): Promise<ReceiptRecord | null> {
     return this.#d.index.receipt(id);
   }
 
@@ -51,18 +53,23 @@ export class Countersign {
 
   async handle(message: InboundMessage, proposal: Proposal): Promise<Outcome> {
     if (proposal.kind === "change_address") return this.#requestChange(message, proposal);
-    if (proposal.kind === "pay") return this.#reservePayment(message, proposal);
+    if (proposal.kind === "pay") return this.#payees.run(proposal.payeeId, () => this.#reservePayment(message, proposal));
     return { verdict: "NONE" };
   }
 
   async completeChange(nonce: string, continuity: ContinuityProof, control: ControlProof): Promise<Outcome> {
+    const pending = await this.#d.index.pendingChange(nonce);
+    return this.#payees.run(pending?.payeeId ?? `change:${nonce}`, () => this.#completeChange(nonce, continuity, control));
+  }
+
+  async #completeChange(nonce: string, continuity: ContinuityProof, control: ControlProof): Promise<Outcome> {
     const d = this.#d;
     const trail = new CheckTrail();
-    const change = d.index.pendingChange(nonce);
+    const change = await d.index.pendingChange(nonce);
     if (!change) return refuse(d, "CHANGE_REJECTED", "NONCE_REUSED", { ref: nonce, payeeId: null, address: null }, trail);
     const subject = { ref: nonce, payeeId: change.payeeId, address: change.toAddress };
     if (new Date(change.expires) < d.clock.now()) return refuse(d, "CHANGE_REJECTED", "EXPIRED", subject, trail);
-    const head = headOf(d.index.payeeVersions(change.payeeId));
+    const head = headOf(await d.index.payeeVersions(change.payeeId));
     if (head.kind !== "verified" || head.version.address !== change.fromAddress) return refuse(d, "CHANGE_REJECTED", "CONFLICT", subject, trail);
     const message = changeMessage(change);
     const continuityStep = await checkContinuity(continuity, message, change.fromAddress, { signatures: d.signatures, nowMs: d.clock.now().getTime(), cooldownMs: d.cooldownMs }, trail);
@@ -74,11 +81,11 @@ export class Countersign {
     const evidence: Evidence = continuity.kind === "signature"
       ? { kind: "continuity_signature", nonce, signature: continuity.signature, control, verifications }
       : { kind: "owner_confirmed_change", nonce, ownerConfirmationId: continuity.ownerConfirmationId, control, verifications };
-    const record = payeeVersion(d, change.payeeId, head.version.name, nextVersionNumber(d.index.payeeVersions(change.payeeId)), change.toAddress, "VERIFIED", head.version.version, evidence);
+    const record = payeeVersion(d, change.payeeId, head.version.name, nextVersionNumber(await d.index.payeeVersions(change.payeeId)), change.toAddress, "VERIFIED", head.version.version, evidence);
     const written = await writeRecord(d, payeeNamespace(d.ownerId, change.payeeId), record, `change:${nonce}:verified`);
     if (written.status !== "WRITTEN") return refuse(d, "CHANGE_REJECTED", "MEMORY_WRITE_UNCONFIRMED", subject, trail);
-    if (!d.index.consumePendingChange(nonce)) return refuse(d, "CHANGE_REJECTED", "NONCE_REUSED", subject, trail);
-    d.index.putPayeeVersion(record);
+    if (!await d.index.consumePendingChange(nonce)) return refuse(d, "CHANGE_REJECTED", "NONCE_REUSED", subject, trail);
+    await d.index.putPayeeVersion(record);
     const receipt = await writeReceipt(d, "CHANGE_VERIFIED", null, subject, trail, [written.blobId], null);
     return { verdict: "CHANGE_VERIFIED", version: record.version, blobId: written.blobId, receipt: receipt.receipt };
   }
@@ -97,24 +104,24 @@ export class Countersign {
     const subject = { ref: message.id, payeeId: proposal.payeeId, address: toAddress };
     if (!toAddress || !appearsVerbatim(toAddress, message.text)) return refuse(d, "REFUSED", "ADDRESS_NOT_IN_MESSAGE", { ...subject, address: null }, trail, "ADDRESS_IN_MESSAGE");
     trail.pass("ADDRESS_IN_MESSAGE");
-    const versions = d.index.payeeVersions(proposal.payeeId);
+    const versions = await d.index.payeeVersions(proposal.payeeId);
     const head = headOf(versions);
     if (head.kind === "none") return refuse(d, "REFUSED", "PAYEE_NOT_VERIFIED", subject, trail, "PAYEE_VERIFIED");
     if (head.kind === "conflict") return refuse(d, "REFUSED", "CONFLICT", subject, trail, "PAYEE_VERIFIED");
     trail.pass("PAYEE_VERIFIED");
     if (toAddress === head.version.address) return { verdict: "NONE" };
-    const earlier = d.index.earlierRefusalFor(toAddress);
+    const earlier = await d.index.earlierRefusalFor(toAddress);
     if (earlier) return refuse(d, "REFUSED", "KNOWN_ATTACK_PATTERN", subject, trail, "NOT_KNOWN_ATTACK", earlier.receipt);
     trail.pass("NOT_KNOWN_ATTACK");
-    if (imitatesAny(toAddress, d.index.verifiedAddresses())) return refuse(d, "REFUSED", "LOOKALIKE_ADDRESS", subject, trail, "NOT_LOOKALIKE");
+    if (imitatesAny(toAddress, await d.index.verifiedAddresses())) return refuse(d, "REFUSED", "LOOKALIKE_ADDRESS", subject, trail, "NOT_LOOKALIKE");
     trail.pass("NOT_LOOKALIKE");
 
     const nonce = d.nonces.next();
     const expires = new Date(d.clock.now().getTime() + CHANGE_REQUEST_LIFETIME_MS).toISOString();
     const stated = payeeVersion(d, proposal.payeeId, head.version.name, nextVersionNumber(versions), toAddress, "STATED", head.version.version, { kind: "stated", sourceMessageId: message.id, nonce });
     const written = await writeRecord(d, payeeNamespace(d.ownerId, proposal.payeeId), stated, `change:${nonce}:stated`);
-    if (written.status === "WRITTEN") d.index.putPayeeVersion(stated);
-    d.index.insertPendingChange({ nonce, payeeId: proposal.payeeId, fromAddress: head.version.address, toAddress, expires });
+    if (written.status === "WRITTEN") await d.index.putPayeeVersion(stated);
+    await d.index.insertPendingChange({ nonce, payeeId: proposal.payeeId, fromAddress: head.version.address, toAddress, expires });
     return { verdict: "CHANGE_STARTED", nonce, expires, fromAddress: head.version.address, toAddress };
   }
 
@@ -130,7 +137,9 @@ export class Countersign {
     if (!("payeeBlobId" in checked)) return checked;
     const now = d.clock.now().toISOString();
     const intent = { id: `pay_${d.nonces.next()}`, payeeId: proposal.payeeId, payeeVersion: checked.version, payeeBlobId: checked.payeeBlobId, address: checked.address, amountBaseUnits: checked.amount, period: now.slice(0, 10), createdAt: now };
-    if (!d.payments.reservePayment(intent, d.caps.perDayBaseUnits)) return refuse(d, "REFUSED", "CAP_EXCEEDED", checked.subject, checked.trail, "WITHIN_CAPS");
+    const reservation = await d.payments.reservePayment(intent, d.caps.perDayBaseUnits);
+    if (reservation === "PAYEE_CHANGED") return refuse(d, "REFUSED", "PAYEE_CHANGED", checked.subject, checked.trail, "PAYEE_VERIFIED");
+    if (reservation !== "RESERVED") return refuse(d, "REFUSED", "CAP_EXCEEDED", checked.subject, checked.trail, "WITHIN_CAPS");
     return { verdict: "PAY_RESERVED", paymentId: intent.id, address: intent.address, amountBaseUnits: checked.amount };
   }
 

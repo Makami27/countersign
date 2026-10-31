@@ -20,7 +20,7 @@ export async function writeReceipt(d: EngineDeps, verdict: ReceiptVerdict, reaso
     checks: trail.checks, memoryBlobIds, suiDigest, network: d.network, createdAt: at,
   };
   const written = await writeRecord(d, receiptsNamespace(d.ownerId), record, `receipt:${id}`);
-  indexRecord(d.index, record);
+  await indexRecord(d.index, record);
   return { receipt: id, blobId: written.status === "WRITTEN" ? written.blobId : null };
 }
 
