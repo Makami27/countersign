@@ -1,5 +1,5 @@
 import { api } from "./api.ts";
-import { addressEl, h, liveRegion, networkWords, when } from "./dom.ts";
+import { addressEl, h, liveRegion, networkWords, when, listen } from "./dom.ts";
 import { onWalletsChanged, signWith, signingWallets } from "./signFlow.ts";
 
 type Step = { readonly signedAt: string } | null;
@@ -34,7 +34,7 @@ function walletButtons(expected: string, view: SignView, role: "current" | "new"
     const wallets = signingWallets();
     box.replaceChildren(...(wallets.length ? wallets.map((wallet) => {
       const button = h("button", { class: "btn primary", type: "button" }, `Sign with ${wallet.name}`);
-      button.addEventListener("click", async () => {
+      listen(button, "click", async () => {
         button.disabled = true;
         status.textContent = `Waiting for ${wallet.name}. Signing moves no money.`;
         const step = await signWith(wallet, expected, view.message, view.network);
@@ -49,7 +49,7 @@ function walletButtons(expected: string, view: SignView, role: "current" | "new"
           return void (status.textContent = namedText(result.error.body, result.error.message));
         }
         void render();
-      });
+      }, status);
       return button;
     }) : [h("p", { class: "note" }, "No Sui wallet found. Install or unlock Slush, then reload this page.")]));
   };

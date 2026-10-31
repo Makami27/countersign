@@ -13,12 +13,18 @@ Built for Walrus × Tatum *Total Recall*, Track 2 (Smart Agents for Real Life).
 | Tatum (GraphQL + native gRPC, shared 2 req/s gate) | live suite green on testnet; payee signatures verified through our adapter, including a real Slush zkLogin signature [claim:CL03] |
 | Walrus Memory (signed records, completeness check, restore) | live on the mainnet relayer [claim:CL10]; relayer outage 30 Oct 22:37 → 31 Oct ~06:00 UTC recorded (REALITY_SPIKES R3) |
 | Payments | testnet payments settle through Tatum; Act 1 (model → engine → payment → receipt on Walrus mainnet) recorded in `evidence/acts/` |
-| Telegram bot (`apps/agent`) | built (preview + confirm, refusals with comparison, /login codes); not yet used by the owner |
+| Telegram bot (`apps/agent`) | built (preview + confirm, refusals with comparison and a receipt link, /login codes); the owner signed in through it on Render on 31 Oct |
 | Owner web app (`/app`) and signing page (`/sign/:nonce`) | built, tested over HTTP, screen-checked at 390 and 1440 px in light and dark |
 | Public site with attack lab (`/`) | built; lab payees go through the same onboarding rules as the agent |
 | Real use (≥10 mainnet memories) | 3 of 10 so far (CL07 NOT PROVEN) |
 | Deploy | live at https://countersign-agent-7u1c.onrender.com (Render free, Neon Postgres, D19); `/api/health` green. Testnet payments, mainnet Walrus Memory |
-| Receipt page, proof page, status page, measurement | not built (Phase 4) |
+| Receipt page `/r/:receipt` | built (V14): verdict, money sentence, checks in order, comparison, Walrus blob and Sui links |
+| Status | `/api/status` times Postgres, Tatum gRPC and GraphQL, the Walrus relayer and Telegram polling; the `/status` page is not built yet |
+| Proof page, measurement | not built (Phase 4); the landing's claims table is generated from CLAIMS.md |
+
+## Known limits
+- **Hosting is Render's free plan.** Render can stop the instance on its own (seen once on 31 Oct, with no deploy). It stays down until the next request; an external ping every 5 minutes wakes it, and the start takes 30–60 s. During that window the web app doesn't answer and Telegram messages wait at Telegram; they are handled after the restart. No payment state is lost: the ledger is in Neon Postgres and the payee book is rebuilt from Walrus Memory on every start, followed by one reconciliation pass.
+- **Neon's free compute suspends when idle.** The first database call after a pause takes about a second longer; the agent retries a failed connection once and never treats a database timeout as success.
 
 ## How it works
 AI proposes. Code decides.

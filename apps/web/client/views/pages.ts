@@ -1,5 +1,5 @@
 import { api } from "../api.ts";
-import { addressEl, h, liveRegion, usdc, when } from "../dom.ts";
+import { addressEl, h, liveRegion, usdc, when, listen } from "../dom.ts";
 import type { ActivityItem, Overview } from "../types.ts";
 import { agentFacts } from "./firstRun.ts";
 
@@ -33,18 +33,18 @@ export function settingsPage(overview: Overview, onSaved: () => void): HTMLEleme
   const form = h("form", {}, h("label", { for: "cap-payment" }, "Per-payment cap (USDC)", perPayment), h("label", { for: "cap-day" }, "Daily cap (USDC)", perDay),
     h("label", { for: "cooldown" }, "Waiting period for changes you confirm yourself (hours)", h("span", { class: "hint" }, "Default 24. A shorter value is for demos and is shown as such."), cooldown), status,
     h("div", { class: "actions" }, h("button", { class: "btn primary", type: "submit" }, "Save settings")));
-  form.addEventListener("submit", async (event) => {
+  listen(form, "submit", async (event) => {
     event.preventDefault();
     const toBase = (v: string) => (Number.isFinite(Number(v)) && Number(v) >= 0 ? Math.round(Number(v) * 1e6).toString() : "");
     const result = await api("PUT", "/api/app/settings", { perPaymentBaseUnits: toBase(perPayment.value), perDayBaseUnits: toBase(perDay.value), cooldownSeconds: String(Math.round(Number(cooldown.value) * 3600)) });
     status.textContent = result.ok ? "Saved. The agent uses the new caps from the next payment." : result.error.message;
     if (result.ok) onSaved();
-  });
+  }, status);
   const signOut = h("button", { class: "btn", type: "button" }, "Sign out");
-  signOut.addEventListener("click", async () => {
+  listen(signOut, "click", async () => {
     await api("DELETE", "/api/session");
     location.assign("/app/login");
-  });
+  }, status);
   return h("section", { class: "narrow", "aria-labelledby": "settings-title" }, h("h1", { id: "settings-title" }, "Settings"), agentFacts(overview), form,
     overview.cooldownSeconds < 24 * 3600 ? h("p", { class: "netlabel" }, `Demo value: changes you confirm yourself wait ${Math.round(overview.cooldownSeconds / 60)} minutes, not 24 hours.`) : null,
     h("div", { class: "actions" }, signOut));
@@ -56,7 +56,7 @@ export function loginPage(onSignedIn: () => void, why: string | null): HTMLEleme
   const button = h("button", { class: "btn primary", type: "submit" }, "Sign in");
   const form = h("form", {}, h("label", { for: "code" }, "Code from the Telegram bot", h("span", { class: "hint" }, "Send /login to your Countersign bot. The code works once, for 10 minutes."), code), status,
     h("div", { class: "actions" }, button));
-  form.addEventListener("submit", async (event) => {
+  listen(form, "submit", async (event) => {
     event.preventDefault();
     if (button.disabled) return;
     button.disabled = true;
@@ -67,7 +67,7 @@ export function loginPage(onSignedIn: () => void, why: string | null): HTMLEleme
     status.textContent = result.error.message;
     button.disabled = false;
     button.textContent = "Sign in";
-  });
+  }, status);
   const notice = why ? h("p", { class: "note", role: "status" }, why) : "";
   return h("section", { class: "narrow", "aria-labelledby": "login-title" }, h("h1", { id: "login-title" }, "Sign in to your agent"), notice, form);
 }

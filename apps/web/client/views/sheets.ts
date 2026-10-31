@@ -1,6 +1,6 @@
 import { usdcToBaseUnits } from "@countersign/core";
 import { api } from "../api.ts";
-import { addressEl, h, liveRegion, networkWords, usdc } from "../dom.ts";
+import { addressEl, h, liveRegion, networkWords, usdc, listen } from "../dom.ts";
 import type { Overview, PayeeDetail, PaymentStatus, Refusal } from "../types.ts";
 
 const POLL_MS = 1_500;
@@ -66,7 +66,7 @@ export function paySheet(detail: PayeeDetail, overview: Overview, onClosed: () =
       const notYet = h("p", { class: "money" }, "Nothing has been sent yet.");
       step.append(h("p", {}, `Pay ${usdc(baseUnits)} to ${detail.summary.name} on ${networkWords(overview.network)}. It goes to this verified address and nowhere else:`), addressEl(payTo.address), notYet, status,
         h("div", { class: "actions" }, confirm, h("button", { class: "btn", type: "button", onclick: close }, "Close")));
-      confirm.addEventListener("click", async () => {
+      listen(confirm, "click", async () => {
         confirm.remove();
         notYet.remove();
         status.textContent = `Checking the payee record ${storedWhere(overview)}… nothing has been sent yet.`;
@@ -76,7 +76,7 @@ export function paySheet(detail: PayeeDetail, overview: Overview, onClosed: () =
           return void (status.textContent = refusal ? refusalText(refusal, overview, baseUnits) : result.error.message);
         }
         await follow(result.data.paymentId, status, overview);
-      });
+      }, status);
     });
     body.append(form, step);
   }, onClosed);
@@ -90,7 +90,7 @@ export function addPayeeSheet(onClosed: () => void): void {
     const submit = h("button", { class: "btn primary", type: "submit" }, "Add and get a signing link");
     const form = h("form", {}, h("label", { for: "payee-name" }, "Name", name), h("label", { for: "payee-address" }, "Their Sui address", h("span", { class: "hint" }, "Copy it from the payee. It can't be paid until their wallet signs."), address), status,
       h("div", { class: "actions" }, submit, h("button", { class: "btn", type: "button", onclick: close }, "Cancel")));
-    form.addEventListener("submit", async (event) => {
+    listen(form, "submit", async (event) => {
       event.preventDefault();
       submit.disabled = true;
       status.textContent = "Writing the payee to Walrus Memory. This takes about 20 seconds; nothing can be paid yet.";
@@ -102,7 +102,7 @@ export function addPayeeSheet(onClosed: () => void): void {
       }
       form.replaceChildren(h("p", { class: "money" }, "Added. Nothing can be paid to it yet."), h("p", {}, "Send this link to the payee. Their wallet signs once to prove the address is theirs; then it becomes payable."), h("p", {}, h("span", { class: "addr" }, result.data.signUrl ?? "—")),
         h("div", { class: "actions" }, h("button", { class: "btn primary", type: "button", onclick: () => void navigator.clipboard.writeText(result.data.signUrl ?? "") }, "Copy link"), h("button", { class: "btn", type: "button", onclick: close }, "Done")));
-    });
+    }, status);
     body.append(form);
   }, onClosed);
 }

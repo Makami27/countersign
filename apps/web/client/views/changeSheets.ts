@@ -1,5 +1,5 @@
 import { api } from "../api.ts";
-import { addressEl, h, liveRegion, when } from "../dom.ts";
+import { addressEl, h, liveRegion, when, listen } from "../dom.ts";
 import type { PayeeDetail, Refusal } from "../types.ts";
 import { openSheet } from "./sheets.ts";
 
@@ -17,7 +17,7 @@ export function requestChangeSheet(detail: PayeeDetail, onClosed: () => void): v
       h("p", {}, "Payments keep going to the verified address until the change is proven. The payee's current wallet signs it, or you confirm it yourself and a waiting period passes; either way the new wallet must sign too."),
       h("label", { for: "new-address" }, "New Sui address", address), status,
       h("div", { class: "actions" }, submit, h("button", { class: "btn", type: "button", onclick: close }, "Cancel")));
-    form.addEventListener("submit", async (event) => {
+    listen(form, "submit", async (event) => {
       event.preventDefault();
       submit.disabled = true;
       status.textContent = "Checking the address and writing the request to Walrus Memory (about 20 seconds). Nothing is payable to it yet.";
@@ -27,7 +27,7 @@ export function requestChangeSheet(detail: PayeeDetail, onClosed: () => void): v
       form.replaceChildren(h("p", { class: "money" }, "Requested. Nothing will be paid to the new address yet."), addressEl(address.value.trim(), detail.payTo ? { against: detail.payTo.address } : {}),
         h("p", {}, "Send this link to the payee:"), h("p", {}, h("span", { class: "addr" }, result.data.signUrl ?? "—")),
         h("div", { class: "actions" }, h("button", { class: "btn primary", type: "button", onclick: () => void navigator.clipboard.writeText(result.data.signUrl ?? "") }, "Copy link"), h("button", { class: "btn", type: "button", onclick: close }, "Done")));
-    });
+    }, status);
     body.append(form);
   }, onClosed);
 }
@@ -41,14 +41,14 @@ export function confirmChangeSheet(nonce: string, cooldownSeconds: number, onClo
       h("p", {}, `Use this when the payee can't sign with their old wallet. After you confirm, the change waits ${hours >= 1 ? `${Math.round(hours)} hours` : `${Math.round(cooldownSeconds / 60)} minutes (demo value)`} before it can take effect, and the new wallet still has to sign.`),
       h("label", { for: "confirm-code" }, "A fresh code from the bot", h("span", { class: "hint" }, "Send /login to your Countersign bot. The code works once."), code), status,
       h("div", { class: "actions" }, h("button", { class: "btn primary", type: "submit" }, "Confirm"), h("button", { class: "btn", type: "button", onclick: close }, "Cancel")));
-    form.addEventListener("submit", async (event) => {
+    listen(form, "submit", async (event) => {
       event.preventDefault();
       const result = await api<{ completion: { state: string; readyAt?: string | null } }>("POST", `/api/app/changes/${nonce}/confirm`, { code: code.value });
       if (!result.ok) return void (status.textContent = refusalLine(result.error.body, result.error.message));
       const readyAt = result.data.completion.readyAt;
       form.replaceChildren(h("p", { class: "money" }, "Confirmed. Nothing has changed yet."), h("p", {}, readyAt ? `The change can take effect after ${when(readyAt)}, once the new wallet has signed.` : "The change takes effect once the new wallet signs."),
         h("div", { class: "actions" }, h("button", { class: "btn primary", type: "button", onclick: close }, "Done")));
-    });
+    }, status);
     body.append(form);
   }, onClosed);
 }

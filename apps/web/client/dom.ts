@@ -69,3 +69,13 @@ export function countersignMark(): SVGSVGElement {
 export function liveRegion(): HTMLElement {
   return h("p", { role: "status", "aria-live": "polite", class: "note" });
 }
+
+export const PAGE_FAILED = "This page hit an error before it could show the result. Reload the page to see where things stand.";
+
+export function listen<K extends keyof HTMLElementEventMap>(target: HTMLElement, type: K, handler: (event: HTMLElementEventMap[K]) => Promise<void>, status: HTMLElement): void {
+  target.addEventListener(type, (event) => {
+    handler(event).catch(() => {
+      status.textContent = PAGE_FAILED;
+    });
+  });
+}
