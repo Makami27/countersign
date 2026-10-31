@@ -6,32 +6,41 @@ No feature commits after 17:00 UTC on 10 Nov unless organisers confirm it's allo
 
 Revised 2026-10-30 (owner review of the phase plan): skeleton deploy moved to Phase 2, real mainnet use starts in Phase 2, Phase 3 gets an extra half day from Phase 4, submission deliverables added.
 
-## Where we are (2026-10-31, ~07:30 UTC)
-**Phase:** Phase 3 code done; Phase 2 and Phase 3 gates partly open (see Blocked). Gate: `pnpm gate`, 71 tests green at commit `261d13e`.
+## Where we are (2026-10-31, ~19:30 UTC)
+**Phase:** Phase 4 started; new features V20–V22 added to SHIP (team decision). Gate: `pnpm gate`, 97 tests green at commit `1d47c7f` (adds a promise lint step).
+
+**Deployed vs committed — read this first**
+- Render runs `4e141ba` (https://countersign-agent-7u1c.onrender.com). Local `main` is ahead with **V20, committed and not pushed**.
+- **Render auto-deploys every push to `main`.** Pushing now would deploy V20, and the owner couldn't register an owner wallet there (Slush flags the onrender.com host, see Risks), which would block adding payees. Don't push until the custom domain is live, or turn auto-deploy off first.
 
 **Done**
-- Phase 1: pnpm on Node 26 (D8); spikes S1 S2 S5 S6 S10 S12 S10z T1–T3 (REALITY_SPIKES); Tatum adapters with a shared 2 req/s gate; MemWal adapter; digest-first payment ledger and runner (D11); Act 1 (`evidence/acts/act1*`, screenshots in `evidence/acts/act1/`).
-- Phase 2: one process for agent, bot and web (D16); owner sign-in by one-time code; owner app `/app` (first run, payees, add payee, pay sheet, activity, settings); self-hosted fonts; screens in `evidence/screens/phase2/`.
-- Phase 3: V03 onboarding only after the payee's wallet signs (D14); `/sign/:nonce` with the wallet standard and Slush; two-signature change with live status (V11); owner path with fresh code and cooldown (V12); named refusals (V13); screens in `evidence/screens/phase3/`.
-- Real use started: wallet B onboarded as payee "Rent" through the signing page (Tatum verified its zkLogin signature, CL03). Real-use memories: 6 of 10 (`evidence/acts/act3/records.json`).
+- Phase 1: pnpm on Node 26 (D8); spikes (REALITY_SPIKES); Tatum adapters with a shared rate gate; MemWal adapter; digest-first payment ledger and runner (D11); Act 1.
+- Phase 2: one process for agent, bot and web (D16); owner sign-in by one-time code; owner app `/app`; self-hosted fonts.
+- Phase 3: onboarding only after the payee's wallet signs (D14); `/sign/:nonce`; two-signature change (V11); owner path with cooldown (V12); named refusals (V13).
+- Hosting: Render free + Neon Postgres (D19); async ports with an atomic reserve and payee-head check; Fly destroyed. README "Known limits" covers free-tier restarts.
+- Phase 4 so far: `/r/:receipt` (V14); `/api/status` (Postgres, Tatum gRPC and GraphQL, Walrus relayer, Telegram polling, Gemini stats); landing claims table generated from CLAIMS.md; owner-app timeouts and the promise lint.
+- Acts 2–3 on Render (`evidence/acts/act2`, `act3`, CL14). Look-alikes and known attacks are now refused by code before the model; Gemini retries once on 429/5xx.
+- V20 owner-wallet protection (D20, THREAT_MODEL.md): committed `1d47c7f`, **not deployed**.
+- Real-use memories: 6 of 10 (CL07).
 
-**Blocked / waiting on the owner**
-- Act 4 (Phase 3 gate): needs the address of a second Slush account (owner will paste it).
+**Blocked / waiting**
+- **Custom domain** (owner): Slush shows "Malicious website" for countersign-agent-7u1c.onrender.com (alert id 9e1813c9-47b6-4edb-8562-f915fdd77fc0). Blocks V20 deploy, owner-wallet registration and Act 4 signing.
+- **Act 4**: change request for Rent, wallet B → `0x993ae91d7f9aedfc2724f69ac263d437e6fcd4bde521d696a895932582679496` (owner's second Slush account), nonce `875fe73f6ff24d0aae2ae431a42f666f`, expires 2026-11-01 17:44 UTC; started with `apps/agent/src/requestChange.ts`. Not signed (Slush flag). On the new domain, start a fresh request with that script, sign with wallet B then the new account, then pay 0.01 test USDC to Rent and capture into `evidence/acts/act4/` (`captureActs.ts` shows the pattern).
 - Delegate key rotation after the relayer echoed it in an error (REALITY_SPIKES R4).
 
 **Next steps**
-1. Done 31 Oct 15:09 UTC: moved to Render free + Neon Postgres (D19, supersedes D18): https://countersign-agent-7u1c.onrender.com, health green; the payee book was rebuilt from Walrus Memory into Postgres on boot. Fly app destroyed on 31 Oct after the owner confirmed /login on Render. Do not run `pnpm agent` locally (one Telegram poller).
-2. Done: S12 at 100 records confirmed (CL13).
-3. Done 31 Oct 17:29 UTC: Acts 2–3 on Render (`evidence/acts/act2`, `act3`, CL14). Next: Act 4 with the second Slush account; real use to ≥10 memories (6 now).
-4. Phase 4: `/r/:receipt`, `/proof`, `/status`, lab upgrade, preregistered measurement.
+1. V21 scheduled payments (SHIP V21): next, in a fresh session. Uses the V20 approval gate (`apps/web/src/ownerGate.ts`, kind to add) for create/change/delete.
+2. V22 shared scam memory (SHIP V22).
+3. Custom domain → deploy V20 → register the owner wallet → Act 4.
+4. Rest of Phase 4: `/proof` page, `/status` page, lab upgrade, preregistered measurement; real use to ≥10 memories.
 
 **Background jobs and how to check them**
-- S12 at scale: finished 31 Oct, CONFIRMED at 100 records (REALITY_SPIKES S12b, CL13). No background jobs running.
-- Deployed agent: Render service `srv-dbj08anf3r2c73ejrggg` (Ohio), health https://countersign-agent-7u1c.onrender.com/api/health. The owner sets an external 5-minute ping to that URL so the free instance doesn't sleep.
+- None running. Deployed agent: Render service `srv-dbj08anf3r2c73ejrggg` (Ohio); health and dependency timings at `/api/health` and `/api/status`; an external 5-minute ping (cron-job.org) keeps it awake.
 
 **Open decisions**
-- Neon free compute hours: idle loops skip the database, so the compute can suspend; watch usage in the Neon console.
-- Telegram polling vs webhook once deployed (polling for now; only one instance may poll).
+- Custom domain and registrar (owner).
+- Neon free compute hours: idle loops skip the database so the compute can suspend; watch usage in the Neon console.
+- Telegram polling vs webhook (polling; only one instance may poll).
 
 ## Workstreams
 | Stream | Owns | Person |
@@ -92,3 +101,4 @@ Memory writes go to the **dev relayer** for tests and the measurement, and to th
 | Tatum free tier (3 req/s) | 429s | client-side limiter at 2 req/s; cache reads; poll at most every 10 s |
 | Gemini free tier | 429s | back off; queue as UNPROCESSED; never treat an outage as "no proposal" |
 | Mainnet USDC for real use | Phase 2 | keep amounts tiny (≤ $0.10 per payment); caps in code |
+| Wallet flags the host as malicious | Slush showed "Malicious website" for countersign-agent-7u1c.onrender.com on 31 Oct (alert id 9e1813c9-47b6-4edb-8562-f915fdd77fc0); owners and payees can't sign | own domain for the app; ask Slush/Mysten to review; the app only requests signPersonalMessage, never transactions; V20 and Act 4 wait for the domain |
