@@ -12,4 +12,5 @@ export * from "./memoryBook.ts";
 export type * from "./engineDeps.ts";
 export * from "./changeProofs.ts";
 export * from "./payments.ts";
+export * from "./schedule.ts";
 export * from "./testing/inMemory.ts";

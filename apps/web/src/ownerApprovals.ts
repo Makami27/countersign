@@ -5,7 +5,7 @@ import type { SqlRows } from "@countersign/adapters/sql";
 export const APPROVAL_LIFETIME_MS = 10 * 60 * 1000;
 const SCHEMA = "CREATE TABLE IF NOT EXISTS owner_approvals (nonce TEXT PRIMARY KEY, kind TEXT NOT NULL, payload TEXT NOT NULL, signer TEXT NOT NULL, expires_at BIGINT NOT NULL, used INTEGER NOT NULL DEFAULT 0 CHECK (used IN (0,1)))";
 
-export type ApprovalKind = "register_owner_wallet" | "change_owner_wallet" | "cancel_owner_wallet_change" | "add_payee" | "confirm_owner_change" | "raise_limits";
+export type ApprovalKind = "register_owner_wallet" | "change_owner_wallet" | "cancel_owner_wallet_change" | "add_payee" | "confirm_owner_change" | "raise_limits" | "create_schedule" | "change_schedule" | "delete_schedule";
 export type Payload = Readonly<Record<string, string>>;
 export type Challenge = { readonly nonce: string; readonly message: string; readonly signer: SuiAddress };
 export type ApprovalProblem = "APPROVAL_EXPIRED" | "APPROVAL_USED" | "APPROVAL_MISMATCH" | "WRONG_WALLET" | "SIGNATURE_INVALID" | "CHAIN_UNKNOWN";
@@ -27,6 +27,9 @@ const KIND_WORDS: Record<ApprovalKind, string> = {
   add_payee: "add a payee",
   confirm_owner_change: "confirm a payee address change myself",
   raise_limits: "loosen spending limits",
+  create_schedule: "create a scheduled payment",
+  change_schedule: "change a scheduled payment",
+  delete_schedule: "delete a scheduled payment",
 };
 
 export function approvalMessage(ownerId: string, kind: ApprovalKind, payload: Payload, nonce: string, expires: string): string {
