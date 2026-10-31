@@ -2,9 +2,10 @@ import { REASONS, formatUsdc, type Outcome, type PaymentIntent, type ReceiptWrit
 
 export const RECEIPT_PENDING_REPLY = "Writing the receipt to Walrus Memory. This takes about 20 seconds; the payment outcome above is already final.";
 
-export function receiptReply(written: ReceiptWrite | null): string {
+export function receiptReply(written: ReceiptWrite | null, publicUrl: string | null): string {
   if (!written) return "No receipt was written because the payment has no final outcome yet.";
-  return written.blobId ? `Receipt ${written.receipt} is stored on Walrus Memory (blob ${written.blobId}).` : `Receipt ${written.receipt} is saved here, but Walrus Memory has not confirmed it yet. The payment outcome above does not change.`;
+  const where = publicUrl ? `${publicUrl}/r/${written.receipt}` : written.receipt;
+  return written.blobId ? `Receipt: ${where}\nStored on Walrus Memory (blob ${written.blobId}).` : `Receipt: ${where}\nWalrus Memory has not confirmed it yet. The payment outcome above does not change.`;
 }
 
 type Network = "mainnet" | "testnet";
@@ -49,7 +50,7 @@ export function replyFor(outcome: Outcome): string {
     case "REFUSED": {
       const info = REASONS[outcome.reason];
       const cites = outcome.cites ? ` Same as refusal ${outcome.cites}.` : "";
-      return `Refused: ${[info.message, info.nextAction].filter(Boolean).join(" ")}${cites} Receipt ${outcome.receipt}.`;
+      return `Refused. Nothing was sent and nothing was changed. ${[info.message, info.nextAction].filter(Boolean).join(" ")}${cites} Receipt ${outcome.receipt}.`;
     }
     case "ONBOARDING_STARTED":
       return `Payee ${outcome.payeeId} added and waiting for the payee's wallet. Nothing can be paid to ${outcome.address} until that wallet signs. The signing link expires ${outcome.expires}.`;

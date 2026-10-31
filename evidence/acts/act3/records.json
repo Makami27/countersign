@@ -1,0 +1,58 @@
+{
+  "capturedAt": "2026-10-31T17:29:45.653Z",
+  "act": "Act 3: the same message again is refused as a known attack, citing the Act 2 receipt",
+  "classification": "real use: the owner forwarded the message to the deployed bot on Render; memory on the Walrus Memory mainnet relayer; no money moved (refusal)",
+  "receiptPage": "https://countersign-agent-7u1c.onrender.com/r/rcpt_dab6cd850380599887fb5bb1b25577ff",
+  "receipt": {
+    "type": "receipt",
+    "receipt": "rcpt_dab6cd850380599887fb5bb1b25577ff",
+    "verdict": "REFUSED",
+    "reason": "KNOWN_ATTACK_PATTERN",
+    "ref": "tg:20",
+    "payeeId": "rent",
+    "address": "0x68f215db195f32d32792fc33dad646a3394ad1affe6f243757f4f98d663b023b",
+    "amountBaseUnits": null,
+    "checks": [
+      {
+        "check": "ADDRESS_IN_MESSAGE",
+        "result": "PASS"
+      },
+      {
+        "check": "PAYEE_VERIFIED",
+        "result": "PASS"
+      },
+      {
+        "check": "NOT_KNOWN_ATTACK",
+        "result": "FAIL"
+      }
+    ],
+    "memoryBlobIds": [],
+    "suiDigest": null,
+    "network": "testnet",
+    "createdAt": "2026-10-31T17:13:54.398Z"
+  },
+  "receiptBlob": {
+    "blobId": "ZXlWmbWG2Pr1LpPyAUG5o0OwZkhzuM6ozs7kdvduO4A",
+    "aggregator": "https://aggregator.walrus-mainnet.walrus.space/v1/blobs/ZXlWmbWG2Pr1LpPyAUG5o0OwZkhzuM6ozs7kdvduO4A",
+    "httpStatus": 200,
+    "encryptedBytes": 894
+  },
+  "screenshots": [
+    "evidence/acts/act3/receipt-page-390.png",
+    "evidence/acts/act3/receipt-page-1440.png"
+  ],
+  "memoryCounts": {
+    "realUseMemories": 6,
+    "realUseNamespaces": [
+      {
+        "suffix": "payee:rent",
+        "count": 2
+      },
+      {
+        "suffix": "receipts",
+        "count": 4
+      }
+    ],
+    "readAt": "2026-10-31T17:29:23.074Z"
+  }
+}

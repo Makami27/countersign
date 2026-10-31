@@ -17,6 +17,7 @@ import { loadConfig } from "./config.ts";
 import { startBot } from "./telegram.ts";
 import { openStorage } from "./storage.ts";
 import { statusProbe } from "./statusChecks.ts";
+import { ModelStats } from "./modelStats.ts";
 
 const RECONCILE_EVERY_MS = 60_000;
 const BALANCE_CACHE_MS = 30_000;
@@ -114,15 +115,17 @@ await completeReadyChanges(owner, Date.now());
 setInterval(() => void completeReadyChanges(owner, Date.now()).catch((error: Error) => console.error(`Change completion skipped: ${error.message.slice(0, 200)}`)), RECONCILE_EVERY_MS).unref();
 
 let bot: ReturnType<typeof startBot> | null = null;
+const modelStats = new ModelStats();
 const status = statusProbe({
   network: config.network, version: process.env["GIT_SHA"] ?? null, database: { label: storage.label, rows: storage.rows }, graphql,
   grpcBalance: () => readAgentBalances(grpc, config.network, agentAddress), walrus, ownerPrefix: `countersign:${config.ownerId}:`,
-  memory: () => memoryView, telegramPolling: () => bot?.isRunning() ?? false,
+  memory: () => memoryView, telegramPolling: () => bot?.isRunning() ?? false, model: () => modelStats.view(),
 });
 const server = startWebServer({ port: config.port, network: config.network, proof: storage.rows, version: process.env["GIT_SHA"] ?? null, owner, status });
 bot = startBot({
   token: config.telegram.token, ownerUserId: config.telegram.ownerUserId, network: config.network, publicUrl: config.publicUrl, engine, index, auth,
-  extract: (text, payeeIds) => extractProposal(config.gemini, text, payeeIds),
+  extract: modelStats.tracked((text, payeeIds) => extractProposal(config.gemini, text, payeeIds)),
+  answeredByCode: () => modelStats.answeredByCode(),
   sendPayment: send,
 });
 

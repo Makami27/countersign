@@ -4,6 +4,7 @@ import { headOf, type Countersign, type InboundMessage, type IndexStore, type Pa
 import type { Extraction } from "@countersign/adapters/gemini";
 import type { OwnerAuth } from "@countersign/web/ownerAuth";
 import { MODEL_UNREADABLE_REPLY, RECEIPT_PENDING_REPLY, STORE_UNANSWERED_REPLY, paymentPendingReply, paymentReply, receiptReply, replyFor } from "./replies.ts";
+import { readMessage } from "./screen.ts";
 import { READING_REPLY, changeStartedHtml, confirmPaymentHtml, loginCodeText, refusalHtml } from "./telegramText.ts";
 
 const CONFIRMATION_LIFETIME_MS = 5 * 60 * 1000;
@@ -21,6 +22,7 @@ export type BotDeps = {
   readonly auth: OwnerAuth;
   readonly extract: (text: string, payeeIds: readonly string[]) => Promise<Extraction>;
   readonly sendPayment: (paymentId: string) => Promise<PaymentIntent>;
+  readonly answeredByCode: () => void;
 };
 
 type PendingPay = { readonly inbound: InboundMessage; readonly proposal: Extract<Proposal, { kind: "pay" }>; readonly expires: number };
@@ -45,10 +47,13 @@ export function startBot(deps: BotDeps): Bot {
     if (!isOwner(ctx) || ctx.message.text.startsWith("/")) return;
     const forwarded = ctx.message.forward_origin !== undefined;
     const inbound: InboundMessage = { id: `tg:${ctx.message.message_id}`, channel: "telegram", from: forwarded ? "forwarded" : String(ctx.from.id), text: ctx.message.text, receivedAt: new Date(ctx.message.date * 1000).toISOString() };
-    await ctx.reply(READING_REPLY);
-    const extraction = await deps.extract(inbound.text, await deps.engine.payeeIds());
-    if (extraction.status === "UNKNOWN") return void (await ctx.reply(MODEL_UNREADABLE_REPLY));
-    const proposal = extraction.proposal;
+    const reading = await readMessage(deps.index, async (text, payeeIds) => {
+      await ctx.reply(READING_REPLY);
+      return deps.extract(text, payeeIds);
+    }, inbound.text);
+    if (reading.status === "UNKNOWN") return void (await ctx.reply(MODEL_UNREADABLE_REPLY));
+    if (reading.by === "code") deps.answeredByCode();
+    const proposal = reading.proposal;
     if (proposal.kind === "pay") {
       const preview = await deps.engine.previewPayment(inbound, proposal);
       if (preview.verdict === "REFUSED") return void (await ctx.reply(refusalHtml(preview, await deps.engine.receiptRecord(preview.receipt), null, deps.publicUrl), HTML));
@@ -80,7 +85,7 @@ export function startBot(deps: BotDeps): Bot {
     await ctx.reply(paymentReply(payment, deps.network));
     if (payment.state !== "SETTLED" && payment.state !== "FAILED") return;
     await ctx.reply(RECEIPT_PENDING_REPLY);
-    await ctx.reply(receiptReply(await deps.engine.recordPaymentOutcome(payment)));
+    await ctx.reply(receiptReply(await deps.engine.recordPaymentOutcome(payment), deps.publicUrl));
   });
 
   bot.catch(async (error) => {

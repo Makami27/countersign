@@ -16,7 +16,7 @@ Built for Walrus × Tatum *Total Recall*, Track 2 (Smart Agents for Real Life).
 | Telegram bot (`apps/agent`) | built (preview + confirm, refusals with comparison and a receipt link, /login codes); the owner signed in through it on Render on 31 Oct |
 | Owner web app (`/app`) and signing page (`/sign/:nonce`) | built, tested over HTTP, screen-checked at 390 and 1440 px in light and dark |
 | Public site with attack lab (`/`) | built; lab payees go through the same onboarding rules as the agent |
-| Real use (≥10 mainnet memories) | 3 of 10 so far (CL07 NOT PROVEN) |
+| Real use (≥10 mainnet memories) | 6 of 10 so far (CL07 NOT PROVEN) |
 | Deploy | live at https://countersign-agent-7u1c.onrender.com (Render free, Neon Postgres, D19); `/api/health` green. Testnet payments, mainnet Walrus Memory |
 | Receipt page `/r/:receipt` | built (V14): verdict, money sentence, checks in order, comparison, Walrus blob and Sui links |
 | Status | `/api/status` times Postgres, Tatum gRPC and GraphQL, the Walrus relayer and Telegram polling; the `/status` page is not built yet |

@@ -1,0 +1,62 @@
+{
+  "capturedAt": "2026-10-31T17:29:38.738Z",
+  "act": "Act 2: a look-alike of Rent's verified address is refused with the comparison view",
+  "classification": "real use: the owner forwarded the message to the deployed bot on Render; memory on the Walrus Memory mainnet relayer; no money moved (refusal)",
+  "receiptPage": "https://countersign-agent-7u1c.onrender.com/r/rcpt_2c31ae5f14f5cbe5a50da5690bc9993f",
+  "receipt": {
+    "type": "receipt",
+    "receipt": "rcpt_2c31ae5f14f5cbe5a50da5690bc9993f",
+    "verdict": "REFUSED",
+    "reason": "LOOKALIKE_ADDRESS",
+    "ref": "tg:14",
+    "payeeId": "rent",
+    "address": "0x68f215db195f32d32792fc33dad646a3394ad1affe6f243757f4f98d663b023b",
+    "amountBaseUnits": null,
+    "checks": [
+      {
+        "check": "ADDRESS_IN_MESSAGE",
+        "result": "PASS"
+      },
+      {
+        "check": "PAYEE_VERIFIED",
+        "result": "PASS"
+      },
+      {
+        "check": "NOT_KNOWN_ATTACK",
+        "result": "PASS"
+      },
+      {
+        "check": "NOT_LOOKALIKE",
+        "result": "FAIL"
+      }
+    ],
+    "memoryBlobIds": [],
+    "suiDigest": null,
+    "network": "testnet",
+    "createdAt": "2026-10-31T17:05:48.402Z"
+  },
+  "receiptBlob": {
+    "blobId": "Vv6WzuQcSXz5XJSRriIb3dLtnRalgAwv6VIkzTFNDLw",
+    "aggregator": "https://aggregator.walrus-mainnet.walrus.space/v1/blobs/Vv6WzuQcSXz5XJSRriIb3dLtnRalgAwv6VIkzTFNDLw",
+    "httpStatus": 200,
+    "encryptedBytes": 933
+  },
+  "screenshots": [
+    "evidence/acts/act2/receipt-page-390.png",
+    "evidence/acts/act2/receipt-page-1440.png"
+  ],
+  "memoryCounts": {
+    "realUseMemories": 6,
+    "realUseNamespaces": [
+      {
+        "suffix": "payee:rent",
+        "count": 2
+      },
+      {
+        "suffix": "receipts",
+        "count": 4
+      }
+    ],
+    "readAt": "2026-10-31T17:29:23.074Z"
+  }
+}

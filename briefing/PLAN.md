@@ -13,17 +13,16 @@ Revised 2026-10-30 (owner review of the phase plan): skeleton deploy moved to Ph
 - Phase 1: pnpm on Node 26 (D8); spikes S1 S2 S5 S6 S10 S12 S10z T1–T3 (REALITY_SPIKES); Tatum adapters with a shared 2 req/s gate; MemWal adapter; digest-first payment ledger and runner (D11); Act 1 (`evidence/acts/act1*`, screenshots in `evidence/acts/act1/`).
 - Phase 2: one process for agent, bot and web (D16); owner sign-in by one-time code; owner app `/app` (first run, payees, add payee, pay sheet, activity, settings); self-hosted fonts; screens in `evidence/screens/phase2/`.
 - Phase 3: V03 onboarding only after the payee's wallet signs (D14); `/sign/:nonce` with the wallet standard and Slush; two-signature change with live status (V11); owner path with fresh code and cooldown (V12); named refusals (V13); screens in `evidence/screens/phase3/`.
-- Real use started: wallet B onboarded as payee "Rent" through the signing page (Tatum verified its zkLogin signature, CL03). Real-use memories: 3 of 10 (`evidence/acts/onboarding-wallet-b/records.json`).
+- Real use started: wallet B onboarded as payee "Rent" through the signing page (Tatum verified its zkLogin signature, CL03). Real-use memories: 6 of 10 (`evidence/acts/act3/records.json`).
 
 **Blocked / waiting on the owner**
 - Act 4 (Phase 3 gate): needs the address of a second Slush account (owner will paste it).
-- Acts 2–3 (Phase 2 gate): the owner forwards a scam message to the bot, then repeats it.
 - Delegate key rotation after the relayer echoed it in an error (REALITY_SPIKES R4).
 
 **Next steps**
 1. Done 31 Oct 15:09 UTC: moved to Render free + Neon Postgres (D19, supersedes D18): https://countersign-agent-7u1c.onrender.com, health green; the payee book was rebuilt from Walrus Memory into Postgres on boot. Fly app destroyed on 31 Oct after the owner confirmed /login on Render. Do not run `pnpm agent` locally (one Telegram poller).
 2. Done: S12 at 100 records confirmed (CL13).
-3. Act 4 with the second Slush account; Acts 2–3 through Telegram; real use to ≥10 memories.
+3. Done 31 Oct 17:29 UTC: Acts 2–3 on Render (`evidence/acts/act2`, `act3`, CL14). Next: Act 4 with the second Slush account; real use to ≥10 memories (6 now).
 4. Phase 4: `/r/:receipt`, `/proof`, `/status`, lab upgrade, preregistered measurement.
 
 **Background jobs and how to check them**

@@ -17,18 +17,23 @@ export function confirmPaymentHtml(name: string, address: SuiAddress, amountBase
   return [`Pay <b>${formatUsdc(amountBaseUnits)} USDC</b> to <b>${escapeHtml(name)}</b> on ${where}?`, "", "It will go to this verified address, and nowhere else:", groupedHtml(address), "", "Nothing has been sent yet."].join("\n");
 }
 
+export const REFUSED_HEADLINE = "Refused. Nothing was sent and nothing was changed.";
+const ALREADY_SAID = /^(Nothing was (sent|changed|added|decided)( and nothing was changed)?\.\s*)+/;
+
 function receiptLink(id: string, publicUrl: string | null): string {
-  return publicUrl ? `<a href="${escapeHtml(`${publicUrl}/r/${id}`)}">Receipt ${escapeHtml(id)}</a>` : `Receipt ${escapeHtml(id)}`;
+  if (!publicUrl) return escapeHtml(id);
+  const url = escapeHtml(`${publicUrl}/r/${id}`);
+  return `<a href="${url}">${url}</a>`;
 }
 
 export function refusalHtml(outcome: Extract<Outcome, { verdict: "REFUSED" }>, receipt: ReceiptRecord | null, verifiedAddress: SuiAddress | null, publicUrl: string | null): string {
   const info = REASONS[outcome.reason];
-  const lines = info.nextAction ? [`<b>Refused.</b> ${escapeHtml(info.nextAction)}`, escapeHtml(info.message)] : [`<b>Refused.</b> ${escapeHtml(info.message)}`];
+  const lines = [`<b>${REFUSED_HEADLINE}</b>`, ...[info.message, info.nextAction].map((text) => text.replace(ALREADY_SAID, "")).filter(Boolean).map(escapeHtml)];
   if (receipt?.address && verifiedAddress && receipt.address !== verifiedAddress && (outcome.reason === "LOOKALIKE_ADDRESS" || outcome.reason === "KNOWN_ATTACK_PATTERN")) {
     lines.push("", "Address in the message (differing groups underlined):", groupedHtml(receipt.address, verifiedAddress), "", "Verified address:", groupedHtml(verifiedAddress));
   }
-  if (outcome.cites) lines.push("", `Same as the attempt refused in ${receiptLink(outcome.cites, publicUrl).replace("Receipt", "receipt")}.`);
-  lines.push("", `${receiptLink(outcome.receipt, publicUrl)}.`);
+  if (outcome.cites) lines.push("", `First refused here: ${receiptLink(outcome.cites, publicUrl)}`);
+  lines.push("", `Receipt: ${receiptLink(outcome.receipt, publicUrl)}`);
   return lines.join("\n");
 }
 
