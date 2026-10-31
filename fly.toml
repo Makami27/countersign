@@ -1,4 +1,4 @@
-app = "countersign"
+app = "countersign-agent"
 primary_region = "ams"
 
 [build]
@@ -7,6 +7,7 @@ primary_region = "ams"
 [env]
   WEB_PORT = "8080"
   DATABASE_PATH = "/data/countersign.sqlite"
+  PUBLIC_BASE_URL = "https://countersign-agent.fly.dev"
 
 [mounts]
   source = "countersign_data"
@@ -28,4 +29,4 @@ primary_region = "ams"
 
 [[vm]]
   size = "shared-cpu-1x"
-  memory = "512mb"
+  memory = "256mb"

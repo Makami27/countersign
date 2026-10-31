@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { TEST_NAMESPACE_ROOT, isRealUseNamespace } from "@countersign/core";
 import { MAINNET_RELAYER_URL, MemWalMemory } from "@countersign/adapters/memwal";
@@ -6,6 +6,7 @@ import { MAINNET_RELAYER_URL, MemWalMemory } from "@countersign/adapters/memwal"
 const RECORDS = Number(process.argv[2] ?? "100");
 const SPACING_MS = Number(process.argv[3] ?? "60000");
 const runId = process.argv[4] ?? new Date().toISOString().replace(/[:.]/g, "-");
+const startAt = Number(process.argv[5] ?? "1");
 const key = process.env["MEMWAL_PRIVATE_KEY"] ?? "";
 const accountId = process.env["MEMWAL_ACCOUNT_ID"] ?? "";
 if (key === "" || accountId === "") throw new Error("MEMWAL_PRIVATE_KEY and MEMWAL_ACCOUNT_ID are required. Nothing was written.");
@@ -13,14 +14,16 @@ if (key === "" || accountId === "") throw new Error("MEMWAL_PRIVATE_KEY and MEMW
 const memory = new MemWalMemory({ key, accountId, serverUrl: MAINNET_RELAYER_URL });
 const namespace = `${TEST_NAMESPACE_ROOT}s12-scale-${runId}`;
 const file = `evidence/live/s12-scale-${runId}.json`;
-const writes: { i: number; ms: number; status: string; blobId: string | null; problem: string | null }[] = [];
+type WriteRow = { i: number; ms: number; status: string; blobId: string | null; problem: string | null };
+const earlier: WriteRow[] = existsSync(file) ? ((JSON.parse(readFileSync(file, "utf8")) as { writes?: WriteRow[] }).writes ?? []).filter((w) => w.i < startAt) : [];
+const writes: WriteRow[] = [...earlier];
 mkdirSync("evidence/live", { recursive: true });
 
 function save(extra: Record<string, unknown>): void {
   writeFileSync(file, JSON.stringify({ runId, relayer: memory.environment, namespace, classification: "S12 at scale: labelled test data in a countersign-test: namespace, excluded from real-use counts", countedAsRealUse: isRealUseNamespace(process.env["OWNER_ID"] ?? "owner", namespace), records: RECORDS, spacingMs: SPACING_MS, writes, ...extra }, null, 2));
 }
 
-for (let i = 1; i <= RECORDS; i++) {
+for (let i = startAt; i <= RECORDS; i++) {
   const started = Date.now();
   const text = JSON.stringify({ record: { type: "s12-scale-test", runId, i, filler: randomBytes(8).toString("hex") }, sig: "test" });
   const written = await memory.remember(namespace, text, `s12:${runId}:${i}`);
