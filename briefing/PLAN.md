@@ -21,14 +21,14 @@ Revised 2026-10-30 (owner review of the phase plan): skeleton deploy moved to Ph
 - Delegate key rotation after the relayer echoed it in an error (REALITY_SPIKES R4).
 
 **Next steps**
-1. Deploy the skeleton to Fly (D18): app, 1 GB volume at `/data`, secrets from `.env`, health `/api/health`; stop the local agent first.
+1. Done 31 Oct 07:29 UTC: deployed to https://countersign-agent.fly.dev (D18); on a fresh volume the payee book was restored from Walrus Memory (1 payee namespace). The deployed agent now polls Telegram; do not run `pnpm agent` locally at the same time.
 2. Resume S12 at 100 records from write 88 (same run id) and record the result.
 3. Act 4 with the second Slush account; Acts 2–3 through Telegram; real use to ≥10 memories.
 4. Phase 4: `/r/:receipt`, `/proof`, `/status`, lab upgrade, preregistered measurement.
 
 **Background jobs and how to check them**
 - S12 at scale: `node --env-file=.env apps/agent/src/s12Scale.ts 100 60000 2026-10-31T05-57-57-893Z 88` resumes it; progress in `evidence/live/s12-scale-2026-10-31T05-57-57-893Z.json` (`phase`, `writes`). Stopped at 87/100 written when the session ended.
-- Local agent: not running (stopped before the Fly deploy). Run with `pnpm agent`; health at `http://localhost:8787/api/health`.
+- Deployed agent: `fly status -a countersign-agent`, `fly logs -a countersign-agent`, health https://countersign-agent.fly.dev/api/health. The local agent stays stopped (only one Telegram poller).
 
 **Open decisions**
 - Fly region and whether 256 MB is enough (start at 256 MB, raise only if it runs out).

@@ -17,7 +17,7 @@ Built for Walrus × Tatum *Total Recall*, Track 2 (Smart Agents for Real Life).
 | Owner web app (`/app`) and signing page (`/sign/:nonce`) | built, tested over HTTP, screen-checked at 390 and 1440 px in light and dark |
 | Public site with attack lab (`/`) | built; lab payees go through the same onboarding rules as the agent |
 | Real use (≥10 mainnet memories) | 3 of 10 so far (CL07 NOT PROVEN) |
-| Deploy | Fly.io, in progress |
+| Deploy | live at https://countersign-agent.fly.dev (Fly, D18); `/api/health` green |
 | Receipt page, proof page, status page, measurement | not built (Phase 4) |
 
 ## How it works
