@@ -16,7 +16,7 @@ export type PayeeDetail = {
   readonly summary: PayeeSummary;
   readonly payTo: { readonly address: string; readonly version: number; readonly since: string; readonly why: string; readonly verifications: readonly Verification[] } | null;
   readonly waiting: { readonly address: string; readonly expires: string; readonly signUrl: string; readonly expired: boolean } | null;
-  readonly pendingChanges: readonly { readonly toAddress: string; readonly expires: string; readonly signUrl: string }[];
+  readonly pendingChanges: readonly { readonly nonce: string; readonly toAddress: string; readonly expires: string; readonly signUrl: string; readonly currentSignedAt: string | null; readonly newSignedAt: string | null; readonly ownerConfirmedAt: string | null; readonly readyAt: string | null }[];
   readonly latestRefusal: { readonly receipt: string; readonly at: string; readonly reason: string | null; readonly message: string; readonly address: string | null; readonly against: string | null } | null;
   readonly history: readonly { readonly kind: "version" | "refusal"; readonly label: string; readonly status: string; readonly address: string | null; readonly at: string; readonly why: string }[];
   readonly payments: readonly { readonly id: string; readonly state: string; readonly amountBaseUnits: string; readonly at: string; readonly digest: string | null; readonly reason: string | null }[];

@@ -11,6 +11,8 @@ import { recordSignerFromSeed } from "@countersign/adapters/signer";
 import { startWebServer } from "@countersign/web/server";
 import { OwnerAuth } from "@countersign/web/ownerAuth";
 import { OwnerSettings } from "@countersign/web/ownerSettings";
+import { ChangeSteps } from "@countersign/web/changeSteps";
+import { completeReadyChanges } from "@countersign/web/changeCompletion";
 import type { BalancesView, MemoryView, OwnerContext } from "@countersign/web/ownerContext";
 import { loadConfig } from "./config.ts";
 import { startBot } from "./telegram.ts";
@@ -32,11 +34,13 @@ const ledger = new SqlitePaymentLedger(config.databasePath);
 const settings = new OwnerSettings(config.databasePath, { perPaymentBaseUnits: config.caps.perPaymentBaseUnits, perDayBaseUnits: config.caps.perDayBaseUnits, cooldownSeconds: config.cooldownMs / 1000 });
 const auth = new OwnerAuth(config.databasePath);
 const clock = { now: () => new Date() };
+const verifier = new TatumSignatureVerifier(grpc);
+const steps = new ChangeSteps(config.databasePath);
 
 const deps: EngineDeps = {
   ownerId: config.ownerId, network: config.network, memory, index, payments: ledger, clock,
   signer: recordSignerFromSeed(config.recordSigningKey),
-  signatures: new TatumSignatureVerifier(grpc),
+  signatures: verifier,
   roundTrips: new TatumRoundTripChecker(graphql, agentAddress, USDC_COIN_TYPE[config.network]),
   nonces: { next: () => randomBytes(16).toString("hex") },
   caps: settings.caps(),
@@ -70,6 +74,9 @@ async function balances(): Promise<BalancesView> {
 const owner: OwnerContext = {
   ownerId: config.ownerId, network: config.network, agentAddress, publicUrl: config.publicUrl, engine, index, ledger, auth, settings, balances,
   memory: () => memoryView,
+  steps,
+  cooldownMs: () => settings.values().cooldownSeconds * 1000,
+  verifySignature: (message, signature, address) => verifier.verifyPersonalMessage(message, signature, address),
   memoryCounts: async () => {
     if (!walrus) return null;
     const counts = await walrus.namespaceCounts(`countersign:${config.ownerId}:`);
@@ -83,6 +90,8 @@ const owner: OwnerContext = {
     return payment;
   },
 };
+
+setInterval(() => void completeReadyChanges(owner, Date.now()), RECONCILE_EVERY_MS).unref();
 
 startWebServer({ port: config.port, network: config.network, proofDatabasePath: config.databasePath, version: process.env["GIT_SHA"] ?? null, owner });
 startBot({

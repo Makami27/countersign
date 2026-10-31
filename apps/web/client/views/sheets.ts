@@ -20,7 +20,7 @@ export function openSheet(title: string, build: (close: () => void, body: HTMLEl
 }
 
 function refusalText(refusal: Refusal, overview: Overview, amount: string): string {
-  if (refusal.reason !== "CAP_EXCEEDED") return `${refusal.message} ${refusal.nextAction}`;
+  if (refusal.reason !== "CAP_EXCEEDED") return [refusal.message, refusal.nextAction].filter(Boolean).join(" ");
   const perPayment = BigInt(overview.caps.perPaymentBaseUnits);
   return BigInt(amount) > perPayment
     ? `Nothing was sent. ${usdc(amount)} is above the per-payment cap of ${usdc(overview.caps.perPaymentBaseUnits)}. Change it in Settings if you mean it.`
@@ -98,7 +98,7 @@ export function addPayeeSheet(onClosed: () => void): void {
       submit.disabled = false;
       if (!result.ok) {
         const refusal = result.error.body?.["refusal"] as Refusal | undefined;
-        return void (status.textContent = refusal ? `${refusal.message} ${refusal.nextAction}` : result.error.message);
+        return void (status.textContent = refusal ? [refusal.message, refusal.nextAction].filter(Boolean).join(" ") : result.error.message);
       }
       form.replaceChildren(h("p", { class: "money" }, "Added. Nothing can be paid to it yet."), h("p", {}, "Send this link to the payee. Their wallet signs once to prove the address is theirs; then it becomes payable."), h("p", {}, h("span", { class: "addr" }, result.data.signUrl ?? "—")),
         h("div", { class: "actions" }, h("button", { class: "btn primary", type: "button", onclick: () => void navigator.clipboard.writeText(result.data.signUrl ?? "") }, "Copy link"), h("button", { class: "btn", type: "button", onclick: close }, "Done")));

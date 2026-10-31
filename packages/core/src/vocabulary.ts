@@ -47,7 +47,7 @@ export const REASONS = {
   NO_CONTINUITY: { message: "The change was not approved by the payee's current address or by the owner.", retryable: true, nextAction: "Ask the payee to sign from their current wallet, or confirm in the owner app." },
   COOLDOWN_ACTIVE: { message: "The owner-confirmed change is still in its waiting period.", retryable: true, nextAction: "Nothing was changed yet. Try again after the cooldown." },
   CONTROL_NOT_PROVEN: { message: "The new address did not prove control.", retryable: true, nextAction: "The new address must sign the change or return the test transfer." },
-  MEMORY_WRITE_UNCONFIRMED: { message: "Walrus Memory did not confirm the record, so the agent did not act on it.", retryable: true, nextAction: "Nothing was added or changed. Try again in a few minutes." },
+  MEMORY_WRITE_UNCONFIRMED: { message: "Nothing was changed. Walrus Memory didn't confirm the write; try again in a few minutes.", retryable: true, nextAction: "" },
   MEMORY_INCOMPLETE: { message: "Memory could not be read completely.", retryable: true, nextAction: "Nothing was sent. Retry when memory is complete." },
   CHAIN_UNKNOWN: { message: "The chain did not give a definite answer.", retryable: true, nextAction: "Nothing was decided. Retry shortly." },
   KNOWN_ATTACK_PATTERN: { message: "This matches an earlier refused attempt.", retryable: false, nextAction: "Nothing was changed." },

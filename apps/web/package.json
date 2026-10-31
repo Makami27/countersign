@@ -3,14 +3,19 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@countersign/core": "workspace:*"
+    "@countersign/core": "workspace:*",
+    "@mysten/slush-wallet": "1.3.4",
+    "@mysten/sui": "2.37.0",
+    "@mysten/wallet-standard": "0.21.34"
   },
   "exports": {
     "./server": "./src/server.ts",
     "./ownerAuth": "./src/ownerAuth.ts",
     "./ownerSettings": "./src/ownerSettings.ts",
     "./ownerContext": "./src/ownerContext.ts",
-    "./addressGroups": "./client/addressGroups.ts"
+    "./addressGroups": "./client/addressGroups.ts",
+    "./changeSteps": "./src/changeSteps.ts",
+    "./changeCompletion": "./src/changeCompletion.ts"
   },
   "devDependencies": {
     "esbuild": "0.28.2"

@@ -6,6 +6,7 @@ import { WindowLimiter, clientAddress, cookie, problem, readJson, send } from ".
 import { SESSION_LIFETIME_MS } from "./ownerAuth.ts";
 import type { OwnerContext } from "./ownerContext.ts";
 import { activity, overview, payeeDetail, payeeSummary } from "./ownerViews.ts";
+import { tryCompleteChange } from "./changeCompletion.ts";
 
 export const SESSION_COOKIE = "cs_owner";
 export const CSRF_HEADER = "x-countersign";
@@ -85,6 +86,22 @@ export async function ownerRoute(ctx: OwnerContext, req: IncomingMessage, res: S
     if (outcome.verdict !== "PAY_RESERVED") return send(res, 422, refusalBody(outcome));
     void ctx.sendPayment(outcome.paymentId);
     return send(res, 202, { paymentId: outcome.paymentId, message: `Nothing has been sent yet. Sending ${formatUsdc(outcome.amountBaseUnits)} USDC now.` });
+  }
+  if (req.method === "POST" && parts[0] === "payees" && parts[1] && parts[2] === "changes") {
+    const payeeId = decodeURIComponent(parts[1]);
+    const address = String(input["address"] ?? "").trim().toLowerCase();
+    const text = `Owner requested a new address for ${payeeId}: ${address}`;
+    const outcome = await ctx.engine.handle({ id: `web:${randomBytes(8).toString("hex")}`, channel: "web", from: "owner", text, receivedAt: new Date(now).toISOString() }, { kind: "change_address", payeeId, newAddress: address, reasonQuote: text });
+    const signUrl = outcome.verdict === "CHANGE_STARTED" ? `${ctx.publicUrl ?? ""}/sign/${outcome.nonce}` : null;
+    return send(res, outcome.verdict === "CHANGE_STARTED" ? 200 : 422, { ...refusalBody(outcome), signUrl });
+  }
+  if (req.method === "POST" && parts[0] === "changes" && parts[1] && parts[2] === "confirm") {
+    const nonce = parts[1];
+    const change = ctx.index.pendingChange(nonce);
+    if (!change || Date.parse(change.expires) <= now) return send(res, 410, { refusal: { reason: "EXPIRED", ...REASONS.EXPIRED } });
+    if (!ctx.auth.consumeCode(String(input["code"] ?? ""))) return problem(res, 401, "That code is wrong, used or expired. Nothing was confirmed. Send /login to the bot for a fresh one.");
+    ctx.steps.confirmByOwner(nonce, `owner:${randomBytes(6).toString("hex")}`, new Date(now).toISOString());
+    return send(res, 200, { completion: await tryCompleteChange(ctx, nonce, now) });
   }
   return problem(res, 404, "Not found.");
 }

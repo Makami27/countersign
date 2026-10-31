@@ -67,7 +67,10 @@ export function payeeDetail(ctx: OwnerContext, id: string, now: number) {
     summary: payeeSummary(ctx, id, now),
     payTo: head.kind === "verified" ? { address: head.version.address, version: head.version.version, since: head.version.createdAt, why: whyVersion(head.version), verifications: verificationsOf(head.version) } : null,
     waiting: waiting && head.kind === "none" ? { address: waiting.address, expires: waiting.expires, signUrl: signUrl(ctx, waiting.nonce), expired: Date.parse(waiting.expires) <= now } : null,
-    pendingChanges: ctx.index.pendingChangesFor(id).filter((c) => Date.parse(c.expires) > now).map((c) => ({ toAddress: c.toAddress, expires: c.expires, signUrl: signUrl(ctx, c.nonce) })),
+    pendingChanges: ctx.index.pendingChangesFor(id).filter((c) => Date.parse(c.expires) > now).map((c) => {
+      const progress = ctx.steps.progress(c.nonce);
+      return { nonce: c.nonce, toAddress: c.toAddress, expires: c.expires, signUrl: signUrl(ctx, c.nonce), currentSignedAt: progress.current?.signedAt ?? null, newSignedAt: progress.next?.signedAt ?? null, ownerConfirmedAt: progress.owner?.confirmedAt ?? null, readyAt: progress.owner ? new Date(Date.parse(progress.owner.confirmedAt) + ctx.cooldownMs()).toISOString() : null };
+    }),
     latestRefusal: latest ? { receipt: latest.receipt, at: latest.createdAt, reason: latest.reason, message: latest.reason ? REASONS[latest.reason].message : "", address: latest.address, against: head.kind === "verified" ? head.version.address : null } : null,
     history: [
       ...[...versions].sort((a, b) => a.version - b.version).map((v) => ({ kind: "version" as const, label: `v${v.version}`, status: v.status, address: v.address, at: v.createdAt, why: whyVersion(v) })),

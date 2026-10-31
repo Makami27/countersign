@@ -55,6 +55,12 @@ export class OwnerAuth {
     return { ok: true, token, expiresAt };
   }
 
+  consumeCode(input: string): boolean {
+    const code = normalizeCode(input);
+    if (code.length !== CODE_LENGTH) return false;
+    return Number(this.#db.prepare("UPDATE login_codes SET used = 1 WHERE hash = ? AND used = 0 AND expires_at > ?").run(hash(code), this.#now()).changes) === 1;
+  }
+
   sessionValid(token: string | null): boolean {
     if (!token) return false;
     return this.#db.prepare("SELECT 1 FROM owner_sessions WHERE hash = ? AND expires_at > ?").get(hash(token), this.#now()) !== undefined;
