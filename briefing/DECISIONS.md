@@ -93,3 +93,8 @@ Where: `apps/agent/src/{main,telegram,telegramText}.ts`, `apps/web/src/{server,h
 ## D17: Hosting reopened (supersedes D15's choice of Railway)
 Context: Railway paused sign-ups after its 21 Oct incident (owner, 2026-10-31).
 Decision: no deploy until the owner names the host. The image is host-neutral: `Dockerfile` (Node 26.13.0, SQLite at `/data`, health `/api/health`, `WEB_PORT` or `PORT`), with `railway.json` and `fly.toml` (one machine always on, 512 MB, volume `countersign_data` at `/data`) both kept ready. Neither has been built or deployed.
+
+## D18: Hosting on Fly.io (supersedes D15 and D17)
+Context: owner's choice (2026-10-31); Railway sign-ups are paused.
+Decision: Fly app `countersign-agent` in `ams`, one shared-cpu-1x machine with 256 MB (raise to 512 MB only if it runs out), a 1 GB encrypted volume `countersign_data` at `/data`, shared IPv4 and IPv6 only (no dedicated IPv4). Secrets come from `.env` through `fly secrets import` and never appear in `fly.toml` or the repo; `fly.toml` holds only public config (`WEB_PORT`, `DATABASE_PATH`, `PUBLIC_BASE_URL=https://countersign-agent.fly.dev`). Health check `/api/health`. Only one instance may poll Telegram, so the local agent is stopped while the deployed one runs. `PUBLIC_URL` is renamed `PUBLIC_BASE_URL` (owner's name).
+Where: `fly.toml`, `Dockerfile`, `apps/agent/src/config.ts`
