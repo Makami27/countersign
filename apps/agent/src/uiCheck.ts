@@ -2,6 +2,7 @@ import { mkdirSync } from "node:fs";
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { chromium, type Page } from "playwright";
 import { OwnerAuth } from "@countersign/web/ownerAuth";
+import { SqliteRows } from "@countersign/adapters/sqlite";
 
 const BASE = process.argv[2] ?? "http://localhost:8788";
 const DATABASE = process.argv[3] ?? "";
@@ -33,7 +34,7 @@ async function shoot(name: string, target: Page = page): Promise<void> {
 await page.goto(`${BASE}/app`);
 await page.waitForURL(`${BASE}/app/login`);
 await shoot("01-login");
-await page.fill("#code", new OwnerAuth(DATABASE).issueCode());
+await page.fill("#code", await (await OwnerAuth.open(new SqliteRows(DATABASE))).issueCode());
 await page.click("button[type=submit]");
 await page.waitForSelector("text=Your agent is ready", { timeout: 30_000 });
 await shoot("02-first-run");

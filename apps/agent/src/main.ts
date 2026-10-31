@@ -2,10 +2,9 @@ import { randomBytes } from "node:crypto";
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { decodeSuiPrivateKey } from "@mysten/sui/cryptography";
 import { Countersign, InMemoryMemory, isRealUseNamespace, type EngineDeps, type PaymentIntent, type SuiAddress } from "@countersign/core";
-import { SqliteIndex, SqlitePaymentLedger } from "@countersign/adapters/sqlite";
 import { MemWalMemory } from "@countersign/adapters/memwal";
 import { PaymentRunner } from "@countersign/adapters/payments";
-import { SqliteRateGate, TATUM_FREE_TIER_INTERVAL_MS, TATUM_GRAPHQL_URL, TatumGraphql, TatumRoundTripChecker, TatumSignatureVerifier, USDC_COIN_TYPE, readAgentBalances, tatumGrpcClient, tatumPaymentChain, tatumRateGateName } from "@countersign/adapters/tatum";
+import { SharedRateGate, TATUM_FREE_TIER_INTERVAL_MS, TATUM_GRAPHQL_URL, TatumGraphql, TatumRoundTripChecker, TatumSignatureVerifier, USDC_COIN_TYPE, readAgentBalances, tatumGrpcClient, tatumPaymentChain, tatumRateGateName } from "@countersign/adapters/tatum";
 import { extractProposal } from "@countersign/adapters/gemini";
 import { recordSignerFromSeed } from "@countersign/adapters/signer";
 import { startWebServer } from "@countersign/web/server";
@@ -16,12 +15,14 @@ import { completeReadyChanges } from "@countersign/web/changeCompletion";
 import type { BalancesView, MemoryView, OwnerContext } from "@countersign/web/ownerContext";
 import { loadConfig } from "./config.ts";
 import { startBot } from "./telegram.ts";
+import { openStorage } from "./storage.ts";
 
 const RECONCILE_EVERY_MS = 60_000;
 const BALANCE_CACHE_MS = 30_000;
 
 const config = loadConfig(process.env);
-const gate = new SqliteRateGate(config.databasePath, tatumRateGateName(config.network), TATUM_FREE_TIER_INTERVAL_MS);
+const storage = await openStorage(config.database);
+const gate = new SharedRateGate(storage.rows, tatumRateGateName(config.network), TATUM_FREE_TIER_INTERVAL_MS);
 const grpc = tatumGrpcClient(config.network, config.tatumApiKey, gate);
 const graphql = new TatumGraphql(TATUM_GRAPHQL_URL[config.network], config.tatumApiKey, gate);
 const wallet = Ed25519Keypair.fromSecretKey(decodeSuiPrivateKey(config.agentWalletKey).secretKey);
@@ -29,13 +30,12 @@ const agentAddress = wallet.toSuiAddress() as SuiAddress;
 const walrus = config.memoryBackend === "walrus" ? new MemWalMemory(config.memwal) : null;
 const memory = walrus ?? new InMemoryMemory();
 const relayerLabel = walrus ? walrus.environment : "sandbox (not Walrus Memory)";
-const index = new SqliteIndex(config.databasePath);
-const ledger = new SqlitePaymentLedger(config.databasePath);
-const settings = new OwnerSettings(config.databasePath, { perPaymentBaseUnits: config.caps.perPaymentBaseUnits, perDayBaseUnits: config.caps.perDayBaseUnits, cooldownSeconds: config.cooldownMs / 1000 });
-const auth = new OwnerAuth(config.databasePath);
+const { index, ledger } = storage;
+const settings = await OwnerSettings.open(storage.rows, { perPaymentBaseUnits: config.caps.perPaymentBaseUnits, perDayBaseUnits: config.caps.perDayBaseUnits, cooldownSeconds: config.cooldownMs / 1000 });
+const auth = await OwnerAuth.open(storage.rows);
 const clock = { now: () => new Date() };
 const verifier = new TatumSignatureVerifier(grpc);
-const steps = new ChangeSteps(config.databasePath);
+const steps = await ChangeSteps.open(storage.rows);
 
 const deps: EngineDeps = {
   ownerId: config.ownerId, network: config.network, memory, index, payments: ledger, clock,
@@ -53,6 +53,7 @@ const runner = new PaymentRunner({ ledger, chain: tatumPaymentChain(grpc, wallet
 
 const restored = await engine.restore();
 const memoryView: MemoryView = { relayer: relayerLabel, restored: restored.ok, restoredAt: restored.ok ? clock.now().toISOString() : null, legacyRecords: restored.ok ? restored.legacy : 0, ignoredRecords: restored.ok ? restored.ignored : 0 };
+console.log(`Index and payment ledger: ${storage.label}.`);
 console.log(restored.ok ? `Memory (${relayerLabel}) restored: ${restored.payees} payee namespaces, ${restored.legacy} legacy and ${restored.ignored} ignored records.` : "Walrus Memory could not be read completely. Payments stay blocked until it can.");
 
 async function recordFinished(payments: readonly PaymentIntent[]): Promise<void> {
@@ -60,7 +61,19 @@ async function recordFinished(payments: readonly PaymentIntent[]): Promise<void>
 }
 
 await recordFinished(await runner.recoverInterrupted());
-setInterval(() => void runner.reconcileOpen().then(recordFinished), RECONCILE_EVERY_MS).unref();
+let paymentsOpen = true;
+async function reconcileIfOpen(): Promise<void> {
+  if (!paymentsOpen) return;
+  await recordFinished(await runner.reconcileOpen());
+  paymentsOpen = (await ledger.unresolvedPayments()).length > 0;
+}
+async function send(paymentId: string): Promise<PaymentIntent> {
+  paymentsOpen = true;
+  return runner.send(paymentId);
+}
+await reconcileIfOpen();
+console.log(paymentsOpen ? "Boot reconciliation: some payments are still open; they are checked every minute." : "Boot reconciliation: no open payments.");
+setInterval(() => void reconcileIfOpen().catch((error: Error) => console.error(`Reconciliation skipped: ${error.message.slice(0, 200)}`)), RECONCILE_EVERY_MS).unref();
 
 let balanceCache: { at: number; view: BalancesView } | null = null;
 async function balances(): Promise<BalancesView> {
@@ -85,17 +98,26 @@ const owner: OwnerContext = {
     return { realUseMemories: real.reduce((sum, c) => sum + c.count, 0), namespaces: real.length };
   },
   sendPayment: async (paymentId) => {
-    const payment = await runner.send(paymentId);
+    const payment = await send(paymentId);
     await recordFinished([payment].filter((p) => p.state === "SETTLED" || p.state === "FAILED"));
     return payment;
   },
 };
 
-setInterval(() => void completeReadyChanges(owner, Date.now()), RECONCILE_EVERY_MS).unref();
+await completeReadyChanges(owner, Date.now());
+setInterval(() => void completeReadyChanges(owner, Date.now()).catch((error: Error) => console.error(`Change completion skipped: ${error.message.slice(0, 200)}`)), RECONCILE_EVERY_MS).unref();
 
-startWebServer({ port: config.port, network: config.network, proofDatabasePath: config.databasePath, version: process.env["GIT_SHA"] ?? null, owner });
-startBot({
+const server = startWebServer({ port: config.port, network: config.network, proof: storage.rows, version: process.env["GIT_SHA"] ?? null, owner });
+const bot = startBot({
   token: config.telegram.token, ownerUserId: config.telegram.ownerUserId, network: config.network, publicUrl: config.publicUrl, engine, index, auth,
   extract: (text, payeeIds) => extractProposal(config.gemini, text, payeeIds),
-  sendPayment: (paymentId) => runner.send(paymentId),
+  sendPayment: send,
+});
+
+process.once("SIGTERM", () => {
+  console.log("Stopping: Telegram polling ends first so a new instance can take over.");
+  void bot.stop().finally(() => {
+    server.close();
+    void storage.close().finally(() => process.exit(0));
+  });
 });

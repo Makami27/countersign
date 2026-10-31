@@ -9,7 +9,7 @@ export type Config = {
   readonly gemini: { readonly apiKey: string; readonly model: string };
   readonly caps: { readonly perPaymentBaseUnits: bigint; readonly perDayBaseUnits: bigint };
   readonly cooldownMs: number;
-  readonly databasePath: string;
+  readonly database: { readonly kind: "postgres"; readonly url: string } | { readonly kind: "sqlite"; readonly path: string };
   readonly memoryBackend: "walrus" | "sandbox";
   readonly port: number;
   readonly publicUrl: string | null;
@@ -54,7 +54,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     gemini: { apiKey: need("GEMINI_API_KEY"), model: need("GEMINI_MODEL") },
     caps: { perPaymentBaseUnits: baseUnits("CAP_PER_PAYMENT_USDC_BASE_UNITS"), perDayBaseUnits: baseUnits("CAP_PER_DAY_USDC_BASE_UNITS") },
     cooldownMs: cooldownSeconds * 1000,
-    databasePath: need("DATABASE_PATH"),
+    database: env["DATABASE_URL"]?.trim() ? { kind: "postgres", url: env["DATABASE_URL"].trim() } : { kind: "sqlite", path: need("DATABASE_PATH") },
     memoryBackend: env["MEMORY_BACKEND"] === "sandbox" ? "sandbox" : "walrus",
     port: Number(env["WEB_PORT"] ?? env["PORT"]),
     publicUrl: env["PUBLIC_BASE_URL"]?.trim().replace(/\/+$/, "") || null,
@@ -62,6 +62,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
   const backend = need("MEMORY_BACKEND");
   if (backend !== "" && backend !== "walrus" && backend !== "sandbox") problems.push("MEMORY_BACKEND (walrus|sandbox)");
   if (backend === "sandbox" && network === "mainnet") problems.push("MEMORY_BACKEND=sandbox is not allowed with NETWORK=mainnet");
+  if (config.database.kind === "postgres" && !/^postgres(ql)?:\/\//.test(config.database.url)) problems.push("DATABASE_URL (postgres:// URL)");
   if (!Number.isInteger(config.port) || config.port <= 0) problems.push("WEB_PORT or PORT (positive integer)");
   if (config.publicUrl !== null && !/^https?:\/\/[^\s/]+$/.test(config.publicUrl)) problems.push("PUBLIC_BASE_URL (origin like https://example.com)");
   if (problems.length > 0) throw new ConfigError(problems);

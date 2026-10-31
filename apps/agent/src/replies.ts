@@ -35,6 +35,7 @@ export function paymentReply(payment: PaymentIntent, network: Network): string {
   }
 }
 
+export const STORE_UNANSWERED_REPLY = "Nothing was decided. Something the agent depends on didn't answer, so this was not paid or changed. Send it again in a minute.";
 export const MODEL_UNREADABLE_REPLY = "Nothing was sent and nothing was changed. I couldn't read that message right now because the language model didn't answer. Send it again in a minute.";
 
 export function replyFor(outcome: Outcome): string {

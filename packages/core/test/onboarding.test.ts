@@ -25,12 +25,12 @@ test("V03 a new payee stays unpayable until its own wallet signs the onboarding 
   assert.equal(reasonOf(await agent.handle(message("pay rent"), payRent)), "PAYEE_NOT_VERIFIED");
   const done = await agent.completeOnboarding(s.nonce, { kind: "signature", signature: flat.sign(s.text) });
   assert.equal(done.verdict, "CHANGE_VERIFIED");
-  const head = agent.payeeHead("flat-4b-rent");
+  const head = await agent.payeeHead("flat-4b-rent");
   assert.ok(head.kind === "verified" && head.version.name === "Flat 4B rent" && head.version.evidence.kind === "payee_onboarding");
   if (head.kind === "verified" && head.version.evidence.kind === "payee_onboarding") assert.equal(head.version.evidence.verifications[0]?.role, "control");
   const paid = await agent.handle(message("pay rent"), payRent);
   assert.equal(paid.verdict === "PAY_RESERVED" && paid.address, flat.address);
-  assert.equal(deps.index.payeeVersions("flat-4b-rent").length, 2);
+  assert.equal((await deps.index.payeeVersions("flat-4b-rent")).length, 2);
 });
 
 test("V03 adding a payee is refused when its address imitates a verified address or was refused before", async () => {

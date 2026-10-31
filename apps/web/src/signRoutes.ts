@@ -22,11 +22,11 @@ function stepRefusal(check: SignatureCheck): ReasonCode | null {
   }
 }
 
-function changeView(ctx: OwnerContext, nonce: string, now: number) {
-  const change = ctx.index.pendingChange(nonce);
+async function changeView(ctx: OwnerContext, nonce: string, now: number) {
+  const change = await ctx.index.pendingChange(nonce);
   if (!change) return null;
-  const head = headOf(ctx.index.payeeVersions(change.payeeId));
-  const progress = ctx.steps.progress(nonce);
+  const head = headOf(await ctx.index.payeeVersions(change.payeeId));
+  const progress = await ctx.steps.progress(nonce);
   return {
     kind: "change" as const, network: ctx.network, memory: ctx.memory().relayer, payeeName: head.kind === "verified" ? head.version.name : change.payeeId, fromAddress: change.fromAddress, toAddress: change.toAddress,
     message: changeMessage(change), expires: change.expires, expired: Date.parse(change.expires) <= now,
@@ -39,8 +39,8 @@ export async function signRoute(ctx: OwnerContext, req: IncomingMessage, res: Se
   const nonce = path.slice("/api/sign/".length);
   const now = Date.now();
   if (!NONCE.test(nonce)) return named(res, 404, "NONCE_REUSED");
-  const onboarding = ctx.index.pendingOnboarding(nonce);
-  const change = onboarding ? null : changeView(ctx, nonce, now);
+  const onboarding = await ctx.index.pendingOnboarding(nonce);
+  const change = onboarding ? null : await changeView(ctx, nonce, now);
   if (req.method === "GET") {
     if (onboarding) return send(res, 200, { kind: "onboarding", network: ctx.network, memory: ctx.memory().relayer, payeeName: onboarding.name, address: onboarding.address, expires: onboarding.expires, expired: Date.parse(onboarding.expires) <= now, message: onboardingMessage(onboarding) });
     return change ? send(res, 200, change) : named(res, 404, "NONCE_REUSED");
@@ -65,7 +65,7 @@ export async function signRoute(ctx: OwnerContext, req: IncomingMessage, res: Se
   const expected = role === "current" ? change.fromAddress : change.toAddress;
   const refusal = stepRefusal(await ctx.verifySignature(change.message, signature, expected));
   if (refusal) return named(res, 422, refusal);
-  ctx.steps.record(nonce, role, signature, new Date(now).toISOString());
+  await ctx.steps.record(nonce, role, signature, new Date(now).toISOString());
   const completion = await tryCompleteChange(ctx, nonce, now);
   if (completion.state === "COMPLETED" && completion.outcome.verdict === "REFUSED") return named(res, 422, completion.outcome.reason);
   return send(res, 200, { completion, view: changeView(ctx, nonce, now) });

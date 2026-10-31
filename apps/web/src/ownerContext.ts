@@ -24,7 +24,7 @@ export type OwnerContext = {
   readonly publicUrl: string | null;
   readonly engine: Countersign;
   readonly index: IndexStore;
-  readonly ledger: PaymentLedger & { reservedFor(period: string): bigint };
+  readonly ledger: PaymentLedger & { reservedFor(period: string): Promise<bigint> };
   readonly auth: OwnerAuth;
   readonly settings: OwnerSettings;
   readonly balances: () => Promise<BalancesView>;

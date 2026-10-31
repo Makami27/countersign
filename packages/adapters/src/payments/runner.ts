@@ -18,21 +18,21 @@ export class PaymentRunner {
   }
 
   async send(paymentId: string): Promise<PaymentIntent> {
-    const intent = this.#require(paymentId);
+    const intent = await this.#require(paymentId);
     if (intent.state !== "RESERVED") return intent;
     const prepared = await this.#d.chain.prepare(intent.address, intent.amountBaseUnits);
     if (!prepared.ok) {
-      this.#move(paymentId, "FAILED", `Nothing was sent: the transfer could not be built (${prepared.detail}).`, "PAYMENT_NOT_BUILT");
+      await this.#move(paymentId, "FAILED", `Nothing was sent: the transfer could not be built (${prepared.detail}).`, "PAYMENT_NOT_BUILT");
       return this.#require(paymentId);
     }
     const { digest, validUntilEpoch } = prepared.payment;
-    if (!this.#d.ledger.movePayment(paymentId, { to: "SENDING", at: this.#now(), detail: null, digest, validUntilEpoch })) return this.#require(paymentId);
+    if (!(await this.#d.ledger.movePayment(paymentId, { to: "SENDING", at: this.#now(), detail: null, digest, validUntilEpoch }))) return this.#require(paymentId);
     const submitted = await this.#d.chain.submit(prepared.payment);
-    if (submitted.state === "SENT") this.#move(paymentId, "SENT", "The gateway executed the transfer.");
+    if (submitted.state === "SENT") await this.#move(paymentId, "SENT", "The gateway executed the transfer.");
     else if (submitted.state === "FAILED") {
-      this.#move(paymentId, "FAILED", submitted.detail, "PAYMENT_FAILED_ON_CHAIN");
+      await this.#move(paymentId, "FAILED", submitted.detail, "PAYMENT_FAILED_ON_CHAIN");
       return this.#require(paymentId);
-    } else this.#move(paymentId, "UNKNOWN", submitted.detail);
+    } else await this.#move(paymentId, "UNKNOWN", submitted.detail);
     return this.settleSoon(paymentId);
   }
 
@@ -47,18 +47,18 @@ export class PaymentRunner {
   }
 
   async reconcile(paymentId: string): Promise<PaymentIntent> {
-    const intent = this.#require(paymentId);
+    const intent = await this.#require(paymentId);
     if (intent.digest === null || (intent.state !== "SENT" && intent.state !== "UNKNOWN")) return intent;
     const sighting = await this.#d.chain.sight(intent.digest, intent.address, intent.amountBaseUnits);
     const decision = reconcilePayment(intent, sighting);
-    if (decision.kind === "MOVE" && decision.to === "FAILED") this.#move(paymentId, "FAILED", decision.detail, decision.reason);
-    else if (decision.kind === "MOVE") this.#move(paymentId, "SETTLED", decision.detail);
-    return decision.kind === "MOVE" ? this.#require(paymentId) : this.#require(paymentId);
+    if (decision.kind === "MOVE" && decision.to === "FAILED") await this.#move(paymentId, "FAILED", decision.detail, decision.reason);
+    else if (decision.kind === "MOVE") await this.#move(paymentId, "SETTLED", decision.detail);
+    return this.#require(paymentId);
   }
 
   async reconcileOpen(): Promise<readonly PaymentIntent[]> {
     const finished: PaymentIntent[] = [];
-    for (const intent of this.#d.ledger.unresolvedPayments()) {
+    for (const intent of (await this.#d.ledger.unresolvedPayments())) {
       if (intent.state !== "SENT" && intent.state !== "UNKNOWN") continue;
       const after = await this.reconcile(intent.id);
       if (after.state === "SETTLED" || after.state === "FAILED") finished.push(after);
@@ -67,21 +67,20 @@ export class PaymentRunner {
   }
 
   async recoverInterrupted(): Promise<readonly PaymentIntent[]> {
-    for (const intent of this.#d.ledger.unresolvedPayments()) {
-      if (intent.state === "SENDING") this.#move(intent.id, "UNKNOWN", INTERRUPTED_WHILE_SENDING);
+    for (const intent of (await this.#d.ledger.unresolvedPayments())) {
+      if (intent.state === "SENDING") await this.#move(intent.id, "UNKNOWN", INTERRUPTED_WHILE_SENDING);
     }
     const results: PaymentIntent[] = [];
-    for (const intent of this.#d.ledger.unresolvedPayments()) results.push(await this.reconcile(intent.id));
+    for (const intent of (await this.#d.ledger.unresolvedPayments())) results.push(await this.reconcile(intent.id));
     return results;
   }
 
-  #move(paymentId: string, to: PaymentIntent["state"], detail: string, reason?: ReasonCode): void {
-    this.#d.ledger.movePayment(paymentId, reason === undefined ? { to, at: this.#now(), detail } : { to, at: this.#now(), detail, reason });
+  async #move(paymentId: string, to: PaymentIntent["state"], detail: string, reason?: ReasonCode): Promise<void> {
+    await this.#d.ledger.movePayment(paymentId, reason === undefined ? { to, at: this.#now(), detail } : { to, at: this.#now(), detail, reason });
   }
 
-
-  #require(paymentId: string): PaymentIntent {
-    const intent = this.#d.ledger.payment(paymentId);
+  async #require(paymentId: string): Promise<PaymentIntent> {
+    const intent = await this.#d.ledger.payment(paymentId);
     if (!intent) throw new Error(`No payment ${paymentId} in the ledger.`);
     return intent;
   }

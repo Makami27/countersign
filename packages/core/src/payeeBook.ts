@@ -1,4 +1,4 @@
-import type { PayeeHead, PayeeVersionRecord } from "./types.ts";
+import type { PayeeHead, PayeeVersionRecord, SuiAddress } from "./types.ts";
 
 export function headOf(versions: readonly PayeeVersionRecord[]): PayeeHead {
   const verified = versions.filter((v) => v.status === "VERIFIED");
@@ -7,6 +7,11 @@ export function headOf(versions: readonly PayeeVersionRecord[]): PayeeHead {
   const heads = verified.filter((v) => !superseded.has(v.version));
   const only = heads.length === 1 ? heads[0] : undefined;
   return only ? { kind: "verified", version: only } : { kind: "conflict" };
+}
+
+export function isPayeeHead(versions: readonly PayeeVersionRecord[], paying: { readonly payeeVersion: number; readonly address: SuiAddress }): boolean {
+  const head = headOf(versions);
+  return head.kind === "verified" && head.version.version === paying.payeeVersion && head.version.address === paying.address;
 }
 
 export function nextVersionNumber(versions: readonly PayeeVersionRecord[]): number {

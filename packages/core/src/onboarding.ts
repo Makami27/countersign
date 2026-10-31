@@ -25,12 +25,12 @@ export async function requestOnboarding(d: EngineDeps, name: string, address: st
   if (!payeeId) return refuse(d, "REFUSED", "NAME_INVALID", subject, trail);
   if (!parsed) return refuse(d, "REFUSED", "ADDRESS_NOT_IN_MESSAGE", subject, trail, "ADDRESS_IN_MESSAGE");
   trail.pass("ADDRESS_IN_MESSAGE");
-  if (d.index.payeeVersions(payeeId).length > 0) return refuse(d, "REFUSED", "CONFLICT", subject, trail, "OWNER_CONFIRMED");
+  if ((await d.index.payeeVersions(payeeId)).length > 0) return refuse(d, "REFUSED", "CONFLICT", subject, trail, "OWNER_CONFIRMED");
   trail.pass("OWNER_CONFIRMED");
-  const earlier = d.index.earlierRefusalFor(parsed);
+  const earlier = await d.index.earlierRefusalFor(parsed);
   if (earlier) return refuse(d, "REFUSED", "KNOWN_ATTACK_PATTERN", subject, trail, "NOT_KNOWN_ATTACK", earlier.receipt);
   trail.pass("NOT_KNOWN_ATTACK");
-  if (imitatesAny(parsed, d.index.verifiedAddresses())) return refuse(d, "REFUSED", "LOOKALIKE_ADDRESS", subject, trail, "NOT_LOOKALIKE");
+  if (imitatesAny(parsed, await d.index.verifiedAddresses())) return refuse(d, "REFUSED", "LOOKALIKE_ADDRESS", subject, trail, "NOT_LOOKALIKE");
   trail.pass("NOT_LOOKALIKE");
 
   const nonce = d.nonces.next();
@@ -38,21 +38,21 @@ export async function requestOnboarding(d: EngineDeps, name: string, address: st
   const stated = payeeVersion(d, payeeId, name.trim(), 1, parsed, "STATED", null, { kind: "onboarding_requested", ownerConfirmationId, nonce, expires });
   const written = await writeRecord(d, payeeNamespace(d.ownerId, payeeId), stated, `onboard:${nonce}:requested`);
   if (written.status !== "WRITTEN") return refuse(d, "REFUSED", "MEMORY_WRITE_UNCONFIRMED", subject, trail);
-  d.index.putPayeeVersion(stated);
-  d.index.insertPendingOnboarding({ nonce, payeeId, name: stated.name, address: parsed, expires });
+  await d.index.putPayeeVersion(stated);
+  await d.index.insertPendingOnboarding({ nonce, payeeId, name: stated.name, address: parsed, expires });
   return { verdict: "ONBOARDING_STARTED", payeeId, nonce, expires, address: parsed };
 }
 
 export async function completeOnboarding(d: EngineDeps, nonce: string, control: ControlProof): Promise<Outcome> {
   const trail = new CheckTrail();
-  const pending = d.index.pendingOnboarding(nonce);
+  const pending = await d.index.pendingOnboarding(nonce);
   if (!pending) return refuse(d, "CHANGE_REJECTED", "NONCE_REUSED", { ref: nonce, payeeId: null, address: null }, trail);
   const subject = { ref: nonce, payeeId: pending.payeeId, address: pending.address };
   if (new Date(pending.expires) < d.clock.now()) return refuse(d, "CHANGE_REJECTED", "EXPIRED", subject, trail);
-  const versions = d.index.payeeVersions(pending.payeeId);
+  const versions = await d.index.payeeVersions(pending.payeeId);
   const requested = versions.find((v) => v.evidence.kind === "onboarding_requested" && v.evidence.nonce === nonce);
   if (!requested || requested.evidence.kind !== "onboarding_requested" || headOf(versions).kind !== "none") return refuse(d, "CHANGE_REJECTED", "CONFLICT", subject, trail);
-  if (imitatesAny(pending.address, d.index.verifiedAddresses())) return refuse(d, "CHANGE_REJECTED", "LOOKALIKE_ADDRESS", subject, trail, "NOT_LOOKALIKE");
+  if (imitatesAny(pending.address, await d.index.verifiedAddresses())) return refuse(d, "CHANGE_REJECTED", "LOOKALIKE_ADDRESS", subject, trail, "NOT_LOOKALIKE");
   trail.pass("NOT_LOOKALIKE");
   const step = await checkControl(control, onboardingMessage(pending), pending.address, { signatures: d.signatures, roundTrips: d.roundTrips }, trail);
   if (!step.ok) return refuse(d, "CHANGE_REJECTED", step.reason, subject, trail);
@@ -62,8 +62,8 @@ export async function completeOnboarding(d: EngineDeps, nonce: string, control: 
   const record = payeeVersion(d, pending.payeeId, pending.name, requested.version + 1, pending.address, "VERIFIED", null, evidence);
   const written = await writeRecord(d, payeeNamespace(d.ownerId, pending.payeeId), record, `onboard:${nonce}:verified`);
   if (written.status !== "WRITTEN") return refuse(d, "CHANGE_REJECTED", "MEMORY_WRITE_UNCONFIRMED", subject, trail);
-  if (!d.index.consumePendingOnboarding(nonce)) return refuse(d, "CHANGE_REJECTED", "NONCE_REUSED", subject, trail);
-  d.index.putPayeeVersion(record);
+  if (!await d.index.consumePendingOnboarding(nonce)) return refuse(d, "CHANGE_REJECTED", "NONCE_REUSED", subject, trail);
+  await d.index.putPayeeVersion(record);
   const receipt = await writeReceipt(d, "CHANGE_VERIFIED", null, subject, trail, [written.blobId], null);
   return { verdict: "CHANGE_VERIFIED", version: record.version, blobId: written.blobId, receipt: receipt.receipt };
 }

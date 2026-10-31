@@ -2,17 +2,18 @@ import { mkdirSync } from "node:fs";
 import { Ed25519Keypair } from "@mysten/sui/keypairs/ed25519";
 import { chromium, type Browser } from "playwright";
 import { OwnerAuth } from "@countersign/web/ownerAuth";
+import { SqliteRows } from "@countersign/adapters/sqlite";
 
 const BASE = process.argv[2] ?? "http://localhost:8788";
 const DATABASE = process.argv[3] ?? "";
 const OUT = process.argv[4] ?? "evidence/screens/phase3";
 if (!DATABASE) throw new Error("Usage: signCheck.ts <base url> <database path> [out dir]");
 mkdirSync(OUT, { recursive: true });
-const auth = new OwnerAuth(DATABASE);
+const auth = await OwnerAuth.open(new SqliteRows(DATABASE));
 const problems: string[] = [];
 
 async function session(): Promise<string> {
-  const response = await fetch(`${BASE}/api/session`, { method: "POST", headers: { "content-type": "application/json", "x-countersign": "1" }, body: JSON.stringify({ code: auth.issueCode() }) });
+  const response = await fetch(`${BASE}/api/session`, { method: "POST", headers: { "content-type": "application/json", "x-countersign": "1" }, body: JSON.stringify({ code: await auth.issueCode() }) });
   return (response.headers.get("set-cookie") ?? "").split(";")[0] ?? "";
 }
 

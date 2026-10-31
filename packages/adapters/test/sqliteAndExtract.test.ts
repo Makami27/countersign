@@ -1,6 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { randomBytes } from "node:crypto";
+import { mkdtempSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { Countersign, InMemoryMemory, changeMessage } from "@countersign/core";
 import { SqliteIndex } from "../src/sqlite/indexStore.ts";
 import { SqlitePaymentLedger } from "../src/sqlite/paymentLedger.ts";
@@ -10,9 +13,10 @@ import { FixedClock, StandInVerifier, onboard, wallet, message, ONE_USDC } from 
 
 async function sqliteWorld() {
   const memory = new InMemoryMemory();
-  const index = new SqliteIndex(":memory:");
+  const path = join(mkdtempSync(join(tmpdir(), "countersign-sqlite-")), "agent.sqlite");
+  const index = new SqliteIndex(path);
   const deps = {
-    ownerId: "owner1", network: "testnet" as const, memory, index, payments: new SqlitePaymentLedger(":memory:"), signer: recordSignerFromSeed(randomBytes(32).toString("base64")), signatures: new StandInVerifier(),
+    ownerId: "owner1", network: "testnet" as const, memory, index, payments: new SqlitePaymentLedger(path), signer: recordSignerFromSeed(randomBytes(32).toString("base64")), signatures: new StandInVerifier(),
     roundTrips: { check: async () => "NOT_PROVEN" as const }, clock: new FixedClock("2026-10-30T10:00:00Z"),
     nonces: { next: () => randomBytes(8).toString("hex") }, caps: { perPaymentBaseUnits: 50_000_000n, perDayBaseUnits: 100_000_000n }, cooldownMs: 1000,
   };
@@ -39,7 +43,7 @@ test("S01 SQLite index: verified change, replay refusal and daily cap behave as 
 
 test("S02 SQLite index rebuilt from memory after a wipe gives the same payable address", async () => {
   const { agent, deps, landlord } = await sqliteWorld();
-  deps.index.clearIndex();
+  await deps.index.clearIndex();
   assert.equal((await new Countersign(deps).restore()).ok, true);
   const paid = await agent.handle(message("pay rent"), { kind: "pay", payeeId: "landlord", amountBaseUnits: ONE_USDC, reasonQuote: "pay rent" });
   assert.equal(paid.verdict === "PAY_RESERVED" && paid.address, landlord.address);

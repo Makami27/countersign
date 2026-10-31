@@ -137,7 +137,7 @@ test("C12 a fresh agent rebuilt from memory alone reaches the same payee state",
   const s = started(await agent.handle(message(`wallet ${next.address}`), { kind: "change_address", payeeId: "landlord", newAddress: next.address, reasonQuote: "x" }));
   const text = messageFor(s, "landlord");
   await agent.completeChange(s.nonce, { kind: "signature", signature: landlord.sign(text) }, { kind: "signature", signature: next.sign(text) });
-  deps.index.clearIndex();
+  await deps.index.clearIndex();
   const fresh = new Countersign(deps);
   assert.equal((await fresh.restore()).ok, true);
   const paid = await fresh.handle(message("pay rent"), pay);
@@ -170,8 +170,8 @@ test("C15 V08 a malformed or zero amount is refused as AMOUNT_INVALID, and one a
   }
   const over = await agent.handle(message("pay"), { ...pay, amountBaseUnits: "60000000" });
   assert.equal(over.verdict === "REFUSED" && over.reason, "CAP_EXCEEDED");
-  assert.equal(payments.unresolvedPayments().length, 0);
-  assert.equal(payments.reservedFor("2026-10-30"), 0n);
+  assert.equal((await payments.unresolvedPayments()).length, 0);
+  assert.equal((await payments.reservedFor("2026-10-30")), 0n);
 });
 
 test("C16 a payee with records but no verified version is PAYEE_NOT_VERIFIED, and a payee with no records is UNKNOWN_PAYEE", async () => {
