@@ -65,5 +65,5 @@ export function proofPageHtml(inputs: ProofInputs): string {
 ${counters(inputs.proof, inputs.memory)}
 ${measurementSection(inputs.measurement)}
 <section class="card"><h2>Claims ledger</h2><p class="note">Generated from <a href="https://github.com/Makami27/countersign/blob/main/CLAIMS.md" rel="noreferrer">CLAIMS.md</a>. Only PROVEN claims may appear in our copy.</p>
-<table class="claims"><thead><tr><th scope="col">Claim</th><th scope="col">Status</th><th scope="col">Evidence</th></tr></thead><tbody>${claimRowsHtml(inputs.claims)}</tbody></table></section>`, inputs.proof.connected ? (inputs.proof.network === "mainnet" ? "mainnet" : "testnet") : null, "detail receipt proof");
+<table class="claims"><thead><tr><th scope="col">Claim</th><th scope="col">Status</th><th scope="col">Evidence</th></tr></thead><tbody>${claimRowsHtml(inputs.claims)}</tbody></table></section>`, inputs.proof.connected ? (inputs.proof.network === "mainnet" ? "mainnet" : "testnet") : null, "detail receipt proof-page");
 }

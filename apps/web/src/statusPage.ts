@@ -8,7 +8,7 @@ function at(iso: string | null): string {
 }
 
 export function statusPageHtml(view: StatusView | null): string {
-  if (!view) return publicPage("Status", "<h1>Status</h1><p>This server isn't connected to the live agent, so it has nothing to check.</p>", null, "detail receipt status");
+  if (!view) return publicPage("Status", "<h1>Status</h1><p>This server isn't connected to the live agent, so it has nothing to check.</p>", null, "detail receipt status-page");
   const allOk = view.checks.every((c) => c.ok) && view.restore.complete;
   const rows = view.checks.map((c) => `<tr><td>${escapeHtml(c.name)}</td><td><span class="badge ${c.ok ? "proven" : "open"}">${c.ok ? "OK" : "Problem"}</span></td><td>${c.ms} ms</td><td>${c.detail ? escapeHtml(c.detail) : ""}</td></tr>`).join("");
   const version = view.version ? `<a href="${REPO_COMMIT}${escapeHtml(view.version)}" rel="noreferrer"><code>${escapeHtml(view.version.slice(0, 7))}</code></a>` : "unknown";
@@ -25,5 +25,5 @@ export function statusPageHtml(view: StatusView | null): string {
 </dl></section>
 <section class="card"><h2>Dependencies</h2><table class="claims"><thead><tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">Time</th><th scope="col">Detail</th></tr></thead><tbody>${rows}</tbody></table></section>
 ${model}
-<p class="note">The same data as JSON: <a href="/api/status">/api/status</a>. Proof and claims: <a href="/proof">/proof</a>.</p>`, view.network, "detail receipt status");
+<p class="note">The same data as JSON: <a href="/api/status">/api/status</a>. Proof and claims: <a href="/proof">/proof</a>.</p>`, view.network, "detail receipt status-page");
 }
