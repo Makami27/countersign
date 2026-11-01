@@ -117,7 +117,7 @@ async function renderPage(): Promise<void> {
   const match = /^\/app\/payees\/([^/]+)$/.exec(path);
   const selected = match?.[1] ? decodeURIComponent(match[1]) : (payees.data.payees[0]?.id ?? null);
   const list = payeeList(payees.data.payees, overview.data, selected, () => addPayeeSheet(overview.data.network, () => void render()), () => void render());
-  list.prepend(checklistCard(overview.data), pasteCard(() => void render()));
+  list.append(checklistCard(overview.data), pasteCard(() => void render()));
   if (!selected) return show(h("div", { class: "owner single at-list" }, list));
   const detail = await api<PayeeDetail>("GET", `/api/app/payees/${encodeURIComponent(selected)}`);
   const rerender = () => void render();

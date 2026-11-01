@@ -1,41 +1,59 @@
-# DESIGN: Countersign v1
+# DESIGN: Countersign, "the signing desk"
 
-Base: the existing landing + lab in `apps/web/public/` (built in parallel on 30 Oct). Its direction is kept and extended. Reference screens for everything new: `apps/web/design/owner.html`, `sign.html`, `receipt.html` (+ `screens.css`, `addr.js`). Screenshots of them at 390/1440, light and dark, were reviewed on 30 Oct.
+Replaces the v1 cheque-stock direction (30 Oct). The old reference screens in `apps/web/design/` are retired; the code in `apps/web/public/` and `apps/web/client/` is the reference now.
 
-## Subject, audience, job
-- **Subject:** a guard between an AI agent and the wallets it pays. Its world: cheques, countersignatures, security printing, the VOID stamp.
+## Concept
+A bank keeps a signature card on file and compares every cheque with it. Countersign does that for wallets. Signatures are the playful element, and they do a job: every address is drawn as a signature, so a look-alike *looks* wrong before you read a single character. The real check is still the address: the grouped hex comparison stays on every decision screen.
+
 - **Audience:** a person or small business whose agent pays rent, freelancers and suppliers in USDC, mostly on a phone; judges on a laptop.
 - **Primary job:** make obvious in under a second *which address will actually get paid, and why it's trusted.*
 
-## Tokens (from `apps/web/public/styles.css`, plus `--stated` added for v1)
-| Name | Light | Dark | Role |
+## Generated signatures (`apps/web/client/scrawl.ts`)
+- Pure, used by client and server: `scrawlFor(address)` returns one flowing stroke (1–3 loops, the first a big capital loop), a long tail (flick or back-sweep), an optional crossing underline and 1–2 dots. `scrawlMarkup()` renders it server-side; `scrawlEl()` in `dom.ts` renders it in the browser.
+- Seeded from a 128-bit hash of the **full** lower-cased address, so one changed character anywhere gives a different scrawl. Deterministic.
+- Always captioned **"Drawn from the address"** on a signature line. Never a name, never a copy of a real signature.
+- Shown on: signature cards (payee list, payee page, demo cards, landing hero), /sign, receipts. On refusals: the verified scrawl and the attempted scrawl side by side, the VOID stamp over the attempted one, then the grouped hex comparison.
+- Tests (`apps/web/test/signatures.test.ts`, V26): same address → same scrawl; Rent `0x68f2…023b` vs the look-alike `0x68f215db…663b023b` differ in path and in loop count or tail angle; 300 addresses all distinct, each with 1–3 loops and 1–2 dots.
+
+## Wordmark
+"counter" as a single hand-drawn SVG stroke (authored in `apps/web/client/wordmark.ts`; no handwriting photo was provided) plus "sign" in Familjen Grotesk. On the landing the stroke draws itself once on load (stroke-dashoffset, 1.2 s); under reduced motion it is shown complete. Static everywhere else. Favicon: the "co" of the stroke on paper.
+
+## Tokens (`apps/web/public/tokens.css`, linked by every page; no hard-coded colours elsewhere)
+| Token | Light | Dark | Role |
 |---|---|---|---|
-| `--paper` | `#E9F0EA` | `#0E1626` | background: cool cheque stock, not cream |
-| `--paper-raised` | `#F4F8F4` | `#1A2740` | cheque surfaces |
-| `--ink` | `#18233D` | `#E4ECE6` | text, primary buttons |
-| `--seal` | `#0F6B5C` | `#6FD1BC` | verified, payable |
-| `--stated` | `#8A5A00` | `#F2B95C` | stated, waiting for proof (new) |
-| `--void` | `#B3261E` | `#FF7A6B` | refusals, the VOID stamp |
-| `--focus` | `#1F5FD1` | `#8AB4FF` | focus rings |
+| `--paper` | `#F6F8FD` | `#0F1A3A` | page |
+| `--paper-raised` | `#FFFFFF` | `#16244B` | signature cards |
+| `--paper-deep` | `#E8EDF8` | `#0A1430` | insets, side column |
+| `--ink` | `#141B33` | `#EAF0FF` | text |
+| `--ink-soft` | `#4A5470` | `#AEBADB` | secondary text |
+| `--ballpoint` | `#2340C8` | `#9DB1FF` | signatures, links, primary buttons, focus |
+| `--stamp` / `--stamp-wash` | `#C8321E` / `#FCEBE7` | `#FF7A66` / `#3B1F2E` | VOID, refusals |
+| `--highlight` / `--on-highlight` | `#FFE45C` / `#7A5A00` | `#5A4A00` / `#FFE45C` | stated, waiting for proof |
+| `--seal` / `--seal-wash` | `#0F7A5F` / `#E1F3EC` | `#6FD9BC` / `#12363D` | verified |
 
-## Type
-- **Familjen Grotesk** for all UI and display text, sentence case.
-- **Martian Mono (87.5% width)** only for wallet addresses, digests and the signed message, where character-by-character comparison is the task. Never for labels.
-- **Self-host both as subset WOFF2** (`apps/web/design/fonts/` has the OFL TTFs). The current page loads Google Fonts, which breaks under strict networks and adds a third-party origin to the CSP.
+Every text/background pair was checked ≥ 4.5:1 (tightest: stamp red on light `--paper-deep`, 4.55; highlighter text 5.02 light, 6.84 dark). No changes to the specified values were needed.
 
-## The one memorable thing
-**Addresses are typeset for comparison.** Every address on a decision screen is set in 4-character groups. On a refused look-alike, the groups the scammer copied are dimmed, the groups that differ are bold void-red with a heavy underline, and a rotated VOID stamp sits beside the heading: the only non-user-triggered animation in the product (a fade under reduced motion). Verified addresses carry a countersignature line. Everything else stays quiet.
+**Type:** Familjen Grotesk everywhere (self-hosted WOFF2 subset); Martian Mono at 87.5% width only for addresses, digests and signed messages. No script fonts; handwriting is SVG strokes only.
 
 ## Layout
-- **Phone first.** Single column, cheque cards (guilloche strip on the left edge, 6px radius, 1px border, no shadow), sticky bottom action bar on detail screens.
-- **≥ 960px:** owner app is two panes (380px list | detail ≤ 860px). Public pages use the existing centred column.
-- Left-aligned text; numbers right-aligned in tables.
+- Phone first, left-aligned, 16 px gutter on phones.
+- **Only payees are cards** (signature card: name, status, scrawl on a signature line, address). Everything else is lists and lines: refusals are a section under a stamp-red rule, pending changes a highlighter-ruled block, proof/status/receipt sections are separated by hairlines, not boxes.
+- `/app` and `/demo`: tabs on phones, columns from 960 px (`/app`: payees | detail; `/demo`: letters | cards | activity).
+- Landing: headline "Your agent only pays signatures it has on file." → live signature card (Rent, a look-alike letter, both scrawls, VOID, grouped comparison, money sentence) → "Try the demo" / "Sign in with your wallet" → how it works (3 steps) → measured figures and the claims ledger → footer. The landing ships **no JavaScript**: scrawls, measurement and claims are rendered on the server.
 
-## Principles
-1. Status is colour plus words ("Verified", "Change waiting for proof", "Attempt refused"), never colour alone.
-2. Every outcome starts by saying what happened to money: "Nothing was sent and nothing was changed." / "Sent 0.10 USDC to Flat 4B rent."
-3. Proof is one tap away: every verdict links to its receipt; every receipt links to Walrus Memory and Sui.
-4. Numbered markers only for real sequences: change signatures (1, 2) and the checks the agent ran, in order. Address history uses version labels (v1, v2) plus "Refused" rows.
-5. Focus visible (2px ring), reduced motion respected, contrast ≥ 4.5:1 in both themes, tap targets ≥ 44px.
-7. **Waiting on memory is visible.** A Walrus Memory write takes about 20–23 s (S2). Every surface that waits on one (Telegram reply, web screen, sign page) first shows a pending state that says nothing has been sent or changed yet, then replaces it with the outcome. It never looks frozen, and a write that times out is shown as "not confirmed yet", never as success.
-6. Avoid: all-caps eyebrows, monospace labels, identical shadowed cards, gradient washes, "→" on buttons, middle-dot meta strings.
+## Motion (only these three)
+1. The wordmark drawing on the landing.
+2. A signature drawing itself the first time a payee is seen verified in this browser (`.scrawl.draw`; remembered in localStorage, which only decides the animation).
+3. The VOID stamp landing. Under reduced motion it fades (Q04) and the drawings appear complete.
+
+## Principles kept
+1. Every outcome starts with what happened to money ("Nothing was sent and nothing was changed.").
+2. Status is colour plus words, never colour alone.
+3. Addresses in 4-character groups; on a comparison the differing groups are red, bold and underlined, copied groups are dimmed.
+4. Tap targets ≥ 44 px, visible 2 px focus ring, CSP `'self'` (no inline styles or scripts), the network label on every page.
+5. Waiting on memory is visible; a timeout is "not confirmed yet", never success.
+6. Q01–Q05: every route at 360/390/768/1024/1440, light and dark, no horizontal scroll (`scripts/design-shots.ts` checks scrollWidth), axe 0 serious, JS budget on public pages.
+
+## Status (1 Nov)
+Done: tokens, fonts, wordmark, scrawl module + tests, landing, /app payee list and payee page.
+Next: /demo (letters, signature cards, activity), the rest of /app (activity, settings, funding, checklist, paste box, admin, Connect Telegram, sheets), sign-in, /sign (scrawl draws on Done), /r, /proof, /status; retire `apps/web/design/`; screenshots of every route at 5 widths × 2 themes; axe; JS budget check.

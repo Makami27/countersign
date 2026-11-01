@@ -1,4 +1,4 @@
-import { addressEl, countersignMark, h, statusPill, usdc, when } from "../dom.ts";
+import { addressEl, h, scrawlEl, signatureFigure, statusPill, usdc, when } from "../dom.ts";
 import type { PayeeDetail } from "../types.ts";
 
 const REFUSAL_FRESH_MS = 7 * 24 * 3600 * 1000;
@@ -14,19 +14,22 @@ function copyButton(text: string, label: string): HTMLButtonElement {
 function verifiedLine(detail: PayeeDetail): HTMLElement | null {
   if (!detail.payTo) return null;
   const signed = detail.payTo.verifications.map((v) => `${v.role === "control" ? "payee's wallet" : "previous wallet"} (${v.scheme === "ZKLOGIN" ? "zkLogin" : "Ed25519"}, checked at epoch ${v.checkedAtEpoch}${v.maxEpoch ? `; zkLogin signatures stop verifying after epoch ${v.maxEpoch}` : ""})`);
-  return h("div", { class: "countersig" }, countersignMark(), h("span", {}, `${detail.payTo.why} Since ${when(detail.payTo.since)}.${signed.length ? ` Signed by: ${signed.join("; ")}.` : ""}`), statusPill("verified"));
+  return h("p", { class: "countersig note" }, `${detail.payTo.why} Since ${when(detail.payTo.since)}.${signed.length ? ` Signed by: ${signed.join("; ")}.` : ""}`);
 }
 
 function refusalCard(detail: PayeeDetail, now: number): HTMLElement | null {
   const refusal = detail.latestRefusal;
   if (!refusal || now - Date.parse(refusal.at) > REFUSAL_FRESH_MS) return null;
   return h("article", { class: "attempt", "aria-labelledby": "attempt-title" },
-    h("div", { class: "attempt-head" }, h("h3", { id: "attempt-title" }, `Attempt refused, ${when(refusal.at)}`), h("div", { class: "stamp", "aria-hidden": "true" }, "VOID")),
+    h("div", { class: "attempt-head" }, h("h3", { id: "attempt-title" }, `Attempt refused, ${when(refusal.at)}`), refusal.address && refusal.against ? null : h("span", { class: "stamp inline", "aria-hidden": "true" }, "VOID")),
     h("p", { class: "money" }, "Nothing was sent and nothing was changed."),
     h("p", {}, refusal.message),
+    refusal.address && refusal.against ? h("div", { class: "versus" },
+      h("div", { class: "versus-side" }, h("span", { class: "label" }, "On file"), scrawlEl(refusal.against)),
+      h("div", { class: "versus-side attempted" }, h("span", { class: "label" }, "In the message"), scrawlEl(refusal.address), h("span", { class: "stamp", "aria-hidden": "true" }, "VOID"))) : null,
     refusal.address && refusal.against ? h("div", { class: "compare" },
       h("div", { class: "row" }, h("span", { class: "label" }, "Address in the message"), addressEl(refusal.address, { against: refusal.against })),
-      h("div", { class: "row" }, h("span", { class: "label" }, "Verified address"), addressEl(refusal.against))) : null,
+      h("div", { class: "row on-file" }, h("span", { class: "label" }, "Verified address"), addressEl(refusal.against))) : null,
     h("p", { class: "links" }, `Receipt ${refusal.receipt}`));
 }
 
@@ -78,7 +81,10 @@ export function payeeDetailView(detail: PayeeDetail, actions: DetailActions): HT
     h("a", { class: "back", href: "/app", "data-link": true }, "All payees"),
     h("header", {}, h("h2", { id: "payee-title" }, detail.summary.name),
       h("p", { class: "lede" }, verified ? "Payments go to the address below. Nothing anyone sends the agent can change that without proof." : "This payee can't be paid yet.")),
-    detail.payTo ? h("div", { class: "payto" }, h("span", { class: "label" }, "Pays to"), addressEl(detail.payTo.address), verifiedLine(detail)) : null,
+    detail.payTo ? h("article", { class: `sigcard payto ${verified ? "verified" : "refused"}`, "aria-label": `Signature card for ${detail.summary.name}` },
+      h("div", { class: "sigcard-head" }, h("span", { class: "label" }, "Pays to"), statusPill(verified ? "verified" : "conflict")),
+      signatureFigure(detail.payTo.address, { drawWhenNew: verified }),
+      addressEl(detail.payTo.address), verifiedLine(detail)) : null,
     waitingCard(detail),
     ...detail.pendingChanges.map((c) => pendingChangeCard(c, detail.payTo?.address ?? null, actions.onConfirm)),
     refusalCard(detail, now),
