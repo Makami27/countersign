@@ -1,3 +1,4 @@
+import { scrawlMarkup } from "../client/scrawl.ts";
 import type { BlobLink, ReceiptView } from "./receiptView.ts";
 import { addressHtml, escapeHtml, publicPage } from "./publicPage.ts";
 
@@ -19,8 +20,10 @@ function attemptHtml(view: ReceiptView): string {
   if (!view.attempt) return "";
   const verified = view.attempt.verified;
   const rows = [`<div class="row"><span class="label">Address in the attempt</span>${addressHtml(view.attempt.address, verified)}</div>`];
-  if (verified) rows.push(`<div class="row"><span class="label">${escapeHtml(view.payeeName ?? "Payee")}'s verified address today</span>${addressHtml(verified, view.attempt.address)}</div>`);
-  return `<section class="attempt" aria-label="Address comparison"><div class="attempt-head"><p class="money">${verified ? "Underlined groups differ from the verified address." : "This address was never verified."}</p><span class="stamp" aria-hidden="true">VOID</span></div><div class="compare">${rows.join("")}</div></section>`;
+  if (verified) rows.push(`<div class="row on-file"><span class="label">${escapeHtml(view.payeeName ?? "Payee")}'s verified address today</span>${addressHtml(verified, view.attempt.address)}</div>`);
+  const onFile = verified ? `<div class="versus-side"><span class="label">On file</span>${scrawlMarkup(verified)}</div>` : `<div class="versus-side"><span class="label">On file</span><p class="note">No verified address</p></div>`;
+  const versus = `<div class="versus" aria-hidden="true">${onFile}<div class="versus-side attempted"><span class="label">In the attempt</span>${scrawlMarkup(view.attempt.address)}<span class="stamp">VOID</span></div></div><p class="note">Signatures drawn from the addresses. The check is the address itself, below.</p>`;
+  return `<section class="attempt" aria-label="Address comparison">${versus}<p class="money">${verified ? "Underlined groups differ from the verified address." : "This address was never verified."}</p><div class="compare">${rows.join("")}</div></section>`;
 }
 
 export function receiptHtml(view: ReceiptView): string {

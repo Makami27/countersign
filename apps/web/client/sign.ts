@@ -1,5 +1,5 @@
 import { api } from "./api.ts";
-import { addressEl, h, liveRegion, networkWords, when } from "./dom.ts";
+import { addressEl, h, liveRegion, networkWords, scrawlEl, signatureFigure, statusPill, when } from "./dom.ts";
 import { walletStep, type WalletRole } from "./walletSteps.ts";
 
 type Step = { readonly signedAt: string } | null;
@@ -50,7 +50,10 @@ function completed(view: CompletedView): HTMLElement[] {
     h("h1", { tabindex: "-1" }, "Done"),
     h("p", { class: "money" }, "Nothing was sent."),
     h("p", { class: "note" }, networkWords(view.network)),
-    h("p", {}, `${view.payeeName} now pays `, addressEl(view.address), ` (v${view.verifiedNumber}), ${CONFIRMED_BY[view.how] ?? "verified"}, ${when(view.at)}.`),
+    h("article", { class: "sigcard verified", "aria-label": `Signature card for ${view.payeeName}` },
+      h("div", { class: "sigcard-head" }, h("h2", { class: "sigcard-name" }, view.payeeName), statusPill("verified")),
+      signatureFigure(view.address, { drawWhenNew: view.stillCurrent }),
+      h("p", {}, `${view.payeeName} now pays `, addressEl(view.address), ` (v${view.verifiedNumber}), ${CONFIRMED_BY[view.how] ?? "verified"}, ${when(view.at)}.`)),
     view.stillCurrent ? null : h("p", { class: "note" }, "A later change has replaced this address since."),
     view.receipt ? h("p", { class: "links" }, h("a", { href: `/r/${view.receipt}` }, `Receipt ${view.receipt}`)) : null,
     h("p", { class: "note" }, "This link is used up. Nothing more needs signing."),
@@ -66,6 +69,9 @@ function body(view: OnboardingView | ChangeView): HTMLElement[] {
       h("h1", { tabindex: "-1" }, `Confirm your wallet for ${view.payeeName}`),
       h("p", { class: "lede" }, "You were added as a payee of an agent that only pays wallets their owners have proven. Connect this wallet, then sign once. Signing costs nothing and moves no money."),
       h("dl", { class: "facts" }, h("div", {}, h("dt", {}, "Payee"), h("dd", {}, view.payeeName)), h("div", {}, h("dt", {}, "Your wallet"), h("dd", {}, addressEl(view.address))), h("div", {}, h("dt", {}, "Network"), h("dd", {}, networkWords(view.network))), h("div", {}, h("dt", {}, "Request expires"), h("dd", {}, when(view.expires)))),
+      h("article", { class: "sigcard stated", "aria-label": "Signature card waiting for your wallet" },
+        h("div", { class: "sigcard-head" }, h("h2", { class: "sigcard-name" }, view.payeeName), statusPill("waiting_wallet")),
+        signatureFigure(view.address), h("p", { class: "note" }, "This goes on file once your wallet signs.")),
       message, status, signStep(view, "onboarding", view.address, status),
       h("p", { class: "note" }, "Didn't expect this? Don't sign. Nothing is paid to this wallet unless it signs."),
     ];
@@ -75,6 +81,9 @@ function body(view: OnboardingView | ChangeView): HTMLElement[] {
     h("h1", { tabindex: "-1" }, `Confirm your new wallet for ${view.payeeName}'s payments`),
     h("p", { class: "lede" }, view.owner ? "The owner confirmed this change. Connect the new wallet and sign once to prove it is yours. Signing costs nothing and moves no money." : "To move your payments, connect and sign with your current wallet, then connect and sign with the new one. Signing costs nothing and moves no money."),
     h("dl", { class: "facts" }, h("div", {}, h("dt", {}, "Payee"), h("dd", {}, view.payeeName)), h("div", {}, h("dt", {}, "Current wallet"), h("dd", {}, addressEl(view.fromAddress))), h("div", {}, h("dt", {}, "New wallet"), h("dd", {}, addressEl(view.toAddress))), h("div", {}, h("dt", {}, "Request expires"), h("dd", {}, when(view.expires)))),
+    h("div", { class: "versus", "aria-hidden": "true" },
+      h("div", { class: "versus-side" }, h("span", { class: "label" }, "Current wallet"), scrawlEl(view.fromAddress)),
+      h("div", { class: "versus-side" }, h("span", { class: "label" }, "New wallet"), scrawlEl(view.toAddress))),
     h("section", { "aria-labelledby": "steps-title" }, h("h2", { id: "steps-title", class: "note" }, "Two signatures"), h("ol", { class: "steps" },
       stepRow(1, view.owner ? "Confirmed by the owner" : "Connect and sign with your current wallet", view.owner ? "owner" : view.steps.current, view.owner ? `Waiting period ends ${when(view.owner.readyAt)}` : ""),
       stepRow(2, "Connect and sign with your new wallet", view.steps.next, ""))),
@@ -95,6 +104,8 @@ async function render(): Promise<void> {
   const view = result.data;
   if (banner) {
     banner.hidden = !view.memory.startsWith("sandbox");
+    const netlabel = document.querySelector<HTMLElement>("#netlabel");
+    if (netlabel) netlabel.textContent = view.network === "mainnet" ? "Sui mainnet" : "Sui testnet · test USDC";
     banner.textContent = banner.hidden ? "" : "Sandbox memory: nothing here is stored on Walrus Memory. For local screen checks only.";
   }
   if (view.kind === "completed") root?.replaceChildren(...completed(view));
