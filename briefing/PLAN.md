@@ -20,18 +20,18 @@ Revised 2026-10-30 (owner review of the phase plan): skeleton deploy moved to Ph
 - Phase 3: onboarding only after the payee's wallet signs (D14); `/sign/:nonce`; two-signature change (V11); owner path with cooldown (V12); named refusals (V13).
 - Hosting: Render free + Neon Postgres (D19); async ports with an atomic reserve and payee-head check; Fly destroyed. README "Known limits" covers free-tier restarts.
 - Phase 4 so far: `/r/:receipt` (V14); `/api/status` (Postgres, Tatum gRPC and GraphQL, Walrus relayer, Telegram polling, Gemini stats); landing claims table generated from CLAIMS.md; owner-app timeouts and the promise lint.
+- Act 4 on the custom domain (`evidence/acts/act4`, CL15): Rent's current wallet then the new wallet signed; Rent now pays `0x993ae91d…9496` (2nd verified address, record v5); 0.01 test USDC settled there (tx `DghoXibM…ZqyZ`) via `payPayee.ts`. The used link shows Done.
 - Acts 2–3 on Render (`evidence/acts/act2`, `act3`, CL14). Look-alikes and known attacks are now refused by code before the model; Gemini retries once on 429/5xx.
 - V20 owner-wallet protection (D20, THREAT_MODEL.md): committed `1d47c7f`, **not deployed**.
 - V21 scheduled payments (D21): monthly or yearly, owner-wallet signature to create/change/delete, one payment per period (`schedule:<id>:<period>`), late boot run, hourly retry only for retryable refusals, Telegram notice with receipt link; panel on the payee page. Committed, **not deployed**.
 - V22 shared scam memory (D22): look-alike and known-attack refusals share a signed attack_seen record; other agents refuse that address with SEEN_BY_OTHER_AGENT (first receipt, distinct agent keys); never blocks a VERIFIED payee, continuity overrides, 90-day window, owner-signed retraction, no endpoint lists it. No retract button in the owner app yet (API only). Committed, **not deployed**.
-- Real-use memories: 6 of 10 (CL07).
+- Real-use memories: CL07 says 6 of 10; the Act 4 capture counted 12 records in this owner's namespaces (owner 1, payee:rent 5, receipts 6). Re-check CL07 against its definition before changing it.
 
 **Blocked / waiting**
-- **Act 4**: fresh change request for Rent: current wallet `0x68f21c9f…b023b` → new wallet `0x993ae91d7f9aedfc2724f69ac263d437e6fcd4bde521d696a895932582679496`, nonce `7b77c6d4f82b4019e297e16f63c70df2`, expires 2026-11-01 23:59 UTC: https://countersign.nittings.xyz/sign/7b77c6d4f82b4019e297e16f63c70df2. Waiting for the owner to sign with the current wallet, then the new wallet; then pay 0.01 test USDC to Rent and capture into `evidence/acts/act4/` (`captureActs.ts` shows the pattern). The old request (nonce 875fe73f…) expires unsigned.
 - Delegate key rotation after the relayer echoed it in an error (REALITY_SPIKES R4).
 
 **Next steps**
-1. Act 4: sign the change, pay Rent, capture.
+1. Check the new click-first wallet buttons in a real browser (no popup blocked) on /sign and /app.
 2. Rest of Phase 4: `/proof` page, `/status` page, lab upgrade, preregistered measurement; real use to ≥10 memories.
 
 **Background jobs and how to check them**
