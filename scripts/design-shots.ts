@@ -12,16 +12,18 @@ const cleanups: (() => void)[] = [];
 const s = await ownerServer({ after: (fn: () => void) => void cleanups.push(fn) } as unknown as TestContext);
 const fake = lookalikeOf(s.landlord.address);
 await s.agent.handle(message(`Hi, it's your landlord. New wallet ${fake}, please pay there.`), { kind: "change_address", payeeId: "landlord", newAddress: fake, reasonQuote: "New wallet" });
-const routes: [string, string, string?][] = [["landing", "/"], ["app-payee", "/app/payees/landlord"], ["app", "/app"], ["demo", "/demo", "button.demo-letter >> nth=1"], ["proof", "/proof"], ["status", "/status"]];
+const routes: [string, string, string?][] = [["landing", "/"], ["app-payee", "/app/payees/landlord"], ["app", "/app"], ["app-add", "/app", "button:has-text('Add a payee')"], ["app-activity", "/app/activity"], ["app-settings", "/app/settings"], ["app-admin", "/app/admin"], ["sign-in", "/app?signed-out"], ["demo", "/demo", "button.demo-letter >> nth=1"], ["proof", "/proof"], ["status", "/status"]];
 const browser = await chromium.launch();
 const host = new URL(s.base).hostname;
 const [name, value] = s.cookie.split("=");
 for (const scheme of ["light", "dark"] as const) for (const width of widths) {
   const context = await browser.newContext({ viewport: { width, height: 900 }, colorScheme: scheme, reducedMotion: "reduce" });
   await context.addCookies([{ name: name ?? "", value: value ?? "", domain: host, path: "/" }]);
-  const page = await context.newPage();
+  const signedIn = await context.newPage();
+  const anonymous = await (await browser.newContext({ viewport: { width, height: 900 }, colorScheme: scheme, reducedMotion: "reduce" })).newPage();
   for (const [label, path, click] of routes) {
     if (only && !only.includes(label)) continue;
+    const page = label === "sign-in" ? anonymous : signedIn;
     await page.goto(`${s.base}${path}`);
     await page.waitForTimeout(900);
     if (click) {
@@ -33,6 +35,7 @@ for (const scheme of ["light", "dark"] as const) for (const width of widths) {
     await page.screenshot({ path: `${out}/${label}-${width}-${scheme}.png`, fullPage: true });
   }
   await context.close();
+  await anonymous.context().close();
 }
 await browser.close();
 for (const fn of cleanups) fn();

@@ -36,5 +36,6 @@ export function signInPage(onSignedIn: () => void, why: string | null): HTMLElem
   box.append(h("div", { class: "actions" }, ...(buttons.length ? buttons : [h("p", { class: "note" }, "No Sui wallet found. Install Slush (it lets you continue with Google), then reload this page.")])), h("p", { class: "note" }, EXTENSION_TIP));
   const notice = why ? h("p", { class: "note", role: "status" }, why) : "";
   return h("section", { class: "narrow", "aria-labelledby": "login-title" }, h("h1", { id: "login-title" }, "Sign in to your agent"),
-    h("p", { class: "lede" }, "Sign in with your Sui wallet. Slush lets you continue with Google. The first wallet to sign in becomes this agent's owner wallet."), notice, status, box);
+    h("p", { class: "lede" }, "Sign in with your Sui wallet. Slush lets you continue with Google. The first wallet to sign in becomes this agent's owner wallet."),
+    h("div", { class: "signing-line", "aria-hidden": "true" }, h("span", { class: "line" }), h("span", { class: "note" }, "Your wallet signs a one-time message here. It costs nothing and moves no money.")), notice, status, box);
 }

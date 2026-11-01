@@ -56,6 +56,12 @@
 .app input:focus-visible, .app textarea:focus-visible, .app select:focus-visible { border-color: var(--focus); }
 .app input.mono, .app textarea.mono { font-family: var(--mono); font-stretch: 87.5%; font-size: var(--step--1); }
 .app .hint { font-weight: 400; }
+.app input[type="checkbox"] { width: 1.4rem; height: 1.4rem; min-height: 0; padding: 0; margin: 0.15rem 0 0; accent-color: var(--ballpoint); flex: none; }
+.app label.check { display: flex; align-items: flex-start; gap: var(--space-3); font-weight: 400; min-height: var(--tap); }
+.app dialog h2 { margin-bottom: var(--space-3); }
+.app .signing-line { display: grid; gap: var(--space-1); padding: var(--space-5) var(--space-4) var(--space-3); border: 1px dashed var(--line-strong); border-radius: var(--radius-card); }
+.app .signing-line .line { display: block; height: 2.5rem; border-bottom: 1.5px solid var(--ink); position: relative; }
+.app .signing-line .line::before { content: "×"; position: absolute; left: 0; bottom: 0.2rem; font-size: var(--step-1); color: var(--ink-soft); }
 
 .app .narrow { max-width: 640px; width: 100%; margin: 0 auto; padding: var(--space-5) var(--gutter) var(--space-6); display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: var(--space-5); }
 .app .narrow h1 { font-size: var(--step-2); }
