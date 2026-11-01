@@ -115,3 +115,6 @@
   .app .demo-grid[data-tab="cards"] .demo-panel:not([data-panel="cards"]),
   .app .demo-grid[data-tab="activity"] .demo-panel:not([data-panel="activity"]) { display: none; }
 }
+.app .card > .facts:first-child > div:first-child, .app .card > h2 + .facts > div:first-child { border-top: 0; }
+.app .proof-page .facts dd strong { font-size: var(--step-2); font-weight: 600; letter-spacing: -0.02em; margin-right: var(--space-2); }
+.app .receipt > .label:first-child { margin-bottom: calc(-1 * var(--space-3)); }
