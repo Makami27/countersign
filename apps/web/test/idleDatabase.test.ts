@@ -16,7 +16,7 @@ function rows(): CountingRows {
 
 test("D19 the 5-minute ping to /api/health never touches the database", async (t) => {
   const db = rows();
-  const server = startWebServer({ port: 0, network: "testnet", proof: db, version: null, owner: null });
+  const server = startWebServer({ port: 0, network: "testnet", proof: db, version: null, owners: null });
   await new Promise<void>((resolve) => server.once("listening", () => resolve()));
   t.after(() => server.close());
   const before = db.queries;

@@ -14,20 +14,22 @@ import { ChangeSteps } from "../src/changeSteps.ts";
 import { tryCompleteChange } from "../src/changeCompletion.ts";
 import type { OwnerContext } from "../src/ownerContext.ts";
 import { ownerExtras } from "./support/ownerExtras.ts";
+import { singleOwner } from "./support/directory.ts";
 
 async function setup(t: TestContext, start = new Date().toISOString(), cooldownSeconds = 0) {
   const w = await world(DEFAULT_CAPS, start, cooldownSeconds * 1000);
   const path = join(mkdtempSync(join(tmpdir(), "countersign-sign-")), "web.sqlite");
   const rows = new SqliteRows(path);
   const settings = await OwnerSettings.open(rows, { perPaymentBaseUnits: 50_000_000n, perDayBaseUnits: 100_000_000n, cooldownSeconds });
+  const auth = await OwnerAuth.open(rows, "example.test");
   const owner: OwnerContext = {
-    ownerId: "owner1", network: "testnet", agentAddress: wallet().address, publicUrl: null, engine: w.agent, index: w.index, ledger: w.payments, auth: await OwnerAuth.open(rows, "example.test"), settings,
+    ownerId: "owner1", network: "testnet", agentAddress: wallet().address, publicUrl: null, engine: w.agent, index: w.index, ledger: w.payments, settings,
     balances: async () => ({ status: "UNKNOWN", detail: "test" }), memory: () => ({ relayer: "sandbox (not Walrus Memory)", restored: true, restoredAt: null, legacyRecords: 0, ignoredRecords: 0 }),
     memoryCounts: async () => null, sendPayment: async () => assert.fail("no payments here"), steps: await ChangeSteps.open(rows), cooldownMs: () => w.deps.cooldownMs,
     verifySignature: (m, s, a) => w.signatures.verifyPersonalMessage(m, s, a),
     ...(await ownerExtras(rows, w)),
   };
-  const server = startWebServer({ port: 0, network: "testnet", proof: undefined, version: null, owner });
+  const server = startWebServer({ port: 0, network: "testnet", proof: undefined, version: null, owners: await singleOwner(rows, auth, owner) });
   await new Promise<void>((resolve) => server.once("listening", () => resolve()));
   t.after(() => {
     server.closeAllConnections();

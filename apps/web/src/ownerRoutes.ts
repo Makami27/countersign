@@ -5,6 +5,7 @@ import { usdcToBaseUnits } from "@countersign/core";
 import { WindowLimiter, clientAddress, cookie, problem, readJson, send } from "./http.ts";
 import { SESSION_LIFETIME_MS } from "./ownerAuth.ts";
 import type { OwnerContext } from "./ownerContext.ts";
+import type { OwnerDirectory } from "./ownerDirectory.ts";
 import { activity, overview, payeeDetail, payeeSummary } from "./ownerViews.ts";
 import { tryCompleteChange } from "./changeCompletion.ts";
 import { TookTooLong, within } from "./deadline.ts";
@@ -28,7 +29,9 @@ function refusalBody(outcome: Outcome) {
   return { outcome, refusal: { ...REASONS[outcome.reason], reason: outcome.reason, receipt: outcome.receipt, cites: outcome.cites } };
 }
 
-export async function ownerRoute(ctx: OwnerContext, req: IncomingMessage, res: ServerResponse, path: string): Promise<void> {
+export async function ownerRoute(owners: OwnerDirectory, req: IncomingMessage, res: ServerResponse, path: string): Promise<void> {
+  const ctx = await owners.forSession(cookie(req, SESSION_COOKIE));
+  if (!ctx) return problem(res, 401, SIGNED_OUT);
   if (req.method !== "GET") return ownerRequest(ctx, req, res, path);
   try {
     await within(READ_DEADLINE_MS, `GET ${path}`, ownerRequest(ctx, req, res, path));
@@ -39,7 +42,6 @@ export async function ownerRoute(ctx: OwnerContext, req: IncomingMessage, res: S
 }
 
 async function ownerRequest(ctx: OwnerContext, req: IncomingMessage, res: ServerResponse, path: string): Promise<void> {
-  if (!(await ctx.auth.sessionValid(cookie(req, SESSION_COOKIE)))) return problem(res, 401, SIGNED_OUT);
   const writes = req.method !== "GET";
   if (writes && req.headers[CSRF_HEADER] !== "1") return problem(res, 403, "Missing request header. Nothing was changed.");
   if (writes && !writeLimiter.allow(clientAddress(req))) return problem(res, 429, "Too many requests. Nothing was changed. Wait a minute.");

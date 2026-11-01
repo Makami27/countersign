@@ -4,11 +4,13 @@ import type { AddressInfo } from "node:net";
 import { ONE_USDC, lookalikeOf, message, world } from "../../../packages/core/test/fixtures.ts";
 import { startWebServer } from "../src/server.ts";
 import type { OwnerContext } from "../src/ownerContext.ts";
+import type { OwnerDirectory } from "../src/ownerDirectory.ts";
 
 async function serve(t: TestContext) {
   const w = await world();
   const owner = { index: w.index, memory: () => ({ relayer: "mainnet relayer", restored: true, restoredAt: null, legacyRecords: 0, ignoredRecords: 0 }) } as unknown as OwnerContext;
-  const server = startWebServer({ port: 0, network: "testnet", proof: undefined, version: null, owner });
+  const owners = { adminOwnerId: "owner1", all: () => [{ ctx: owner }], get: () => owner } as unknown as OwnerDirectory;
+  const server = startWebServer({ port: 0, network: "testnet", proof: undefined, version: null, owners });
   await new Promise<void>((resolve) => server.once("listening", () => resolve()));
   t.after(() => {
     server.closeAllConnections();

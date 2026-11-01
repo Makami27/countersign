@@ -14,7 +14,7 @@ function ledgerRows(): { id: string; status: string; paths: string[] }[] {
 }
 
 test("V15 the landing's proof table is generated from CLAIMS.md: same claims, same statuses, same evidence links", async (t) => {
-  const server = startWebServer({ port: 0, network: "testnet", proof: undefined, version: null, owner: null });
+  const server = startWebServer({ port: 0, network: "testnet", proof: undefined, version: null, owners: null });
   await new Promise<void>((resolve) => server.once("listening", () => resolve()));
   t.after(() => {
     server.closeAllConnections();

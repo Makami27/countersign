@@ -1,3 +1,4 @@
+import { parseSuiAddress, type SuiAddress } from "@countersign/core";
 import { GROQ_DEFAULT_MODEL } from "@countersign/adapters/groq";
 export type Config = {
   readonly network: "mainnet" | "testnet";
@@ -16,6 +17,9 @@ export type Config = {
   readonly port: number;
   readonly publicUrl: string | null;
   readonly version: string | null;
+  readonly adminAddress: SuiAddress | null;
+  readonly maxOwners: number;
+  readonly masterKey: Buffer | null;
 };
 
 export class ConfigError extends Error {
@@ -27,6 +31,8 @@ export class ConfigError extends Error {
 }
 
 const BASE_UNITS = /^(0|[1-9]\d*)$/;
+
+const MAX_OWNERS = 10;
 
 function commitOf(value: string | undefined): string | null {
   const sha = value?.trim().toLowerCase() ?? "";
@@ -68,6 +74,9 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     port: Number(env["WEB_PORT"] ?? env["PORT"]),
     publicUrl: env["PUBLIC_BASE_URL"]?.trim().replace(/\/+$/, "") || null,
     version: commitOf(env["GIT_SHA"]) ?? commitOf(env["RENDER_GIT_COMMIT"]),
+    adminAddress: parseSuiAddress(env["ADMIN_WALLET"] ?? ""),
+    maxOwners: Math.min(MAX_OWNERS, Math.max(1, Number(env["MAX_OWNERS"] ?? MAX_OWNERS) || MAX_OWNERS)),
+    masterKey: env["MASTER_KEY"]?.trim() ? Buffer.from(env["MASTER_KEY"].trim(), "base64") : null,
   };
   const backend = need("MEMORY_BACKEND");
   if (backend !== "" && backend !== "walrus" && backend !== "sandbox") problems.push("MEMORY_BACKEND (walrus|sandbox)");

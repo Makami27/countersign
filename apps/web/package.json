@@ -22,7 +22,9 @@
     "./ownerWallet": "./src/ownerWallet.ts",
     "./ownerApprovals": "./src/ownerApprovals.ts",
     "./schedules": "./src/schedules.ts",
-    "./scheduleRuns": "./src/scheduleRuns.ts"
+    "./scheduleRuns": "./src/scheduleRuns.ts",
+    "./ownerDirectory": "./src/ownerDirectory.ts",
+    "./ownerRuntime": "./src/ownerRuntime.ts"
   },
   "devDependencies": {
     "esbuild": "0.28.2"
