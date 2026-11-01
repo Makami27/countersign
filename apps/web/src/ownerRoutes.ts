@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { REASONS, formatUsdc, headOf, type Outcome } from "@countersign/core";
+import { REASONS, formatUsdc, headOf, parseSuiAddress, payeeIdFor, type Outcome } from "@countersign/core";
 import { usdcToBaseUnits } from "@countersign/core";
 import { WindowLimiter, clientAddress, cookie, problem, readJson, send } from "./http.ts";
 import { SESSION_LIFETIME_MS } from "./ownerAuth.ts";
@@ -98,6 +98,7 @@ async function ownerRequest(ctx: OwnerContext, req: IncomingMessage, res: Server
     const name = input["name"];
     const address = input["address"];
     if (typeof name !== "string" || typeof address !== "string") return problem(res, 400, "Give a name and an address. Nothing was added.");
+    if (!payeeIdFor(name) || !parseSuiAddress(address)) return problem(res, 400, "Give a short name with letters or digits and a full Sui address (0x and 64 hex characters). Nothing was added, and nothing needs signing.");
     if (!(await ownerSigned(ctx, res, input, "add_payee", { name: name.trim(), address: address.trim().toLowerCase() }))) return;
     const outcome = await ctx.engine.requestOnboarding(name, address, `web:${randomBytes(6).toString("hex")}`);
     if (outcome.verdict === "ONBOARDING_STARTED") await ctx.notify(`Payee "${name.trim()}" was added with your owner wallet's signature. Nothing can be paid to them until their own wallet signs.`);

@@ -1,9 +1,11 @@
+import { formatUsdc, usdcToBaseUnits } from "@countersign/core";
 import { api } from "../api.ts";
 import { withApprovals } from "../approvals.ts";
 import { ownerWalletPanel } from "./ownerWallet.ts";
 import { addressEl, h, liveRegion, usdc, when, listen } from "../dom.ts";
 import type { ActivityItem, Overview } from "../types.ts";
 import { agentFacts } from "./firstRun.ts";
+import { CODE_DISPLAY_LENGTH, formatCode } from "../codeInput.ts";
 
 const VERDICT_WORDS: Record<string, string> = {
   PAID: "Paid", PAYMENT_FAILED: "Not paid", REFUSED: "Refused", CHANGE_VERIFIED: "Address verified", CHANGE_REJECTED: "Change refused",
@@ -28,17 +30,20 @@ export function activityPage(items: readonly ActivityItem[]): HTMLElement {
 }
 
 export function settingsPage(overview: Overview, onSaved: () => void): HTMLElement {
-  const perPayment = h("input", { id: "cap-payment", inputmode: "decimal", value: (Number(overview.caps.perPaymentBaseUnits) / 1e6).toString() });
-  const perDay = h("input", { id: "cap-day", inputmode: "decimal", value: (Number(overview.caps.perDayBaseUnits) / 1e6).toString() });
-  const cooldown = h("input", { id: "cooldown", inputmode: "numeric", value: String(Math.round(overview.cooldownSeconds / 3600)) });
+  const perPayment = h("input", { id: "cap-payment", inputmode: "decimal", value: formatUsdc(BigInt(overview.caps.perPaymentBaseUnits)) });
+  const perDay = h("input", { id: "cap-day", inputmode: "decimal", value: formatUsdc(BigInt(overview.caps.perDayBaseUnits)) });
+  const cooldown = h("input", { id: "cooldown", inputmode: "numeric", value: String(Number((overview.cooldownSeconds / 3600).toFixed(4))) });
   const status = liveRegion();
   const form = h("form", {}, h("label", { for: "cap-payment" }, "Per-payment cap (USDC)", perPayment), h("label", { for: "cap-day" }, "Daily cap (USDC)", perDay),
     h("label", { for: "cooldown" }, "Waiting period for changes you confirm yourself (hours)", h("span", { class: "hint" }, "Default 24. A shorter value is for demos and is shown as such."), cooldown), status,
     h("div", { class: "actions" }, h("button", { class: "btn primary", type: "submit" }, "Save settings")));
   listen(form, "submit", async (event) => {
     event.preventDefault();
-    const toBase = (v: string) => (Number.isFinite(Number(v)) && Number(v) >= 0 ? Math.round(Number(v) * 1e6).toString() : "");
-    const result = await withApprovals("PUT", "/api/app/settings", { perPaymentBaseUnits: toBase(perPayment.value), perDayBaseUnits: toBase(perDay.value), cooldownSeconds: String(Math.round(Number(cooldown.value) * 3600)) }, overview.network, status);
+    const perPaymentBaseUnits = usdcToBaseUnits(perPayment.value.trim());
+    const perDayBaseUnits = usdcToBaseUnits(perDay.value.trim());
+    if (!perPaymentBaseUnits || !perDayBaseUnits) return void (status.textContent = "Give each cap in USDC, for example 25 or 0.50. Nothing was changed.");
+    if (!/^\d+(\.\d+)?$/.test(cooldown.value.trim())) return void (status.textContent = "Give the waiting period in hours, for example 24. Nothing was changed.");
+    const result = await withApprovals("PUT", "/api/app/settings", { perPaymentBaseUnits, perDayBaseUnits, cooldownSeconds: String(Math.round(Number(cooldown.value.trim()) * 3600)) }, overview.network, status);
     status.textContent = result.ok ? "Saved. The agent uses the new caps from the next payment." : result.error.message;
     if (result.ok) onSaved();
   }, status);
@@ -52,8 +57,19 @@ export function settingsPage(overview: Overview, onSaved: () => void): HTMLEleme
     h("div", { class: "actions" }, signOut));
 }
 
+function attachCodeFormatting(input: HTMLInputElement): void {
+  input.maxLength = CODE_DISPLAY_LENGTH;
+  input.addEventListener("input", () => {
+    const formatted = formatCode(input.value, input.selectionStart ?? input.value.length);
+    if (formatted.value === input.value) return;
+    input.value = formatted.value;
+    input.setSelectionRange(formatted.caret, formatted.caret);
+  });
+}
+
 export function loginPage(onSignedIn: () => void, why: string | null): HTMLElement {
-  const code = h("input", { id: "code", autocomplete: "one-time-code", inputmode: "text", required: true, class: "mono", placeholder: "ABCDE-FGH23" });
+  const code = h("input", { id: "code", autocomplete: "one-time-code", inputmode: "text", autocapitalize: "characters", spellcheck: "false", required: true, class: "mono", placeholder: "ABCDE-FGH23" });
+  attachCodeFormatting(code);
   const status = h("p", { class: "error", role: "alert" });
   const button = h("button", { class: "btn primary", type: "submit" }, "Sign in");
   const form = h("form", {}, h("label", { for: "code" }, "Code from the Telegram bot", h("span", { class: "hint" }, "Send /login to your Countersign bot. The code works once, for 10 minutes."), code), status,

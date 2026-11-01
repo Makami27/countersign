@@ -88,7 +88,7 @@ export type OwnerWalletRecord = {
 export type ScheduleTerms = {
   readonly payeeId: string;
   readonly amountBaseUnits: string;
-  readonly every: "month" | "year";
+  readonly every: "week" | "two_weeks" | "month" | "year";
   readonly day: number;
   readonly month: number | null;
 };

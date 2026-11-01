@@ -64,3 +64,13 @@ test("V21 schedules are signed Walrus Memory records: an empty database restores
   assert.equal(unconfirmed.status, 503);
   assert.equal(s.owner.schedules.active().length, 1);
 });
+
+test("V21 weekly and two-week schedules take a weekday from 1 to 7 and no month, and their notice names the weekday", async (t) => {
+  const s = await ownerServer(t);
+  const me = wallet();
+  await s.signedBy("POST", "/api/app/owner/wallet", { address: me.address }, [me]);
+  assert.equal((await s.signedBy("POST", "/api/app/schedules", { ...rent, every: "week", day: 8 }, [me])).status, 400);
+  assert.equal((await s.signedBy("POST", "/api/app/schedules", { ...rent, every: "two_weeks", day: 3, month: 4 }, [me])).status, 400);
+  assert.equal((await s.signedBy("POST", "/api/app/schedules", { ...rent, every: "two_weeks", day: 3 }, [me])).status, 200);
+  assert.ok(s.extras.notices.some((n) => n.includes("2.50 USDC to landlord on every other Wednesday (UTC)")));
+});
