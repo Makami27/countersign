@@ -7,6 +7,8 @@ export type ProofView =
       readonly network: string;
       readonly verifiedPayees: number;
       readonly addressChangesVerified: number;
+      readonly paid: number;
+      readonly paymentsFailed: number;
       readonly refusals: number;
       readonly refusalsByReason: readonly { reason: string; count: number }[];
       readonly recent: readonly { receipt: string; reason: string; at: string }[];
@@ -33,6 +35,8 @@ async function countProof(rows: SqlRows, network: string): Promise<ProofView> {
     network,
     verifiedPayees: await one("SELECT COUNT(DISTINCT payee_id) AS n FROM payee_versions WHERE status = 'VERIFIED'"),
     addressChangesVerified: await one(`SELECT COUNT(*) AS n FROM payee_versions WHERE status = 'VERIFIED' AND ${rows.jsonText("record", "supersedes")} IS NOT NULL`),
+    paid: await one("SELECT COUNT(*) AS n FROM receipts WHERE verdict = 'PAID'"),
+    paymentsFailed: await one("SELECT COUNT(*) AS n FROM receipts WHERE verdict = 'PAYMENT_FAILED'"),
     refusals: await one(`SELECT COUNT(*) AS n FROM receipts WHERE ${refused}`),
     refusalsByReason: byReason.map((r) => ({ reason: String(r["reason"]), count: Number(r["n"]) })),
     recent: recent.map((r) => ({ receipt: String(r["receipt"]), reason: String(r["reason"]), at: String(r["at"]) })),

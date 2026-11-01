@@ -19,7 +19,7 @@ export type MemoryView = {
   readonly ignoredRecords: number;
 };
 
-export type MemoryCounts = { readonly realUseMemories: number; readonly namespaces: number } | null;
+export type MemoryCounts = { readonly realUseMemories: number; readonly namespaces: number; readonly byNamespace: readonly { readonly suffix: string; readonly count: number }[] } | null;
 
 export type OwnerContext = {
   readonly ownerId: string;

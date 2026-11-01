@@ -7,7 +7,7 @@ No feature commits after 17:00 UTC on 10 Nov unless organisers confirm it's allo
 Revised 2026-10-30 (owner review of the phase plan): skeleton deploy moved to Phase 2, real mainnet use starts in Phase 2, Phase 3 gets an extra half day from Phase 4, submission deliverables added.
 
 ## Where we are (2026-10-31, ~20:01 UTC)
-**Phase:** Phase 4; V20–V22 deployed on the custom domain. Gate: `pnpm gate`, 115 tests green.
+**Phase:** Phase 4; V20–V22, /proof and /status deployed on the custom domain. Gate: `pnpm gate`, 130 tests green.
 
 **Deployed vs committed — read this first**
 - Render runs `main` at https://countersign.nittings.xyz (custom domain, HTTPS; `PUBLIC_BASE_URL` points at it). `273dd39` went live 2026-10-31 23:09 UTC. `/api/health` reports the commit from `RENDER_GIT_COMMIT`. The old onrender.com host still answers.
@@ -19,7 +19,7 @@ Revised 2026-10-30 (owner review of the phase plan): skeleton deploy moved to Ph
 - Phase 2: one process for agent, bot and web (D16); owner sign-in by one-time code; owner app `/app`; self-hosted fonts.
 - Phase 3: onboarding only after the payee's wallet signs (D14); `/sign/:nonce`; two-signature change (V11); owner path with cooldown (V12); named refusals (V13).
 - Hosting: Render free + Neon Postgres (D19); async ports with an atomic reserve and payee-head check; Fly destroyed. README "Known limits" covers free-tier restarts.
-- Phase 4 so far: `/r/:receipt` (V14); `/api/status` (Postgres, Tatum gRPC and GraphQL, Walrus relayer, Telegram polling, Gemini stats); landing claims table generated from CLAIMS.md; owner-app timeouts and the promise lint.
+- Phase 4 so far: `/r/:receipt` (V14); `/proof` (V15) and `/status` (V16) pages, server-rendered; `/api/status` (Postgres, Tatum gRPC and GraphQL, Walrus relayer, Telegram polling, Gemini stats); landing claims table generated from CLAIMS.md; owner-app timeouts and the promise lint.
 - Act 4 on the custom domain (`evidence/acts/act4`, CL15): Rent's current wallet then the new wallet signed; Rent now pays `0x993ae91d…9496` (2nd verified address, record v5); 0.01 test USDC settled there (tx `DghoXibM…ZqyZ`) via `payPayee.ts`. The used link shows Done.
 - Acts 2–3 on Render (`evidence/acts/act2`, `act3`, CL14). Look-alikes and known attacks are now refused by code before the model; Gemini retries once on 429/5xx.
 - V20 owner-wallet protection (D20, THREAT_MODEL.md): committed `1d47c7f`, **not deployed**.
@@ -32,7 +32,7 @@ Revised 2026-10-30 (owner review of the phase plan): skeleton deploy moved to Ph
 
 **Next steps**
 1. Check the new click-first wallet buttons in a real browser (no popup blocked) on /sign and /app.
-2. Rest of Phase 4: `/proof` page, `/status` page, lab upgrade, preregistered measurement; real use to ≥10 memories.
+2. Rest of Phase 4: lab upgrade; run the preregistered measurement and write `evidence/measurement/results.json` (the /proof table reads it; add it to the Docker image).
 
 **Background jobs and how to check them**
 - None running. Deployed agent: Render service `srv-dbj08anf3r2c73ejrggg` (Ohio); health and dependency timings at `/api/health` and `/api/status`; an external 5-minute ping (cron-job.org) keeps it awake.
