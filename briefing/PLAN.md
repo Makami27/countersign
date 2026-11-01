@@ -6,12 +6,12 @@ No feature commits after 17:00 UTC on 10 Nov unless organisers confirm it's allo
 
 Revised 2026-10-30 (owner review of the phase plan): skeleton deploy moved to Phase 2, real mainnet use starts in Phase 2, Phase 3 gets an extra half day from Phase 4, submission deliverables added.
 
-## Where we are (2026-11-01, ~17:00 UTC)
+## Where we are (2026-11-01, ~16:30 UTC)
 **Phase:** Phase 4 plus V20–V25 (team decision 1 Nov), all deployed. Gate: `pnpm gate`, 146 tests green at `31579d2`.
 
 **Deployed vs committed — read this first**
 - Render runs `main` at https://countersign.nittings.xyz (custom domain, HTTPS; `PUBLIC_BASE_URL` points at it). `/api/health` reports the deployed commit (`RENDER_GIT_COMMIT`). **Render auto-deploys every push to `main`.** The old onrender.com host still answers.
-- Live now: everything through V25 (`31579d2`). Multi-user (V24) runs **admin-only** because `MASTER_KEY` is not set on Render yet.
+- Live now: everything through V25 plus the measurement results (`b7a150a`, redeployed 16:25 UTC with MASTER_KEY, ADMIN_WALLET and MAX_OWNERS=8 set on Render). Multi-user (V24) is open: up to 8 owners.
 - Owner wallet (admin): `0xb2d3c105022325393f44d66927510729bc82eb7675d2fe45368dfb6e96bd6475`, registered on the custom domain.
 
 **Done since V22 (newest last)**
@@ -28,11 +28,10 @@ Revised 2026-10-30 (owner review of the phase plan): skeleton deploy moved to Ph
 - V25 public /demo (D25): sandbox letters (genuine, look-alike, fake history, forged record, paste your own), signature cards, activity; landing CTAs.
 
 **Blocked / waiting**
-- **MASTER_KEY**: the owner said it is in `.env`, but `.env` has no MASTER_KEY line (file last saved 1 Nov 08:45). Once it's there: copy MASTER_KEY, `ADMIN_WALLET=0xb2d3c105022325393f44d66927510729bc82eb7675d2fe45368dfb6e96bd6475` and `MAX_OWNERS=8` to Render with the API (PUT `/v1/services/srv-dbj08anf3r2c73ejrggg/env-vars/<NAME>`, never print values), redeploy (push or POST `/deploys`), check /api/health and that the boot log shows no owner-load errors.
 - Delegate key rotation (REALITY_SPIKES R4): steps agreed; do it after the measurement finishes.
 
 **Next steps**
-1. MASTER_KEY step above, then sign in as a second owner to check multi-user live.
+1. Sign in as a second owner on the live site to check multi-user end to end (new owner created, admin notice, own agent wallet, Telegram link).
 2. Measurement done (CL16): Countersign 0/90 attacker payments, naive baseline 71/90 (K5 0/10 and K6 1/10 because the model rarely read those as address changes), benign 50/50 paid right, 0 false refusals, 0 model or trial errors.
 3. Check wallet popups and Telegram linking in a real browser and phone.
 4. Phase 5 essentials (Q01–Q10), blog and video. The mainnet switch comes last and is the first cut (SHIP); if cut, the header says "mainnet: coming later".
