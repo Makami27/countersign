@@ -1,0 +1,136 @@
+{
+  "capturedAt": "2026-11-01T00:38:21.347Z",
+  "act": "Act 4: Rent's address changes only after its current wallet and then the new wallet sign; the next payment goes to the new wallet",
+  "classification": "real use on Sui testnet with test USDC: the owner signed the change on the deployed signing page with Rent's current wallet, then the new wallet (both the owner's Slush accounts); the 0.01 test USDC payment was made by the operator command apps/agent/src/payPayee.ts through the same engine checks against the deployed agent's Postgres ledger; memory on the Walrus Memory mainnet relayer",
+  "receipts": [
+    {
+      "receiptPage": "https://countersign.nittings.xyz/r/rcpt_c4a56cb54eb0e680231c23c671259bec",
+      "receipt": {
+        "type": "receipt",
+        "receipt": "rcpt_c4a56cb54eb0e680231c23c671259bec",
+        "verdict": "CHANGE_VERIFIED",
+        "reason": null,
+        "ref": "7b77c6d4f82b4019e297e16f63c70df2",
+        "payeeId": "rent",
+        "address": "0x993ae91d7f9aedfc2724f69ac263d437e6fcd4bde521d696a895932582679496",
+        "amountBaseUnits": null,
+        "checks": [
+          {
+            "check": "CONTINUITY",
+            "result": "PASS"
+          },
+          {
+            "check": "CONTROL",
+            "result": "PASS"
+          }
+        ],
+        "memoryBlobIds": [
+          "EDLGKGJErfRAeuzklBk3xJVSAyfGpSSwHYH_1VAHJh8"
+        ],
+        "suiDigest": null,
+        "network": "testnet",
+        "createdAt": "2026-11-01T00:12:46.591Z"
+      },
+      "receiptBlob": {
+        "blobId": "vnpvWCG34udVC3u3_SszWIJwbeKqpm1FygJLmFwtI1E",
+        "aggregator": "https://aggregator.walrus-mainnet.walrus.space/v1/blobs/vnpvWCG34udVC3u3_SszWIJwbeKqpm1FygJLmFwtI1E",
+        "httpStatus": 200,
+        "encryptedBytes": 896
+      },
+      "transaction": null,
+      "screenshots": [
+        "evidence/acts/act4/receipt-change_verified-390.png",
+        "evidence/acts/act4/receipt-change_verified-1440.png"
+      ]
+    },
+    {
+      "receiptPage": "https://countersign.nittings.xyz/r/rcpt_2b838f7ed1d4fe337c2ecd079870fddb",
+      "receipt": {
+        "type": "receipt",
+        "receipt": "rcpt_2b838f7ed1d4fe337c2ecd079870fddb",
+        "verdict": "PAID",
+        "reason": null,
+        "ref": "pay_2b838f7ed1d4fe337c2ecd079870fddb",
+        "payeeId": "rent",
+        "address": "0x993ae91d7f9aedfc2724f69ac263d437e6fcd4bde521d696a895932582679496",
+        "amountBaseUnits": "10000",
+        "checks": [
+          {
+            "check": "MEMORY_COMPLETE",
+            "result": "PASS"
+          },
+          {
+            "check": "PAYEE_VERIFIED",
+            "result": "PASS"
+          },
+          {
+            "check": "AMOUNT_VALID",
+            "result": "PASS"
+          },
+          {
+            "check": "WITHIN_CAPS",
+            "result": "PASS"
+          },
+          {
+            "check": "SETTLED_ON_CHAIN",
+            "result": "PASS"
+          }
+        ],
+        "memoryBlobIds": [
+          "EDLGKGJErfRAeuzklBk3xJVSAyfGpSSwHYH_1VAHJh8"
+        ],
+        "suiDigest": "DghoXibMbMuCAnNH4Wt2i2GpMistfkYPDf5oF3PyZqyZ",
+        "network": "testnet",
+        "createdAt": "2026-11-01T00:21:24.155Z"
+      },
+      "receiptBlob": {
+        "blobId": "2ZwTJ4u14emxiYEUgEig-QmHIFpQz5ycaYspCFqDeZk",
+        "aggregator": "https://aggregator.walrus-mainnet.walrus.space/v1/blobs/2ZwTJ4u14emxiYEUgEig-QmHIFpQz5ycaYspCFqDeZk",
+        "httpStatus": 200,
+        "encryptedBytes": 1072
+      },
+      "transaction": "https://suiscan.xyz/testnet/tx/DghoXibMbMuCAnNH4Wt2i2GpMistfkYPDf5oF3PyZqyZ",
+      "screenshots": [
+        "evidence/acts/act4/receipt-paid-390.png",
+        "evidence/acts/act4/receipt-paid-1440.png"
+      ]
+    }
+  ],
+  "signPage": {
+    "url": "https://countersign.nittings.xyz/sign/7b77c6d4f82b4019e297e16f63c70df2",
+    "state": {
+      "kind": "completed",
+      "network": "testnet",
+      "memory": "mainnet relayer",
+      "payeeName": "Rent",
+      "address": "0x993ae91d7f9aedfc2724f69ac263d437e6fcd4bde521d696a895932582679496",
+      "verifiedNumber": 2,
+      "stillCurrent": true,
+      "how": "continuity_signature",
+      "at": "2026-11-01T00:12:23.965Z",
+      "receipt": "rcpt_c4a56cb54eb0e680231c23c671259bec"
+    },
+    "screenshots": [
+      "evidence/acts/act4/sign-link-used-390.png",
+      "evidence/acts/act4/sign-link-used-1440.png"
+    ]
+  },
+  "memoryCounts": {
+    "realUseMemories": 12,
+    "realUseNamespaces": [
+      {
+        "suffix": "owner",
+        "count": 1
+      },
+      {
+        "suffix": "payee:rent",
+        "count": 5
+      },
+      {
+        "suffix": "receipts",
+        "count": 6
+      }
+    ],
+    "readAt": "2026-11-01T00:38:01.394Z"
+  }
+}
