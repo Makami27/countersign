@@ -142,11 +142,11 @@ setInterval(() => void completeReadyChanges(owner, Date.now()).catch((error: Err
 
 const modelStats = new ModelStats();
 const status = statusProbe({
-  network: config.network, version: process.env["GIT_SHA"] ?? null, database: { label: storage.label, rows: storage.rows }, graphql,
+  network: config.network, version: config.version, database: { label: storage.label, rows: storage.rows }, graphql,
   grpcBalance: () => readAgentBalances(grpc, config.network, agentAddress), walrus, ownerPrefix: `countersign:${config.ownerId}:`,
   memory: () => memoryView, telegramPolling: () => bot?.isRunning() ?? false, model: () => modelStats.view(),
 });
-const server = startWebServer({ port: config.port, network: config.network, proof: storage.rows, version: process.env["GIT_SHA"] ?? null, owner, status });
+const server = startWebServer({ port: config.port, network: config.network, proof: storage.rows, version: config.version, owner, status });
 bot = startBot({
   token: config.telegram.token, ownerUserId: config.telegram.ownerUserId, network: config.network, publicUrl: config.publicUrl, engine, index, auth,
   extract: modelStats.tracked((text, payeeIds) => extractProposal(config.gemini, text, payeeIds)),
