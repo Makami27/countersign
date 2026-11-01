@@ -7,7 +7,8 @@ import { Countersign, InMemoryIndex, InMemoryPaymentLedger, changeMessage, payee
 import { MemWalMemory } from "@countersign/adapters/memwal";
 import { recordSignerFromSeed } from "@countersign/adapters/signer";
 import { SqliteRateGate, TATUM_FREE_TIER_INTERVAL_MS, TatumSignatureVerifier, tatumGrpcClient, tatumRateGateName } from "@countersign/adapters/tatum";
-import { extractProposal, type Extraction } from "@countersign/adapters/gemini";
+import { extractWithGroq, type GroqConfig } from "@countersign/adapters/groq";
+import type { Extraction } from "@countersign/adapters/model";
 import { loadConfig } from "./config.ts";
 import { ATTACKS, ATTACK_TRIALS, BENIGN, PAYEES, type Attack } from "./measureCorpus.ts";
 import { PacedMemory } from "./pacedMemory.ts";
@@ -27,6 +28,11 @@ const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve,
 
 const config = loadConfig(process.env);
 if (config.network !== "testnet") throw new Error("The measurement runs on testnet only. Nothing was run.");
+function preregisteredModel(): GroqConfig {
+  if (!config.groq) throw new Error("The preregistered model is Groq (PRD Amendment 1); set GROQ_API_KEY. Nothing was run.");
+  return config.groq;
+}
+const groq = preregisteredModel();
 const resumeRun = process.env["MEASURE_RUN"] ?? null;
 const runId = resumeRun ?? new Date().toISOString().replace(/[:.]/g, "-");
 const windowTag = resumeRun ? `-w${Date.now().toString(36)}` : "";
@@ -54,11 +60,11 @@ async function ask(text: string): Promise<{ readonly extraction: Extraction; rea
     if (wait > 0) await sleep(wait);
     nextModelAt = Date.now() + MODEL_GAP_MS;
     modelCalls += 1;
-    const extraction = await extractProposal(config.gemini, text, PAYEES);
+    const extraction = await extractWithGroq(groq, text, PAYEES);
     if (extraction.status === "READ" && extraction.modelVersion) modelVersions.add(extraction.modelVersion);
     if (extraction.status === "READ" || extraction.problem !== "RATE_LIMITED" || tries >= MAX_MODEL_TRIES) {
       rateLimitedInARow = extraction.status === "UNKNOWN" && extraction.problem === "RATE_LIMITED" ? rateLimitedInARow + 1 : 0;
-      if (rateLimitedInARow >= QUOTA_STOP_AFTER) stoppedEarly = `the model answered 429 (rate limited) ${QUOTA_STOP_AFTER} times in a row after ${MAX_MODEL_TRIES} tries each; the free-tier quota is probably used up`;
+      if (rateLimitedInARow >= QUOTA_STOP_AFTER) stoppedEarly = `the model answered 429 (rate limited) ${QUOTA_STOP_AFTER} times in a row after ${MAX_MODEL_TRIES} tries each; the daily quota is probably used up`;
       return { extraction, tries };
     }
     await sleep(RATE_LIMIT_BACKOFF_MS * tries);
@@ -169,7 +175,7 @@ for (const attack of attackList) {
   writeFileSync(join(OUT, "progress.json"), `${JSON.stringify({ runId, done: attacks.length, memory: memory.counts() }, null, 2)}\n`);
 }
 const benign = [...benignBefore, ...(stoppedEarly ? [] : await benignRun(benignBefore.length))];
-const results = summarize({ attacks, benign, runAt: attacks[0]?.at ?? benign[0]?.at ?? started, stoppedEarly, model: config.gemini.model, modelVersions: [...modelVersions], corpus: SMOKE ? "smoke run (not the measurement)" : `K1–K9, ${ATTACK_TRIALS} trials each; 50 benign (evidence/measurement/corpus.json)`, relayerCalls: memory.counts(), raw: raw.replaceAll("\\", "/"), complete: stoppedEarly === null && attacks.length === attackList.length * trialsPerAttack && benign.length === benignList.length });
+const results = summarize({ attacks, benign, runAt: attacks[0]?.at ?? benign[0]?.at ?? started, stoppedEarly, model: `groq ${groq.model}`, modelVersions: [...modelVersions], corpus: SMOKE ? "smoke run (not the measurement)" : `K1–K9, ${ATTACK_TRIALS} trials each; 50 benign (evidence/measurement/corpus.json)`, relayerCalls: memory.counts(), raw: raw.replaceAll("\\", "/"), complete: stoppedEarly === null && attacks.length === attackList.length * trialsPerAttack && benign.length === benignList.length });
 writeFileSync(join(OUT, "results.json"), `${JSON.stringify(results, null, 2)}\n`);
 console.log(JSON.stringify({ countersign: results.countersign, baseline: results.baseline, benign: results.benign, modelErrors: results.modelErrors, trialErrors: results.trialErrors, relayer: results.relayerCalls, stoppedEarly }, null, 2));
 gate.close();
