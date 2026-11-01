@@ -27,7 +27,7 @@ Revised 2026-10-30 (owner review of the phase plan): skeleton deploy moved to Ph
 - Real-use memories: 6 of 10 (CL07).
 
 **Blocked / waiting**
-- **Act 4**: fresh change request for Rent → wallet B `0x993ae91d7f9aedfc2724f69ac263d437e6fcd4bde521d696a895932582679496`, nonce `7b77c6d4f82b4019e297e16f63c70df2`, expires 2026-11-01 23:59 UTC: https://countersign.nittings.xyz/sign/7b77c6d4f82b4019e297e16f63c70df2. Waiting for the owner to sign with the current Rent wallet, then wallet B; then pay 0.01 test USDC to Rent and capture into `evidence/acts/act4/` (`captureActs.ts` shows the pattern). The old request (nonce 875fe73f…) expires unsigned.
+- **Act 4**: fresh change request for Rent: current wallet `0x68f21c9f…b023b` → new wallet `0x993ae91d7f9aedfc2724f69ac263d437e6fcd4bde521d696a895932582679496`, nonce `7b77c6d4f82b4019e297e16f63c70df2`, expires 2026-11-01 23:59 UTC: https://countersign.nittings.xyz/sign/7b77c6d4f82b4019e297e16f63c70df2. Waiting for the owner to sign with the current wallet, then the new wallet; then pay 0.01 test USDC to Rent and capture into `evidence/acts/act4/` (`captureActs.ts` shows the pattern). The old request (nonce 875fe73f…) expires unsigned.
 - Delegate key rotation after the relayer echoed it in an error (REALITY_SPIKES R4).
 
 **Next steps**

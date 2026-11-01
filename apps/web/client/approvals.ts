@@ -1,29 +1,30 @@
 import { api, type ApiResult } from "./api.ts";
-import { signWith, signingWallets } from "./signFlow.ts";
+import { walletStep, type WalletRole } from "./walletSteps.ts";
 
 type Challenge = { readonly field: string; readonly nonce: string; readonly message: string; readonly signer: string };
-const MAX_ROUNDS = 2;
+type Approval = { readonly nonce: string; readonly signature: string };
 
 function short(address: string): string {
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }
 
+function approve(challenge: Challenge, role: WalletRole, network: "mainnet" | "testnet", status: HTMLElement): Promise<Approval> {
+  return new Promise((resolve) => {
+    status.textContent = `This needs your ${role} ${short(challenge.signer)}: connect it, then sign. Signing moves no money; nothing changes until every signature checks out.`;
+    const box = walletStep({ role, expected: challenge.signer, message: challenge.message, network, status, onSigned: async (signature) => {
+      box.remove();
+      resolve({ nonce: challenge.nonce, signature });
+    } });
+    status.after(box);
+  });
+}
+
 export async function withApprovals<T>(method: "POST" | "PUT" | "DELETE", path: string, body: Record<string, unknown>, network: "mainnet" | "testnet", status: HTMLElement): Promise<ApiResult<T>> {
-  let current = body;
-  for (let round = 0; ; round++) {
-    const result = await api<T>(method, path, current);
-    const challenges = !result.ok && result.error.status === 428 ? (result.error.body?.["approvals"] as Challenge[] | undefined) : undefined;
-    if (!challenges || round >= MAX_ROUNDS) return result;
-    const wallet = signingWallets()[0];
-    if (!wallet) return { ok: false, error: { status: 0, message: "No Sui wallet was found in this browser. Nothing was changed.", body: null } };
-    const approvals: Record<string, { nonce: string; signature: string }> = {};
-    for (const challenge of challenges) {
-      status.textContent = `Sign in ${wallet.name} with ${short(challenge.signer)}. Signing moves no money; nothing changes until every signature checks out.`;
-      const step = await signWith(wallet, challenge.signer, challenge.message, network);
-      if (!step.ok) return { ok: false, error: { status: 0, message: step.message, body: null } };
-      approvals[challenge.field] = { nonce: challenge.nonce, signature: step.signed.signature };
-    }
-    status.textContent = "Checking the signature through Tatum…";
-    current = { ...body, approvals };
-  }
+  const first = await api<T>(method, path, body);
+  const challenges = !first.ok && first.error.status === 428 ? (first.error.body?.["approvals"] as Challenge[] | undefined) : undefined;
+  if (!challenges) return first;
+  const approvals: Record<string, Approval> = {};
+  for (const challenge of challenges) approvals[challenge.field] = await approve(challenge, challenge.field === "proof" && challenges.length > 1 ? "new wallet" : "owner wallet", network, status);
+  status.textContent = "Checking the signature through Tatum…";
+  return api<T>(method, path, { ...body, approvals });
 }
