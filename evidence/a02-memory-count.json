@@ -1,0 +1,114 @@
+{
+  "countedAt": "2026-11-01T00:48:16.718Z",
+  "relayer": "mainnet relayer",
+  "ownerPrefix": "countersign:<owner>:",
+  "excluded": "test namespaces (countersign-test:), other owners, and countersign:shared:attacks",
+  "total": 12,
+  "namespaces": [
+    {
+      "suffix": "owner",
+      "listedCount": 1,
+      "readCount": 1,
+      "records": [
+        {
+          "blobId": "Z-Jd6xpQeRl3-6yx4dzL3HzbSyv6Q2nrPeQx81M2PSI",
+          "signedByAgent": true,
+          "type": "owner_wallet",
+          "what": "owner wallet v1 (first_registration)",
+          "createdAt": "2026-10-31T23:48:20.799Z"
+        }
+      ]
+    },
+    {
+      "suffix": "payee:rent",
+      "listedCount": 5,
+      "readCount": 5,
+      "records": [
+        {
+          "blobId": "EDLGKGJErfRAeuzklBk3xJVSAyfGpSSwHYH_1VAHJh8",
+          "signedByAgent": true,
+          "type": "payee_version",
+          "what": "rent v5 VERIFIED (continuity_signature)",
+          "createdAt": "2026-11-01T00:12:23.965Z"
+        },
+        {
+          "blobId": "GU_dX9lvZ431sllwVFV2LoLU3x-44EmRhNQ957ImRlY",
+          "signedByAgent": true,
+          "type": "payee_version",
+          "what": "rent v2 VERIFIED (payee_onboarding)",
+          "createdAt": "2026-10-31T06:31:34.127Z"
+        },
+        {
+          "blobId": "4VETCtdWEhfXkpxSIh131rItp6n0S0V8q2MH0WsKu_c",
+          "signedByAgent": true,
+          "type": "payee_version",
+          "what": "rent v1 STATED (onboarding_requested)",
+          "createdAt": "2026-10-31T06:17:54.524Z"
+        },
+        {
+          "blobId": "sizPKO0iUcDxH2z5ji2kgmypDcoRegxoOzDre3dZpQs",
+          "signedByAgent": true,
+          "type": "payee_version",
+          "what": "rent v4 STATED (stated)",
+          "createdAt": "2026-10-31T23:59:34.217Z"
+        },
+        {
+          "blobId": "-zMLo8js1cZ5KaeYUxVEzbZPJi67_TMWGZjM_95IafE",
+          "signedByAgent": true,
+          "type": "payee_version",
+          "what": "rent v3 STATED (stated)",
+          "createdAt": "2026-10-31T17:44:58.947Z"
+        }
+      ]
+    },
+    {
+      "suffix": "receipts",
+      "listedCount": 6,
+      "readCount": 6,
+      "records": [
+        {
+          "blobId": "5at95Jjvbi4rzUyr1P5y9DFKS-uX_fCM-_3OCDEJc0U",
+          "signedByAgent": true,
+          "type": "receipt",
+          "what": "CHANGE_VERIFIED rcpt_581de88ff0e1e1c67c923a493945f83a",
+          "createdAt": "2026-10-31T06:31:59.604Z"
+        },
+        {
+          "blobId": "vnpvWCG34udVC3u3_SszWIJwbeKqpm1FygJLmFwtI1E",
+          "signedByAgent": true,
+          "type": "receipt",
+          "what": "CHANGE_VERIFIED rcpt_c4a56cb54eb0e680231c23c671259bec",
+          "createdAt": "2026-11-01T00:12:46.591Z"
+        },
+        {
+          "blobId": "BTU1hxTspOLiQ4A1r72wFJR2Lj6snuT7V1GpoArTcmI",
+          "signedByAgent": true,
+          "type": "receipt",
+          "what": "PAID rcpt_5c4a4834a752be91b114dfebe1d794e6",
+          "createdAt": "2026-10-31T16:45:42.924Z"
+        },
+        {
+          "blobId": "2ZwTJ4u14emxiYEUgEig-QmHIFpQz5ycaYspCFqDeZk",
+          "signedByAgent": true,
+          "type": "receipt",
+          "what": "PAID rcpt_2b838f7ed1d4fe337c2ecd079870fddb",
+          "createdAt": "2026-11-01T00:21:24.155Z"
+        },
+        {
+          "blobId": "Vv6WzuQcSXz5XJSRriIb3dLtnRalgAwv6VIkzTFNDLw",
+          "signedByAgent": true,
+          "type": "receipt",
+          "what": "REFUSED LOOKALIKE_ADDRESS rcpt_2c31ae5f14f5cbe5a50da5690bc9993f",
+          "createdAt": "2026-10-31T17:05:48.402Z"
+        },
+        {
+          "blobId": "ZXlWmbWG2Pr1LpPyAUG5o0OwZkhzuM6ozs7kdvduO4A",
+          "signedByAgent": true,
+          "type": "receipt",
+          "what": "REFUSED KNOWN_ATTACK_PATTERN rcpt_dab6cd850380599887fb5bb1b25577ff",
+          "createdAt": "2026-10-31T17:13:54.398Z"
+        }
+      ]
+    }
+  ]
+}

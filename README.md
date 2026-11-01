@@ -12,12 +12,12 @@ Built for Walrus × Tatum *Total Recall*, Track 2 (Smart Agents for Real Life).
 | Core engine: payee provenance, onboarding only after the payee's wallet signs, two-signature changes, owner path with cooldown, look-alike and known-attack checks, spend gate, digest-first payments, one signed receipt per final outcome | built and tested [claim:CL01] |
 | Tatum (GraphQL + native gRPC, shared 2 req/s gate) | live suite green on testnet; payee signatures verified through our adapter, including a real Slush zkLogin signature [claim:CL03] |
 | Walrus Memory (signed records, completeness check, restore) | live on the mainnet relayer [claim:CL10]; relayer outage 30 Oct 22:37 → 31 Oct ~06:00 UTC recorded (REALITY_SPIKES R3) |
-| Payments | testnet payments settle through Tatum; Act 1 (model → engine → payment → receipt on Walrus mainnet) recorded in `evidence/acts/` |
+| Payments | testnet payments settle through Tatum; Act 1 (model → engine → payment → receipt on Walrus mainnet) and Act 4 (two-wallet address change, then the next payment goes to the new wallet) [claim:CL15] recorded in `evidence/acts/` |
 | Telegram bot (`apps/agent`) | built (preview + confirm, refusals with comparison and a receipt link, /login codes); the owner signed in through it on Render on 31 Oct |
 | Owner web app (`/app`) and signing page (`/sign/:nonce`) | built, tested over HTTP, screen-checked at 390 and 1440 px in light and dark |
 | Public site with attack lab (`/`) | built; lab payees go through the same onboarding rules as the agent |
-| Real use (≥10 mainnet memories) | 6 of 10 so far (CL07 NOT PROVEN) |
-| Deploy | live at https://countersign-agent-7u1c.onrender.com (Render free, Neon Postgres, D19); `/api/health` green. Testnet payments, mainnet Walrus Memory |
+| Real use (≥10 mainnet memories) | 12 agent-signed records from the owner's own use on the mainnet relayer [claim:CL07] |
+| Deploy | live at https://countersign.nittings.xyz (Render free, Neon Postgres, D19); `/api/health` reports the deployed commit. Testnet payments, mainnet Walrus Memory |
 | Receipt page `/r/:receipt` | built (V14): verdict, money sentence, checks in order, comparison, Walrus blob and Sui links |
 | Status | `/api/status` times Postgres, Tatum gRPC and GraphQL, the Walrus relayer and Telegram polling; the `/status` page is not built yet |
 | Proof page, measurement | not built (Phase 4); the landing's claims table is generated from CLAIMS.md |

@@ -25,7 +25,7 @@ Revised 2026-10-30 (owner review of the phase plan): skeleton deploy moved to Ph
 - V20 owner-wallet protection (D20, THREAT_MODEL.md): committed `1d47c7f`, **not deployed**.
 - V21 scheduled payments (D21): monthly or yearly, owner-wallet signature to create/change/delete, one payment per period (`schedule:<id>:<period>`), late boot run, hourly retry only for retryable refusals, Telegram notice with receipt link; panel on the payee page. Committed, **not deployed**.
 - V22 shared scam memory (D22): look-alike and known-attack refusals share a signed attack_seen record; other agents refuse that address with SEEN_BY_OTHER_AGENT (first receipt, distinct agent keys); never blocks a VERIFIED payee, continuity overrides, 90-day window, owner-signed retraction, no endpoint lists it. No retract button in the owner app yet (API only). Committed, **not deployed**.
-- Real-use memories: CL07 says 6 of 10; the Act 4 capture counted 12 records in this owner's namespaces (owner 1, payee:rent 5, receipts 6). Re-check CL07 against its definition before changing it.
+- Real-use memories: 12 on the mainnet relayer (CL07 PROVEN, `evidence/a02-memory-count.json`, `apps/agent/src/countRealUse.ts`).
 
 **Blocked / waiting**
 - Delegate key rotation after the relayer echoed it in an error (REALITY_SPIKES R4).
