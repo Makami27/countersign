@@ -43,7 +43,7 @@ const memory = walrus ?? new InMemoryMemory();
 const relayerLabel = walrus ? walrus.environment : "sandbox (not Walrus Memory)";
 const { index, ledger } = storage;
 const settings = await OwnerSettings.open(storage.rows, { perPaymentBaseUnits: config.caps.perPaymentBaseUnits, perDayBaseUnits: config.caps.perDayBaseUnits, cooldownSeconds: config.cooldownMs / 1000 });
-const auth = await OwnerAuth.open(storage.rows);
+const auth = await OwnerAuth.open(storage.rows, new URL(config.publicUrl ?? "http://localhost").host);
 const clock = { now: () => new Date() };
 const verifier = new TatumSignatureVerifier(grpc);
 const steps = await ChangeSteps.open(storage.rows);

@@ -6,7 +6,8 @@ import { payeeDetailView } from "./views/payeeDetail.ts";
 import { schedulesPanel } from "./views/schedules.ts";
 import { addPayeeSheet, paySheet } from "./views/sheets.ts";
 import { confirmChangeSheet, requestChangeSheet } from "./views/changeSheets.ts";
-import { activityPage, loginPage, settingsPage } from "./views/pages.ts";
+import { activityPage, settingsPage } from "./views/pages.ts";
+import { signInPage } from "./views/signIn.ts";
 
 const root = document.querySelector<HTMLElement>("#app");
 const nav = document.querySelector<HTMLElement>("#nav");
@@ -76,7 +77,7 @@ async function renderPage(): Promise<void> {
   const path = location.pathname;
   if (path === "/app/login") {
     setCurrent(null);
-    return show(loginPage(() => {
+    return show(signInPage(() => {
       signInWhy = null;
       go("/app");
     }, signInWhy));

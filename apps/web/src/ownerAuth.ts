@@ -1,77 +1,84 @@
 import { createHash, randomBytes } from "node:crypto";
 import type { SqlRows } from "@countersign/adapters/sql";
 
-export const CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-export const CODE_LENGTH = 10;
-export const CODE_LIFETIME_MS = 10 * 60 * 1000;
+export const SIGN_IN_LIFETIME_MS = 10 * 60 * 1000;
 export const SESSION_LIFETIME_MS = 12 * 60 * 60 * 1000;
+export const SIGN_IN_VERSION = "Countersign sign-in v1";
 
 const SCHEMA = `
-CREATE TABLE IF NOT EXISTS login_codes (hash TEXT PRIMARY KEY, expires_at BIGINT NOT NULL, used INTEGER NOT NULL DEFAULT 0 CHECK (used IN (0,1)));
-CREATE TABLE IF NOT EXISTS owner_sessions (hash TEXT PRIMARY KEY, expires_at BIGINT NOT NULL);
+DROP TABLE IF EXISTS login_codes;
+DROP TABLE IF EXISTS owner_sessions;
+CREATE TABLE IF NOT EXISTS sign_in_nonces (hash TEXT PRIMARY KEY, address TEXT NOT NULL, expires_at BIGINT NOT NULL, used INTEGER NOT NULL DEFAULT 0 CHECK (used IN (0,1)));
+CREATE TABLE IF NOT EXISTS wallet_sessions (hash TEXT PRIMARY KEY, owner_id TEXT NOT NULL, address TEXT NOT NULL, expires_at BIGINT NOT NULL);
 `;
 
-export type Redeemed = { readonly ok: true; readonly token: string; readonly expiresAt: number } | { readonly ok: false };
+export type SignInChallenge = { readonly nonce: string; readonly message: string; readonly expires: string };
+export type PendingSignIn = { readonly ok: true; readonly message: string } | { readonly ok: false; readonly problem: "UNKNOWN_NONCE" | "USED" | "EXPIRED" | "WRONG_ADDRESS" };
+export type Session = { readonly ownerId: string; readonly address: string };
 
 function hash(value: string): string {
   return createHash("sha256").update(value).digest("hex");
 }
 
-export function normalizeCode(input: string): string {
-  return input.toUpperCase().replace(/[^A-Z0-9]/g, "");
-}
-
-export function formatCode(code: string): string {
-  return `${code.slice(0, CODE_LENGTH / 2)}-${code.slice(CODE_LENGTH / 2)}`;
+export function signInMessage(domain: string, address: string, nonce: string, expires: string): string {
+  return [SIGN_IN_VERSION, `domain:${domain}`, "purpose:sign in to your Countersign agent", `address:${address}`, `nonce:${nonce}`, `expires:${expires}`].join("\n");
 }
 
 export class OwnerAuth {
   readonly #rows: SqlRows;
+  readonly #domain: string;
   readonly #now: () => number;
 
-  private constructor(rows: SqlRows, now: () => number) {
+  private constructor(rows: SqlRows, domain: string, now: () => number) {
     this.#rows = rows;
+    this.#domain = domain;
     this.#now = now;
   }
 
-  static async open(rows: SqlRows, now: () => number = Date.now): Promise<OwnerAuth> {
+  static async open(rows: SqlRows, domain: string, now: () => number = Date.now): Promise<OwnerAuth> {
     await rows.exec(SCHEMA);
-    return new OwnerAuth(rows, now);
+    return new OwnerAuth(rows, domain, now);
   }
 
-  async issueCode(): Promise<string> {
-    const bytes = randomBytes(CODE_LENGTH);
-    const code = Array.from(bytes, (b) => CODE_ALPHABET[b % CODE_ALPHABET.length]).join("");
-    await this.#rows.run("INSERT INTO login_codes (hash, expires_at) VALUES (?, ?)", [hash(code), this.#now() + CODE_LIFETIME_MS]);
-    return formatCode(code);
+  async challenge(address: string): Promise<SignInChallenge> {
+    const nonce = randomBytes(16).toString("hex");
+    const expiresAt = this.#now() + SIGN_IN_LIFETIME_MS;
+    await this.#rows.run("INSERT INTO sign_in_nonces (hash, address, expires_at) VALUES (?,?,?)", [hash(nonce), address, expiresAt]);
+    const expires = new Date(expiresAt).toISOString();
+    return { nonce, expires, message: signInMessage(this.#domain, address, nonce, expires) };
   }
 
-  async redeemCode(input: string): Promise<Redeemed> {
-    const code = normalizeCode(input);
-    if (code.length !== CODE_LENGTH) return { ok: false };
-    if (!(await this.#claim(code))) return { ok: false };
+  async pending(address: string, nonce: string): Promise<PendingSignIn> {
+    const row = await this.#rows.get("SELECT address, expires_at, used FROM sign_in_nonces WHERE hash = ?", [hash(nonce)]);
+    if (!row) return { ok: false, problem: "UNKNOWN_NONCE" };
+    if (Number(row["used"]) === 1) return { ok: false, problem: "USED" };
+    if (Number(row["expires_at"]) <= this.#now()) return { ok: false, problem: "EXPIRED" };
+    if (row["address"] !== address) return { ok: false, problem: "WRONG_ADDRESS" };
+    return { ok: true, message: signInMessage(this.#domain, address, nonce, new Date(Number(row["expires_at"])).toISOString()) };
+  }
+
+  async consume(nonce: string): Promise<boolean> {
+    return (await this.#rows.run("UPDATE sign_in_nonces SET used = 1 WHERE hash = ? AND used = 0 AND expires_at > ?", [hash(nonce), this.#now()])) === 1;
+  }
+
+  async startSession(ownerId: string, address: string): Promise<{ readonly token: string; readonly expiresAt: number }> {
     const token = randomBytes(32).toString("base64url");
     const expiresAt = this.#now() + SESSION_LIFETIME_MS;
-    await this.#rows.run("INSERT INTO owner_sessions (hash, expires_at) VALUES (?, ?)", [hash(token), expiresAt]);
-    return { ok: true, token, expiresAt };
+    await this.#rows.run("INSERT INTO wallet_sessions (hash, owner_id, address, expires_at) VALUES (?,?,?,?)", [hash(token), ownerId, address, expiresAt]);
+    return { token, expiresAt };
   }
 
-  async consumeCode(input: string): Promise<boolean> {
-    const code = normalizeCode(input);
-    if (code.length !== CODE_LENGTH) return false;
-    return this.#claim(code);
+  async session(token: string | null): Promise<Session | null> {
+    if (!token) return null;
+    const row = await this.#rows.get("SELECT owner_id, address FROM wallet_sessions WHERE hash = ? AND expires_at > ?", [hash(token), this.#now()]);
+    return row ? { ownerId: String(row["owner_id"]), address: String(row["address"]) } : null;
   }
 
   async sessionValid(token: string | null): Promise<boolean> {
-    if (!token) return false;
-    return (await this.#rows.get("SELECT 1 AS ok FROM owner_sessions WHERE hash = ? AND expires_at > ?", [hash(token), this.#now()])) !== undefined;
+    return (await this.session(token)) !== null;
   }
 
   async endSession(token: string | null): Promise<void> {
-    if (token) await this.#rows.run("DELETE FROM owner_sessions WHERE hash = ?", [hash(token)]);
-  }
-
-  async #claim(code: string): Promise<boolean> {
-    return (await this.#rows.run("UPDATE login_codes SET used = 1 WHERE hash = ? AND used = 0 AND expires_at > ?", [hash(code), this.#now()])) === 1;
+    if (token) await this.#rows.run("DELETE FROM wallet_sessions WHERE hash = ?", [hash(token)]);
   }
 }

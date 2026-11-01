@@ -3,22 +3,22 @@
 What each attacker can and can't do to a Countersign owner's money. "Owner wallet" is the Sui wallet the owner registered in the web app (V20).
 
 ## Someone who controls the owner's Telegram account
-They can send the bot messages and ask for /login codes, so they can sign in to the owner app.
+They can send the bot messages. Since V23 they can't sign in to the owner app: signing in needs the owner wallet's signature over a one-time message, and /login only replies with the sign-in link.
 
 They **can**:
 - Pay a payee that is already VERIFIED, within the per-payment and daily caps. The money goes only to that payee's verified address.
-- See the owner app: payees, activity, receipts, settings.
-- Start an address change request. It stays STATED (never payable) until the payee's current wallet signs it, or the owner wallet confirms it and the cooldown passes; the new wallet must also sign.
-- Tighten limits (lower caps, longer cooldown).
-- Ask to replace the owner wallet without the old wallet's signature. That waits 72 hours, sends Telegram notices, and the real owner can cancel it with the owner wallet.
+- Start an address change request by forwarding a message. It stays STATED (never payable) until the payee's current wallet signs it, or the owner wallet confirms it and the cooldown passes; the new wallet must also sign.
 
-They **can't** (each needs a fresh owner-wallet signature over the exact action, checked through Tatum):
+They **can't**:
+- Sign in to the owner app, see it, or change any setting there (V23).
+
+And even someone signed in to the owner app can't do these without a fresh owner-wallet signature over the exact action, checked through Tatum:
 - Add a payee.
 - Confirm an address change on the owner path.
 - Raise a cap or shorten the cooldown.
 - Create, change or delete a scheduled payment (V21).
 - Retract a shared scam report (V22).
-- Replace the owner wallet immediately.
+- Replace the owner wallet immediately (without the old wallet's signature it waits 72 hours with Telegram notices, and the owner wallet can cancel it).
 
 Every sensitive action also sends a Telegram notice, so the owner sees it even if the attacker reads the chat.
 

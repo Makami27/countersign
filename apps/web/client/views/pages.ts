@@ -5,7 +5,6 @@ import { ownerWalletPanel } from "./ownerWallet.ts";
 import { addressEl, h, liveRegion, usdc, when, listen } from "../dom.ts";
 import type { ActivityItem, Overview } from "../types.ts";
 import { agentFacts } from "./firstRun.ts";
-import { CODE_DISPLAY_LENGTH, formatCode } from "../codeInput.ts";
 
 const VERDICT_WORDS: Record<string, string> = {
   PAID: "Paid", PAYMENT_FAILED: "Not paid", REFUSED: "Refused", CHANGE_VERIFIED: "Address verified", CHANGE_REJECTED: "Change refused",
@@ -57,35 +56,3 @@ export function settingsPage(overview: Overview, onSaved: () => void): HTMLEleme
     h("div", { class: "actions" }, signOut));
 }
 
-function attachCodeFormatting(input: HTMLInputElement): void {
-  input.maxLength = CODE_DISPLAY_LENGTH;
-  input.addEventListener("input", () => {
-    const formatted = formatCode(input.value, input.selectionStart ?? input.value.length);
-    if (formatted.value === input.value) return;
-    input.value = formatted.value;
-    input.setSelectionRange(formatted.caret, formatted.caret);
-  });
-}
-
-export function loginPage(onSignedIn: () => void, why: string | null): HTMLElement {
-  const code = h("input", { id: "code", autocomplete: "one-time-code", inputmode: "text", autocapitalize: "characters", spellcheck: "false", required: true, class: "mono", placeholder: "ABCDE-FGH23" });
-  attachCodeFormatting(code);
-  const status = h("p", { class: "error", role: "alert" });
-  const button = h("button", { class: "btn primary", type: "submit" }, "Sign in");
-  const form = h("form", {}, h("label", { for: "code" }, "Code from the Telegram bot", h("span", { class: "hint" }, "Send /login to your Countersign bot. The code works once, for 10 minutes."), code), status,
-    h("div", { class: "actions" }, button));
-  listen(form, "submit", async (event) => {
-    event.preventDefault();
-    if (button.disabled) return;
-    button.disabled = true;
-    button.textContent = "Signing in…";
-    status.textContent = "";
-    const result = await api("POST", "/api/session", { code: code.value });
-    if (result.ok) return onSignedIn();
-    status.textContent = result.error.message;
-    button.disabled = false;
-    button.textContent = "Sign in";
-  }, status);
-  const notice = why ? h("p", { class: "note", role: "status" }, why) : "";
-  return h("section", { class: "narrow", "aria-labelledby": "login-title" }, h("h1", { id: "login-title" }, "Sign in to your agent"), notice, form);
-}

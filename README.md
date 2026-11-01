@@ -13,8 +13,8 @@ Built for Walrus × Tatum *Total Recall*, Track 2 (Smart Agents for Real Life).
 | Tatum (GraphQL + native gRPC, shared 2 req/s gate) | live suite green on testnet; payee signatures verified through our adapter, including a real Slush zkLogin signature [claim:CL03] |
 | Walrus Memory (signed records, completeness check, restore) | live on the mainnet relayer [claim:CL10]; relayer outage 30 Oct 22:37 → 31 Oct ~06:00 UTC recorded (REALITY_SPIKES R3) |
 | Payments | testnet payments settle through Tatum; Act 1 (model → engine → payment → receipt on Walrus mainnet) and Act 4 (two-wallet address change, then the next payment goes to the new wallet) [claim:CL15] recorded in `evidence/acts/` |
-| Telegram bot (`apps/agent`) | built (preview + confirm, refusals with comparison and a receipt link, /login codes); the owner signed in through it on Render on 31 Oct |
-| Owner web app (`/app`) and signing page (`/sign/:nonce`) | built, tested over HTTP, screen-checked at 390 and 1440 px in light and dark |
+| Telegram bot (`apps/agent`) | built (preview + confirm, refusals with comparison and a receipt link; /login replies with the wallet sign-in link) |
+| Owner web app (`/app`) and signing page (`/sign/:nonce`) | built; sign in with your Sui wallet (one-time message verified through Tatum, V23); tested over HTTP, screen-checked at 390 and 1440 px in light and dark |
 | Public site with attack lab (`/`) | built; lab payees go through the same onboarding rules as the agent |
 | Real use (≥10 mainnet memories) | 12 agent-signed records from the owner's own use on the mainnet relayer [claim:CL07] |
 | Deploy | live at https://countersign.nittings.xyz (Render free, Neon Postgres, D19); `/api/health` reports the deployed commit. Testnet payments, mainnet Walrus Memory |

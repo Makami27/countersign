@@ -9,7 +9,8 @@ import type { StatusView } from "./status.ts";
 import { claimRowsHtml, readClaims } from "./claims.ts";
 import { readFile } from "node:fs/promises";
 import { SECURITY_HEADERS, SIGN_PAGE_CSP, problem, send, serveFile } from "./http.ts";
-import { ownerRoute, sessionRoute } from "./ownerRoutes.ts";
+import { ownerRoute } from "./ownerRoutes.ts";
+import { sessionRoute } from "./signInRoutes.ts";
 import { signRoute } from "./signRoutes.ts";
 import { proofPageRoute, statusPageRoute } from "./publicRoutes.ts";
 import type { OwnerContext } from "./ownerContext.ts";
@@ -42,7 +43,7 @@ export function startWebServer(options: WebServerOptions): Server {
       if (path === "/api/claims" && req.method === "GET") return send(res, 200, { source: "CLAIMS.md", claims: await readClaims() });
       if (path === "/api/proof" && req.method === "GET") return send(res, 200, await readProof(options.proof, options.network));
       if (path.startsWith("/api/lab/") && req.method === "POST") return labRoute(lab, req, res, path);
-      if (path === "/api/session" && options.owner) return sessionRoute(options.owner, req, res);
+      if ((path === "/api/session" || path === "/api/session/challenge") && options.owner) return sessionRoute(options.owner, req, res, path);
       if (path.startsWith("/api/app/") && options.owner) return ownerRoute(options.owner, req, res, path);
       if (path.startsWith("/api/sign/") && options.owner) return signRoute(options.owner, req, res, path);
       if (path.startsWith("/api/")) return problem(res, 404, "Not found.");

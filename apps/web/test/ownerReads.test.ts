@@ -12,6 +12,7 @@ import { OwnerSettings } from "../src/ownerSettings.ts";
 import { ChangeSteps } from "../src/changeSteps.ts";
 import type { OwnerContext } from "../src/ownerContext.ts";
 import { ownerExtras } from "./support/ownerExtras.ts";
+import { signInAs } from "./support/signIn.ts";
 
 type Slow = { balances?: () => Promise<never>; memoryCounts?: () => Promise<never> };
 const never = () => new Promise<never>(() => undefined);
@@ -19,7 +20,7 @@ const never = () => new Promise<never>(() => undefined);
 async function signedIn(t: TestContext, slow: Slow = {}) {
   const w = await world();
   const rows = new SqliteRows(join(mkdtempSync(join(tmpdir(), "countersign-reads-")), "web.sqlite"));
-  const auth = await OwnerAuth.open(rows);
+  const auth = await OwnerAuth.open(rows, "example.test");
   const owner: OwnerContext = {
     ownerId: "owner1", network: "testnet", agentAddress: wallet().address, publicUrl: "https://example.test", engine: w.agent, index: w.index, ledger: w.payments, auth,
     settings: await OwnerSettings.open(rows, { perPaymentBaseUnits: 50_000_000n, perDayBaseUnits: 100_000_000n, cooldownSeconds: 60 }),
@@ -37,9 +38,9 @@ async function signedIn(t: TestContext, slow: Slow = {}) {
     server.close();
   });
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-  const login = await fetch(`${base}/api/session`, { method: "POST", headers: { "content-type": "application/json", "x-countersign": "1" }, body: JSON.stringify({ code: await auth.issueCode() }) });
-  const setCookie = login.headers.get("set-cookie") ?? "";
-  const cookie = setCookie.split(";")[0] ?? "";
+  const me = wallet();
+  const login = await signInAs(base, me);
+  const { setCookie, cookie } = login;
   const get = async (path: string) => {
     const r = await fetch(`${base}${path}`, { headers: { cookie } });
     return { status: r.status, body: (await r.json()) as Record<string, unknown> };

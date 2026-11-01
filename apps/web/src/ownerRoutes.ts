@@ -15,33 +15,17 @@ import { retractSharedReport } from "./sharedReportRoutes.ts";
 
 export const SESSION_COOKIE = "cs_owner";
 export const CSRF_HEADER = "x-countersign";
-const loginLimiter = new WindowLimiter(5, 10 * 60 * 1000);
 const writeLimiter = new WindowLimiter(60, 60 * 1000);
 const READ_DEADLINE_MS = 20_000;
-export const SIGNED_OUT = "You're signed out: your session ended or this browser has none. Send /login to the bot for a new code.";
+export const SIGNED_OUT = "You're signed out: your session ended or this browser has none. Sign in with your wallet.";
 
-function sessionCookie(token: string, maxAgeSeconds: number): Record<string, string> {
+export function sessionCookie(token: string, maxAgeSeconds: number): Record<string, string> {
   return { "set-cookie": `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${maxAgeSeconds}` };
 }
 
 function refusalBody(outcome: Outcome) {
   if (outcome.verdict !== "REFUSED") return { outcome };
   return { outcome, refusal: { ...REASONS[outcome.reason], reason: outcome.reason, receipt: outcome.receipt, cites: outcome.cites } };
-}
-
-export async function sessionRoute(ctx: OwnerContext, req: IncomingMessage, res: ServerResponse): Promise<void> {
-  if (req.headers[CSRF_HEADER] !== "1") return problem(res, 403, "Missing request header. Nothing was changed.");
-  if (req.method === "DELETE") {
-    await ctx.auth.endSession(cookie(req, SESSION_COOKIE));
-    return send(res, 200, { signedOut: true }, sessionCookie("", 0));
-  }
-  if (!loginLimiter.allow(clientAddress(req))) return problem(res, 429, "Too many attempts. Wait ten minutes, then ask the bot for a new code.");
-  const input = await readJson(req);
-  const code = input?.["code"];
-  if (typeof code !== "string") return problem(res, 400, "Enter the code the bot sent you.");
-  const redeemed = await ctx.auth.redeemCode(code);
-  if (!redeemed.ok) return problem(res, 401, "That code is wrong, used or expired. Send /login to the bot for a new one.");
-  return send(res, 200, { signedIn: true }, sessionCookie(redeemed.token, Math.floor(SESSION_LIFETIME_MS / 1000)));
 }
 
 export async function ownerRoute(ctx: OwnerContext, req: IncomingMessage, res: ServerResponse, path: string): Promise<void> {

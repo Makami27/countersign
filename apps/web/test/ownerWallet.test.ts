@@ -9,13 +9,11 @@ import { ownerNamespace } from "@countersign/core";
 import { OwnerWallets, OWNER_WALLET_WAIT_MS } from "../src/ownerWallet.ts";
 import { ownerServer as setup, type Challenge } from "./support/ownerServer.ts";
 
-test("V20 adding a payee needs the owner wallet: refused before one is registered, registration sends a Telegram notice, asks for a signature, rejects another wallet, and can't be replayed", async (t) => {
+test("V20 V23 adding a payee needs the owner wallet registered at sign-in: it asks for a signature, rejects another wallet, and can't be replayed", async (t) => {
   const s = await setup(t);
-  const me = wallet();
+  const me = s.me;
   const payee = { name: "Plumber", address: wallet().address };
-  assert.equal((await s.call("POST", "/api/app/payees", payee)).status, 409);
-  assert.equal((await s.signedBy("POST", "/api/app/owner/wallet", { address: me.address }, [me])).status, 200);
-  assert.ok(s.extras.notices.some((n) => n.startsWith("Owner wallet registered")));
+  assert.ok(s.extras.notices.some((n) => n.startsWith("Owner wallet registered by signing in")));
   const asked = await s.call("POST", "/api/app/payees", payee);
   assert.equal(asked.status, 428);
   assert.match((asked.body["approvals"] as Challenge[])[0]?.message ?? "", /action:add_payee\nmeaning:add a payee\naddress:0x[0-9a-f]{64}\nname:Plumber/);
@@ -36,8 +34,7 @@ test("V20 adding a payee needs the owner wallet: refused before one is registere
 
 test("V20 loosening limits needs the owner wallet; tightening them doesn't; both send a Telegram notice", async (t) => {
   const s = await setup(t);
-  const me = wallet();
-  await s.signedBy("POST", "/api/app/owner/wallet", { address: me.address }, [me]);
+  const me = s.me;
   assert.equal((await s.call("PUT", "/api/app/settings", { perPaymentBaseUnits: "10000000", perDayBaseUnits: "20000000", cooldownSeconds: "3600" })).status, 200);
   const raise = { perPaymentBaseUnits: "60000000", perDayBaseUnits: "200000000", cooldownSeconds: "3600" };
   assert.equal((await s.call("PUT", "/api/app/settings", raise)).status, 428);
@@ -50,8 +47,7 @@ test("V20 loosening limits needs the owner wallet; tightening them doesn't; both
 
 test("V20 V12 confirming an address change yourself needs the owner wallet's signature, not a Telegram code", async (t) => {
   const s = await setup(t);
-  const me = wallet();
-  await s.signedBy("POST", "/api/app/owner/wallet", { address: me.address }, [me]);
+  const me = s.me;
   const next = wallet();
   const started = await s.agent.handle(message(`new wallet ${next.address}`), { kind: "change_address", payeeId: "landlord", newAddress: next.address, reasonQuote: "x" });
   if (started.verdict !== "CHANGE_STARTED") return assert.fail("expected a change");
@@ -64,8 +60,7 @@ test("V20 V12 confirming an address change yourself needs the owner wallet's sig
 
 test("V20 replacing the owner wallet: the old wallet's signature switches now; without it the change waits 72 h, can be cancelled by the old wallet, and notices go out", async (t) => {
   const s = await setup(t);
-  const [first, second, third] = [wallet(), wallet(), wallet()];
-  await s.signedBy("POST", "/api/app/owner/wallet", { address: first.address }, [first]);
+  const [first, second, third] = [s.me, wallet(), wallet()];
   assert.equal((await s.signedBy("POST", "/api/app/owner/wallet", { address: second.address }, [second, third])).status, 403);
   assert.equal(s.owner.wallets.current(), first.address);
   assert.equal((await s.signedBy("POST", "/api/app/owner/wallet", { address: second.address }, [second, first])).status, 200);
@@ -87,8 +82,7 @@ test("V20 replacing the owner wallet: the old wallet's signature switches now; w
 
 test("V20 V18 the owner wallet comes back from Walrus Memory on an empty database, and an unreadable memory blocks registration instead of reopening it", async (t) => {
   const s = await setup(t);
-  const me = wallet();
-  await s.signedBy("POST", "/api/app/owner/wallet", { address: me.address }, [me]);
+  const me = s.me;
   const freshRows = new SqliteRows(join(mkdtempSync(join(tmpdir(), "countersign-owner-")), "empty.sqlite"));
   const restored = await OwnerWallets.open({ rows: freshRows, memory: s.memory, signer: s.signer, ownerId: "owner1", now: Date.now });
   assert.equal(restored.current(), me.address);
