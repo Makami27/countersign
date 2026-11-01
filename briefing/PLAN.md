@@ -33,12 +33,12 @@ Revised 2026-10-30 (owner review of the phase plan): skeleton deploy moved to Ph
 
 **Next steps**
 1. MASTER_KEY step above, then sign in as a second owner to check multi-user live.
-2. Commit the Groq measurement when it finishes (see Background jobs); report the numbers with failures and model errors; cite them only through a new CLAIMS entry.
+2. Measurement done (CL16): Countersign 0/90 attacker payments, naive baseline 71/90 (K5 0/10 and K6 1/10 because the model rarely read those as address changes), benign 50/50 paid right, 0 false refusals, 0 model or trial errors.
 3. Check wallet popups and Telegram linking in a real browser and phone.
 4. Phase 5 essentials (Q01–Q10), blog and video. The mainnet switch comes last and is the first cut (SHIP); if cut, the header says "mainnet: coming later".
 
 **Background jobs and how to check them**
-- Groq measurement (started 1 Nov 15:11 UTC) runs locally: `node --env-file=.env apps/agent/src/measure.ts`, log `../measure-groq.log`, raw rows `evidence/measurement/raw-2026-11-01T15-11-00-564Z.jsonl`. It writes `evidence/measurement/results.json` only when done; commit that file plus the raw file and push so /proof shows it. If it stopped early, continue with `MEASURE_RUN=2026-11-01T15-11-00-564Z`.
+- None running. Groq measurement finished 1 Nov; results committed.
 - Deployed agent: Render service `srv-dbj08anf3r2c73ejrggg` (Ohio); /api/health, /api/status, /status; an external 5-minute ping (cron-job.org) keeps it awake.
 
 **Open decisions**
