@@ -113,3 +113,23 @@ test("V21 a run above a cap is refused, the owner is told once, and it isn't tri
   assert.equal(s.notices.length, 1);
   assert.match(s.notices[0] ?? "", /was not paid: The payment is above a spending cap\. It won't be tried again this period\. Receipt: https:\/\/example\.test\/r\/rcpt_/);
 });
+
+test("V21 a weekly schedule pays once per ISO week across double ticks and a restart, and again the next week; a two-week schedule skips its off week", async () => {
+  const s = await scheduleWorld();
+  const weekly = await s.schedule({ every: "week", day: 1, month: null });
+  const fortnightly = await s.schedule({ every: "two_weeks", day: 1, month: null, payeeId: "designer" });
+  s.at("2026-11-02T00:05:00Z");
+  const first = await s.runner();
+  await Promise.all([first.tick(), first.tick()]);
+  await (await s.runner()).tick();
+  assert.equal((await s.payments.payment(scheduledPaymentId(weekly.scheduleId, "2026-W45")))?.state, "SETTLED");
+  assert.equal((await s.payments.recentPayments(50, "designer")).length, 0);
+  s.at("2026-11-09T00:05:00Z");
+  await (await s.runner()).tick();
+  assert.equal((await s.payments.payment(scheduledPaymentId(weekly.scheduleId, "2026-W46")))?.state, "SETTLED");
+  assert.equal((await s.payments.payment(scheduledPaymentId(fortnightly.scheduleId, "2026-11-09-2w")))?.state, "SETTLED");
+  s.at("2026-11-16T00:05:00Z");
+  await (await s.runner()).tick();
+  assert.equal((await s.payments.recentPayments(50, "designer")).length, 1);
+  assert.equal((await s.payments.recentPayments(50, "landlord")).length, 3);
+});

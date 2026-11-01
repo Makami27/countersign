@@ -1,6 +1,7 @@
 import { EXTENSION_TIP, connectWallet, signingWallets } from "../signFlow.ts";
 import { withApprovals } from "../approvals.ts";
 import { addressEl, h, listen, liveRegion, when } from "../dom.ts";
+import { ADDRESS_PROBLEM, attachAddressCleaning, cleanAddress, isSuiAddress } from "../addressInput.ts";
 import type { Overview } from "../types.ts";
 
 export function ownerWalletPanel(overview: Overview, onChanged: () => void): HTMLElement {
@@ -27,13 +28,15 @@ export function ownerWalletPanel(overview: Overview, onChanged: () => void): HTM
   }
   const waiting = state.waiting;
   const next = h("input", { id: "next-owner", class: "mono", autocomplete: "off", spellcheck: "false", placeholder: "0x…" });
+  attachAddressCleaning(next);
   const noOld = h("input", { id: "no-old", type: "checkbox" });
   const form = h("form", {}, h("label", { for: "next-owner" }, "Replace with this wallet", next),
     h("label", { for: "no-old", class: "check" }, noOld, " I can't sign with the current owner wallet: wait 72 hours instead (you get Telegram notices)"), status,
     h("div", { class: "actions" }, h("button", { class: "btn", type: "submit" }, "Replace owner wallet")));
   listen(form, "submit", async (event) => {
     event.preventDefault();
-    const result = await withApprovals("POST", "/api/app/owner/wallet", { address: next.value.trim(), waitInstead: noOld.checked }, overview.network, status);
+    if (!isSuiAddress(next.value)) return void (status.textContent = ADDRESS_PROBLEM);
+    const result = await withApprovals("POST", "/api/app/owner/wallet", { address: cleanAddress(next.value), waitInstead: noOld.checked }, overview.network, status);
     status.textContent = result.ok ? "Done." : result.error.message;
     if (result.ok) onChanged();
   }, status);

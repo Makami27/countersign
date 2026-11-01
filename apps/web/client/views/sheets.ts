@@ -2,6 +2,7 @@ import { usdcToBaseUnits } from "@countersign/core";
 import { api } from "../api.ts";
 import { withApprovals } from "../approvals.ts";
 import { addressEl, h, liveRegion, networkWords, usdc, listen } from "../dom.ts";
+import { ADDRESS_PROBLEM, attachAddressCleaning, cleanAddress, isSuiAddress } from "../addressInput.ts";
 import type { Overview, PayeeDetail, PaymentStatus, Refusal } from "../types.ts";
 
 const POLL_MS = 1_500;
@@ -87,15 +88,18 @@ export function addPayeeSheet(network: "mainnet" | "testnet", onClosed: () => vo
   openSheet("Add a payee", (close, body) => {
     const name = h("input", { id: "payee-name", name: "name", required: true, maxlength: "60", autocomplete: "off", placeholder: "Flat 4B rent" });
     const address = h("input", { id: "payee-address", name: "address", required: true, class: "mono", autocomplete: "off", spellcheck: "false", placeholder: "0x…" });
+    attachAddressCleaning(address);
     const status = liveRegion();
     const submit = h("button", { class: "btn primary", type: "submit" }, "Add and get a signing link");
     const form = h("form", {}, h("label", { for: "payee-name" }, "Name", name), h("label", { for: "payee-address" }, "Their Sui address", h("span", { class: "hint" }, "Copy it from the payee. It can't be paid until their wallet signs."), address), status,
       h("div", { class: "actions" }, submit, h("button", { class: "btn", type: "button", onclick: close }, "Cancel")));
     listen(form, "submit", async (event) => {
       event.preventDefault();
+      if (!name.value.trim()) return void (status.textContent = "Give the payee a name, for example Flat 4B rent. Nothing was added.");
+      if (!isSuiAddress(address.value)) return void (status.textContent = ADDRESS_PROBLEM);
       submit.disabled = true;
       status.textContent = "Asking your owner wallet to approve this payee…";
-      const result = await withApprovals<{ signUrl: string | null }>("POST", "/api/app/payees", { name: name.value, address: address.value.trim() }, network, status);
+      const result = await withApprovals<{ signUrl: string | null }>("POST", "/api/app/payees", { name: name.value.trim(), address: cleanAddress(address.value) }, network, status);
       submit.disabled = false;
       if (!result.ok) {
         const refusal = result.error.body?.["refusal"] as Refusal | undefined;

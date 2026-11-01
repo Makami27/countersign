@@ -22,9 +22,22 @@ function setCurrent(section: "payees" | "activity" | "settings" | null): void {
   nav?.querySelectorAll("a").forEach((a) => (a.dataset["section"] === section ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")));
 }
 
+let quietRender = false;
+let edited = false;
+root?.addEventListener("input", () => {
+  edited = true;
+});
+
 function show(...children: HTMLElement[]): void {
   root?.replaceChildren(...children);
-  root?.querySelector<HTMLElement>("h1, h2")?.focus({ preventScroll: true });
+  edited = false;
+  if (!quietRender) root?.querySelector<HTMLElement>("h1, h2")?.focus({ preventScroll: true });
+}
+
+function typingHere(): boolean {
+  const active = document.activeElement;
+  const field = active instanceof HTMLInputElement || active instanceof HTMLSelectElement || active instanceof HTMLTextAreaElement;
+  return edited || (field && root?.contains(active) === true);
 }
 
 function failure(message: string): HTMLElement {
@@ -35,7 +48,12 @@ let poll: number | undefined;
 function schedulePoll(path: string): void {
   window.clearTimeout(poll);
   poll = window.setTimeout(() => {
-    if (location.pathname === path && !document.querySelector("dialog[open]")) void render();
+    if (location.pathname !== path) return;
+    if (document.querySelector("dialog[open]") || typingHere()) return schedulePoll(path);
+    quietRender = true;
+    void render().finally(() => {
+      quietRender = false;
+    });
   }, 5_000);
 }
 

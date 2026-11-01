@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import type { ServerResponse } from "node:http";
 import { z } from "zod";
-import { LAST_SCHEDULE_DAY, REASONS, duePeriods, formatUsdc, headOf, usdcToBaseUnits, type ScheduleRecord, type ScheduleTerms } from "@countersign/core";
+import { LAST_SCHEDULE_DAY, REASONS, WEEKDAYS, duePeriods, formatUsdc, headOf, usdcToBaseUnits, type ScheduleRecord, type ScheduleTerms } from "@countersign/core";
 import { problem, send } from "./http.ts";
 import { ownerSigned, proofsOf, verificationsOf, type Granted } from "./ownerGate.ts";
 import type { OwnerContext } from "./ownerContext.ts";
@@ -10,7 +10,7 @@ import type { ApprovalKind } from "./ownerApprovals.ts";
 const TermsInput = z.object({
   payeeId: z.string().min(1).max(80),
   amount: z.string().min(1).max(24),
-  every: z.enum(["month", "year"]),
+  every: z.enum(["week", "two_weeks", "month", "year"]),
   day: z.number().int().min(1).max(LAST_SCHEDULE_DAY),
   month: z.number().int().min(1).max(12).nullable().optional(),
   approvals: z.unknown().optional(),
@@ -21,10 +21,11 @@ type Checked = { readonly ok: true; readonly terms: ScheduleTerms } | { readonly
 
 async function checkTerms(ctx: OwnerContext, input: Record<string, unknown>): Promise<Checked> {
   const parsed = TermsInput.safeParse(input);
-  if (!parsed.success) return { ok: false, status: 400, message: "Give a payee, an amount in USDC, month or year, and a day from 1 to 28 (and a month for yearly). Nothing was changed." };
+  if (!parsed.success) return { ok: false, status: 400, message: "Give a payee, an amount in USDC, a period (week, two weeks, month or year) and a day (weekday 1 to 7, or day of the month 1 to 28; plus a month for yearly). Nothing was changed." };
   const { payeeId, amount, every, day } = parsed.data;
   const month = parsed.data.month ?? null;
-  if ((every === "year") !== (month !== null)) return { ok: false, status: 400, message: "A yearly payment needs a month; a monthly one doesn't. Nothing was changed." };
+  if ((every === "year") !== (month !== null)) return { ok: false, status: 400, message: "A yearly payment needs a month; other periods don't. Nothing was changed." };
+  if ((every === "week" || every === "two_weeks") && day > WEEKDAYS.length) return { ok: false, status: 400, message: "A weekly payment needs a day of the week (1 Monday to 7 Sunday). Nothing was changed." };
   const amountBaseUnits = usdcToBaseUnits(amount.trim());
   if (!amountBaseUnits) return { ok: false, status: 400, message: "Give the amount in USDC, for example 0.10. Nothing was changed." };
   if (headOf(await ctx.index.payeeVersions(payeeId)).kind !== "verified") return { ok: false, status: 409, message: "Only a payee with a verified address can have a scheduled payment. Nothing was changed." };
@@ -38,7 +39,9 @@ function payloadOf(terms: ScheduleTerms, scheduleId: string | null): Record<stri
 }
 
 export function describeSchedule(terms: ScheduleTerms): string {
-  const when = terms.every === "month" ? `day ${terms.day} of every month` : `${terms.day} ${new Date(Date.UTC(2000, (terms.month ?? 1) - 1, 1)).toLocaleString("en", { month: "long", timeZone: "UTC" })} every year`;
+  const weekday = WEEKDAYS[terms.day - 1] ?? "";
+  const month = new Date(Date.UTC(2000, (terms.month ?? 1) - 1, 1)).toLocaleString("en", { month: "long", timeZone: "UTC" });
+  const when = { week: `every ${weekday}`, two_weeks: `every other ${weekday}`, month: `day ${terms.day} of every month`, year: `${terms.day} ${month} every year` }[terms.every];
   return `${formatUsdc(BigInt(terms.amountBaseUnits))} USDC to ${terms.payeeId} on ${when} (UTC)`;
 }
 

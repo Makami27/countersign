@@ -1,7 +1,9 @@
+import { WEEKDAYS, usdcToBaseUnits } from "@countersign/core";
 import { withApprovals } from "../approvals.ts";
 import { h, liveRegion, listen, when } from "../dom.ts";
 import type { ScheduleItem } from "../types.ts";
 
+const LAST_DAY = 28;
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
 function scheduleRow(item: ScheduleItem, network: "mainnet" | "testnet", status: HTMLElement, onChanged: () => void): HTMLElement {
@@ -17,16 +19,29 @@ function scheduleRow(item: ScheduleItem, network: "mainnet" | "testnet", status:
 export function schedulesPanel(payeeId: string, items: readonly ScheduleItem[], network: "mainnet" | "testnet", onChanged: () => void): HTMLElement {
   const status = liveRegion();
   const rows = items.filter((item) => item.schedule.payeeId === payeeId).map((item) => scheduleRow(item, network, status, onChanged));
-  const amount = h("input", { id: "schedule-amount", inputmode: "decimal" });
-  const every = h("select", { id: "schedule-every" }, h("option", { value: "month" }, "Every month"), h("option", { value: "year" }, "Every year"));
-  const day = h("input", { id: "schedule-day", inputmode: "numeric", value: "1" });
+  const amount = h("input", { id: "schedule-amount", inputmode: "decimal", autocomplete: "off", placeholder: "0.10" });
+  const every = h("select", { id: "schedule-every" }, h("option", { value: "week" }, "Every week"), h("option", { value: "two_weeks" }, "Every two weeks"), h("option", { value: "month", selected: true }, "Every month"), h("option", { value: "year" }, "Every year"));
+  const weekday = h("select", { id: "schedule-weekday" }, ...WEEKDAYS.map((name, i) => h("option", { value: String(i + 1) }, name)));
+  const day = h("select", { id: "schedule-day" }, ...Array.from({ length: LAST_DAY }, (_, i) => h("option", { value: String(i + 1) }, String(i + 1))));
   const month = h("select", { id: "schedule-month" }, ...MONTHS.map((name, i) => h("option", { value: String(i + 1) }, name)));
-  const form = h("form", {}, h("label", { for: "schedule-amount" }, "Amount in USDC", amount), h("label", { for: "schedule-every" }, "How often", every),
-    h("label", { for: "schedule-day" }, "Day of the month (1 to 28, UTC)", day), h("label", { for: "schedule-month" }, "Month (yearly only)", month), status,
+  const weekdayField = h("label", { for: "schedule-weekday" }, "Day of the week (UTC)", weekday);
+  const dayField = h("label", { for: "schedule-day" }, "Day of the month (1 to 28, UTC)", day);
+  const monthField = h("label", { for: "schedule-month" }, "Month", month);
+  const showFields = () => {
+    const weekly = every.value === "week" || every.value === "two_weeks";
+    weekdayField.hidden = !weekly;
+    dayField.hidden = weekly;
+    monthField.hidden = every.value !== "year";
+  };
+  every.addEventListener("change", showFields);
+  showFields();
+  const form = h("form", {}, h("label", { for: "schedule-amount" }, "Amount in USDC", amount), h("label", { for: "schedule-every" }, "How often", every), weekdayField, monthField, dayField, status,
     h("div", { class: "actions" }, h("button", { class: "btn", type: "submit" }, "Schedule payment")));
   listen(form, "submit", async (event) => {
     event.preventDefault();
-    const body = { payeeId, amount: amount.value.trim(), every: every.value, day: Number(day.value), month: every.value === "year" ? Number(month.value) : null };
+    if (!usdcToBaseUnits(amount.value.trim())) return void (status.textContent = "Give the amount in USDC, for example 0.10. Nothing was changed.");
+    const weekly = every.value === "week" || every.value === "two_weeks";
+    const body = { payeeId, amount: amount.value.trim(), every: every.value, day: Number(weekly ? weekday.value : day.value), month: every.value === "year" ? Number(month.value) : null };
     const result = await withApprovals("POST", "/api/app/schedules", body, network, status);
     status.textContent = result.ok ? "Scheduled. Each run re-checks the verified address, your caps and Walrus Memory." : result.error.message;
     if (result.ok) onChanged();
