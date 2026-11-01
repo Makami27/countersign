@@ -334,3 +334,6 @@ textarea:focus-visible { border-color: var(--focus); }
   .stamp.landed { animation: none; }
   html { scroll-behavior: auto; }
 }
+.hero-cta { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.5rem; }
+.hero-cta a { font: 600 var(--step-0)/1.1 var(--sans); padding: 0.8rem 1.1rem; border-radius: 10px; border: 1.5px solid var(--ink); color: var(--ink); text-decoration: none; min-height: 46px; display: inline-flex; align-items: center; }
+.hero-cta a.primary { background: var(--ink); color: var(--paper); }

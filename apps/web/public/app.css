@@ -112,3 +112,17 @@
 .app .blobs a { display: inline-flex; align-items: center; min-height: 44px; }
 .app .receipt .attempt-head { align-items: flex-start; padding-bottom: 1.1rem; }
 .app .receipt .attempt-head .stamp { position: static; translate: none; margin-top: 0.4rem; }
+.app .demo { padding: 0 var(--gutter) 3rem; }
+.app .demo-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr); gap: 1.25rem; align-items: start; max-width: 1280px; margin: 0 auto; }
+.app .demo-tabs { display: none; }
+.app .demo-letters { display: grid; gap: 0.5rem; margin: 1rem 0; }
+.app .demo-letter { display: grid; gap: 0.2rem; text-align: left; justify-items: start; }
+.app .demo-letter span { font-weight: 400; font-size: var(--step--1); }
+.app .demo-card { border-top: 1px solid var(--line); padding-top: 0.75rem; margin-top: 0.75rem; overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  .app .demo-grid { grid-template-columns: minmax(0, 1fr); }
+  .app .demo-tabs { display: flex; gap: 0.5rem; justify-content: center; margin: 0 0 1rem; flex-wrap: wrap; }
+  .app .demo-grid[data-tab="letters"] .demo-panel:not([data-panel="letters"]),
+  .app .demo-grid[data-tab="cards"] .demo-panel:not([data-panel="cards"]),
+  .app .demo-grid[data-tab="activity"] .demo-panel:not([data-panel="activity"]) { display: none; }
+}
