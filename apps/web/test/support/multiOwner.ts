@@ -12,12 +12,14 @@ import { StandInVerifier, wallet, type TestWallet } from "../../../../packages/c
 import { OwnerAuth } from "../../src/ownerAuth.ts";
 import { OwnerDirectory } from "../../src/ownerDirectory.ts";
 import { TelegramLinks } from "../../src/telegramLinks.ts";
+import { DEFAULT_HOURLY_LIMITS, QuotaMeter, type QuotaLimits } from "../../src/quota.ts";
+import type { ModelReader } from "@countersign/adapters/model";
 import { buildOwnerRuntime, type BuiltRuntime } from "../../src/ownerRuntime.ts";
 import { startWebServer } from "../../src/server.ts";
 import { ScriptedChain } from "./scheduleWorld.ts";
 import { signInAs } from "./signIn.ts";
 
-export async function multiOwnerServer(t: TestContext, maxOwners = 3) {
+export async function multiOwnerServer(t: TestContext, maxOwners = 3, limits: QuotaLimits = DEFAULT_HOURLY_LIMITS, reader: ModelReader = async () => ({ provider: "groq", status: "UNKNOWN", problem: "UNAVAILABLE", httpStatus: null, attempts: 1 })) {
   const dir = mkdtempSync(join(tmpdir(), "countersign-owners-"));
   const memory = new InMemoryMemory();
   const verifier = new StandInVerifier();
@@ -36,6 +38,7 @@ export async function multiOwnerServer(t: TestContext, maxOwners = 3) {
       roundTrips: { check: async () => "NOT_PROVEN" }, runner: new PaymentRunner({ ledger, chain: new ScriptedChain(), clock: { now: () => new Date() }, sleep: async () => undefined }),
       balances: async () => ({ status: "UNKNOWN", detail: "test" }), memoryCounts: async () => null,
       notify: async (text) => void notices.set(ownerId, [...(notices.get(ownerId) ?? []), text]),
+      reader, quota: new QuotaMeter(ownerId === "admin1" ? null : limits), isAdmin: ownerId === "admin1",
       telegram: { link: async () => { const issued = await links.issue(ownerId); return { url: `https://t.me/countersign_test_bot?start=${issued.token}`, expires: issued.expires }; }, linked: async () => (await links.chatOf(ownerId)) !== null },
       defaults: { perPaymentBaseUnits: 50_000_000n, perDayBaseUnits: 100_000_000n, cooldownSeconds: 0 }, now: Date.now,
     });

@@ -89,7 +89,19 @@ export async function overview(ctx: OwnerContext, now: number) {
     within(PART_DEADLINE_MS, "Tatum (agent balance)", ctx.balances()).catch((error: Error): BalancesView => ({ status: "UNKNOWN", detail: error instanceof TookTooLong ? error.message : "Tatum didn't give a balance." })),
     within(PART_DEADLINE_MS, "Walrus Memory (memory count)", ctx.memoryCounts()).then((counts) => ({ counts, why: counts ? null : "Walrus Memory didn't list the namespaces." }), (error: Error) => ({ counts: null, why: error instanceof TookTooLong ? error.message : "Walrus Memory didn't list the namespaces." })),
   ]);
+  const payeeIds = await ctx.index.payeeIds();
+  const heads = await Promise.all(payeeIds.map(async (id) => headOf(await ctx.index.payeeVersions(id))));
+  const receipts = await ctx.index.receiptsFor(null, 200);
+  const checklist = {
+    funded: balances.status === "KNOWN" && balances.usdcBaseUnits > 0n && balances.suiBaseUnits > 0n,
+    payeeAdded: payeeIds.length > 0,
+    linkSigned: heads.some((h) => h.kind === "verified"),
+    paid: receipts.some((r) => r.verdict === "PAID"),
+    scamTried: receipts.some((r) => remembersAttack(r)),
+    telegram: await ctx.telegram.linked(),
+  };
   return {
+    isAdmin: ctx.isAdmin, checklist,
     network: ctx.network, agentAddress: ctx.agentAddress, balances, memory: ctx.memory(), memoryCounts: memoryCounts.counts, memoryCountsWhy: memoryCounts.why,
     caps: { perPaymentBaseUnits: settings.perPaymentBaseUnits, perDayBaseUnits: settings.perDayBaseUnits, usedTodayBaseUnits: await ctx.ledger.reservedFor(today) },
     cooldownSeconds: settings.cooldownSeconds, payeeCount: (await ctx.index.payeeIds()).length, ownerWallet: ctx.wallets.state(),

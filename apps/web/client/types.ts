@@ -23,6 +23,8 @@ export type PayeeDetail = {
 };
 
 export type Overview = {
+  readonly isAdmin: boolean;
+  readonly checklist: { readonly funded: boolean; readonly payeeAdded: boolean; readonly linkSigned: boolean; readonly paid: boolean; readonly scamTried: boolean; readonly telegram: boolean };
   readonly network: "mainnet" | "testnet";
   readonly agentAddress: string;
   readonly balances: { readonly status: "KNOWN"; readonly suiBaseUnits: string; readonly usdcBaseUnits: string } | { readonly status: "UNKNOWN"; readonly detail: string };

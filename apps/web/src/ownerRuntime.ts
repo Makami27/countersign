@@ -12,6 +12,9 @@ import { ScheduleRunner } from "./scheduleRuns.ts";
 import { Schedules } from "./schedules.ts";
 import type { BalancesView, MemoryCounts, OwnerContext } from "./ownerContext.ts";
 import type { OwnerRuntime } from "./ownerDirectory.ts";
+import type { ModelReader } from "@countersign/adapters/model";
+import type { QuotaMeter } from "./quota.ts";
+import { readMessage } from "./screen.ts";
 
 const SHARED_REFRESH_EVERY_MS = 10 * 60_000;
 
@@ -31,6 +34,9 @@ export type RuntimeInput = {
   readonly memoryCounts: () => Promise<MemoryCounts>;
   readonly notify: (text: string) => Promise<void>;
   readonly telegram: OwnerContext["telegram"];
+  readonly reader: ModelReader;
+  readonly quota: QuotaMeter;
+  readonly isAdmin: boolean;
   readonly defaults: { readonly perPaymentBaseUnits: bigint; readonly perDayBaseUnits: bigint; readonly cooldownSeconds: number };
   readonly now: () => number;
 };
@@ -39,17 +45,31 @@ export type BuiltRuntime = OwnerRuntime & { readonly restored: RestoreResult; re
 
 export async function buildOwnerRuntime(i: RuntimeInput): Promise<BuiltRuntime> {
   const { rows, index, ledger } = i.storage;
+  const memory = {
+    remember: (namespace: string, text: string, key: string) => {
+      i.quota.record("walrus");
+      return i.memory.remember(namespace, text, key);
+    },
+    readAll: (namespace: string) => i.memory.readAll(namespace),
+    listNamespaces: (prefix: string) => i.memory.listNamespaces(prefix),
+  };
+  const verifier: SignatureVerifier = {
+    verifyPersonalMessage: (message, signature, address) => {
+      i.quota.record("tatum");
+      return i.verifier.verifyPersonalMessage(message, signature, address);
+    },
+  };
   const settings = await OwnerSettings.open(rows, i.defaults);
   const steps = await ChangeSteps.open(rows);
-  const wallets = await OwnerWallets.open({ rows, memory: i.memory, signer: i.signer, ownerId: i.ownerId, now: i.now });
-  const approvals = await OwnerApprovals.open(rows, i.ownerId, (message, signature, address) => i.verifier.verifyPersonalMessage(message, signature, address), i.now);
-  const schedules = await Schedules.open({ rows, memory: i.memory, signer: i.signer, ownerId: i.ownerId, now: i.now });
-  const shared = new SharedAttackList({ memory: i.memory, signer: i.signer, now: () => new Date(i.now()) });
+  const wallets = await OwnerWallets.open({ rows, memory, signer: i.signer, ownerId: i.ownerId, now: i.now });
+  const approvals = await OwnerApprovals.open(rows, i.ownerId, (message, signature, address) => verifier.verifyPersonalMessage(message, signature, address), i.now);
+  const schedules = await Schedules.open({ rows, memory, signer: i.signer, ownerId: i.ownerId, now: i.now });
+  const shared = new SharedAttackList({ memory, signer: i.signer, now: () => new Date(i.now()) });
   await shared.refresh();
   let sharedReadAt = i.now();
   const engine = new Countersign({
-    ownerId: i.ownerId, network: i.network, memory: i.memory, index, payments: ledger, clock: { now: () => new Date(i.now()) },
-    signer: i.signer, signatures: i.verifier, shared, roundTrips: i.roundTrips,
+    ownerId: i.ownerId, network: i.network, memory, index, payments: ledger, clock: { now: () => new Date(i.now()) },
+    signer: i.signer, signatures: verifier, shared, roundTrips: i.roundTrips,
     nonces: { next: () => randomBytes(16).toString("hex") },
     caps: settings.caps(),
     get cooldownMs() {
@@ -65,13 +85,18 @@ export async function buildOwnerRuntime(i: RuntimeInput): Promise<BuiltRuntime> 
   let paymentsOpen = true;
   const sendRaw = (paymentId: string) => {
     paymentsOpen = true;
+    i.quota.record("tatum");
     return i.runner.send(paymentId);
   };
   const ctx: OwnerContext = {
     ownerId: i.ownerId, network: i.network, agentAddress: i.agentAddress, publicUrl: i.publicUrl, engine, index, ledger, settings, balances: i.balances,
     memory: () => memoryView, memoryCounts: i.memoryCounts, steps, cooldownMs: () => settings.values().cooldownSeconds * 1000,
-    verifySignature: (message, signature, address) => i.verifier.verifyPersonalMessage(message, signature, address),
-    wallets, approvals, notify: i.notify, schedules, shared, telegram: i.telegram,
+    verifySignature: (message, signature, address) => verifier.verifyPersonalMessage(message, signature, address),
+    wallets, approvals, notify: i.notify, schedules, shared, telegram: i.telegram, quota: i.quota, isAdmin: i.isAdmin,
+    read: (text) => readMessage(index, (t, payeeIds) => {
+      i.quota.record("model");
+      return i.reader(t, payeeIds);
+    }, text),
     sendPayment: async (paymentId) => {
       const payment = await sendRaw(paymentId);
       await recordFinished([payment].filter((p) => p.state === "SETTLED" || p.state === "FAILED"));

@@ -4,6 +4,8 @@ import type { ActivityItem, Overview, PayeeDetail, PayeeSummary, ScheduleItem } 
 import { payeeList } from "./views/payees.ts";
 import { payeeDetailView } from "./views/payeeDetail.ts";
 import { schedulesPanel } from "./views/schedules.ts";
+import { checklistCard, pasteCard } from "./views/dashboard.ts";
+import { adminPage } from "./views/admin.ts";
 import { addPayeeSheet, paySheet } from "./views/sheets.ts";
 import { confirmChangeSheet, requestChangeSheet } from "./views/changeSheets.ts";
 import { activityPage, settingsPage } from "./views/pages.ts";
@@ -19,7 +21,7 @@ function go(path: string): void {
   void render();
 }
 
-function setCurrent(section: "payees" | "activity" | "settings" | null): void {
+function setCurrent(section: "payees" | "activity" | "settings" | "admin" | null): void {
   nav?.querySelectorAll("a").forEach((a) => (a.dataset["section"] === section ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")));
 }
 
@@ -100,6 +102,11 @@ async function renderPage(): Promise<void> {
     const items = await api<{ items: ActivityItem[] }>("GET", "/api/app/activity");
     return show(items.ok ? activityPage(items.data.items) : failure(items.error.message));
   }
+  if (nav && overview.data.isAdmin && !nav.querySelector("[data-section=admin]")) nav.append(h("a", { href: "/app/admin", "data-link": true, "data-section": "admin" }, "Admin"));
+  if (path === "/app/admin") {
+    setCurrent("admin");
+    return show(await adminPage(overview.data.network));
+  }
   if (path === "/app/settings") {
     setCurrent("settings");
     return show(settingsPage(overview.data, () => void render()));
@@ -110,6 +117,7 @@ async function renderPage(): Promise<void> {
   const match = /^\/app\/payees\/([^/]+)$/.exec(path);
   const selected = match?.[1] ? decodeURIComponent(match[1]) : (payees.data.payees[0]?.id ?? null);
   const list = payeeList(payees.data.payees, overview.data, selected, () => addPayeeSheet(overview.data.network, () => void render()), () => void render());
+  list.prepend(checklistCard(overview.data), pasteCard(() => void render()));
   if (!selected) return show(h("div", { class: "owner single at-list" }, list));
   const detail = await api<PayeeDetail>("GET", `/api/app/payees/${encodeURIComponent(selected)}`);
   const rerender = () => void render();

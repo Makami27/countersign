@@ -5,6 +5,8 @@ import type { OwnerSettings } from "./ownerSettings.ts";
 import type { OwnerApprovals } from "./ownerApprovals.ts";
 import type { OwnerWallets } from "./ownerWallet.ts";
 import type { Schedules } from "./schedules.ts";
+import type { QuotaMeter } from "./quota.ts";
+import type { Reading } from "./screen.ts";
 
 export type BalancesView =
   | { readonly status: "KNOWN"; readonly suiBaseUnits: bigint; readonly usdcBaseUnits: bigint }
@@ -41,5 +43,8 @@ export type OwnerContext = {
   readonly notify: (text: string) => Promise<void>;
   readonly schedules: Schedules;
   readonly shared: SharedAttackList;
+  readonly quota: QuotaMeter;
+  readonly isAdmin: boolean;
+  readonly read: (text: string) => Promise<Reading>;
   readonly telegram: { readonly link: () => Promise<{ readonly url: string; readonly expires: string } | null>; readonly linked: () => Promise<boolean> };
 };
