@@ -65,7 +65,7 @@ v1 = a stranger can open the URL on a phone, set up an agent, add payees, pay th
 | Q10 | `pnpm gate` green from a clean clone; README setup works verbatim | clean-clone run log |
 
 ## 4. Design
-`briefing/DESIGN.md` (direction, tokens, principles) and the reference screens in `apps/web/design/` (`owner.html`, `sign.html`, `receipt.html`, `screens.css`, `addr.js`). The existing `apps/web/public/` landing + lab is the base: keep its look and extend it. Don't restyle it.
+`briefing/DESIGN.md` (direction, tokens, principles). Since 1 Nov the code in `apps/web/public/` and `apps/web/client/` is the reference; the old reference screens in `apps/web/design/` were retired with the signing-desk redesign.
 
 ## 5. Out of scope for v1
 Multisig/passkey payees, multiple owners per agent, fiat, other chains, email ingestion by IMAP (owner pastes or forwards to the bot instead), native mobile apps.
