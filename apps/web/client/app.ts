@@ -4,7 +4,7 @@ import type { ActivityItem, Overview, PayeeDetail, PayeeSummary, ScheduleItem } 
 import { payeeList } from "./views/payees.ts";
 import { payeeDetailView } from "./views/payeeDetail.ts";
 import { schedulesPanel } from "./views/schedules.ts";
-import { checklistCard, pasteCard } from "./views/dashboard.ts";
+import { checklistCard, checklistDone, pasteCard } from "./views/dashboard.ts";
 import { adminPage } from "./views/admin.ts";
 import { addPayeeSheet, paySheet } from "./views/sheets.ts";
 import { confirmChangeSheet, requestChangeSheet } from "./views/changeSheets.ts";
@@ -117,7 +117,11 @@ async function renderPage(): Promise<void> {
   const match = /^\/app\/payees\/([^/]+)$/.exec(path);
   const selected = match?.[1] ? decodeURIComponent(match[1]) : (payees.data.payees[0]?.id ?? null);
   const list = payeeList(payees.data.payees, overview.data, selected, () => addPayeeSheet(overview.data.network, () => void render()), () => void render());
-  list.append(checklistCard(overview.data), pasteCard(() => void render()));
+  if (checklistDone(overview.data)) list.append(pasteCard(() => void render()), checklistCard(overview.data));
+  else {
+    list.prepend(checklistCard(overview.data));
+    list.append(pasteCard(() => void render()));
+  }
   if (!selected) return show(h("div", { class: "owner single at-list" }, list));
   const detail = await api<PayeeDetail>("GET", `/api/app/payees/${encodeURIComponent(selected)}`);
   const rerender = () => void render();
