@@ -7,6 +7,8 @@ import { MemWalMemory } from "@countersign/adapters/memwal";
 import { PaymentRunner } from "@countersign/adapters/payments";
 import { SharedRateGate, TATUM_FREE_TIER_INTERVAL_MS, TATUM_GRAPHQL_URL, TatumGraphql, TatumRoundTripChecker, TatumSignatureVerifier, USDC_COIN_TYPE, readAgentBalances, tatumGrpcClient, tatumPaymentChain, tatumRateGateName } from "@countersign/adapters/tatum";
 import { extractProposal } from "@countersign/adapters/gemini";
+import { extractWithGroq } from "@countersign/adapters/groq";
+import { withFallback, type ModelReader } from "@countersign/adapters/model";
 import { recordSignerFromSeed } from "@countersign/adapters/signer";
 import { startWebServer } from "@countersign/web/server";
 import { OwnerAuth } from "@countersign/web/ownerAuth";
@@ -140,7 +142,10 @@ setInterval(() => void ownerWalletTick().catch((error: Error) => console.error(`
 setInterval(() => void scheduleRunner.tick().catch((error: Error) => console.error(`Scheduled payments skipped: ${error.message.slice(0, 200)}`)), RECONCILE_EVERY_MS).unref();
 setInterval(() => void completeReadyChanges(owner, Date.now()).catch((error: Error) => console.error(`Change completion skipped: ${error.message.slice(0, 200)}`)), RECONCILE_EVERY_MS).unref();
 
-const modelStats = new ModelStats();
+const modelStats = new ModelStats(config.groq ? "groq" : "gemini", config.groq ? "gemini" : null);
+const gemini: ModelReader = (text, payeeIds) => extractProposal(config.gemini, text, payeeIds);
+const groq = config.groq;
+const reader: ModelReader = groq ? withFallback((text, payeeIds) => extractWithGroq(groq, text, payeeIds, (quota) => modelStats.quota(quota)), gemini) : gemini;
 const status = statusProbe({
   network: config.network, version: config.version, database: { label: storage.label, rows: storage.rows }, graphql,
   grpcBalance: () => readAgentBalances(grpc, config.network, agentAddress), walrus, ownerPrefix: `countersign:${config.ownerId}:`,
@@ -149,7 +154,7 @@ const status = statusProbe({
 const server = startWebServer({ port: config.port, network: config.network, proof: storage.rows, version: config.version, owner, status });
 bot = startBot({
   token: config.telegram.token, ownerUserId: config.telegram.ownerUserId, network: config.network, publicUrl: config.publicUrl, engine, index, auth,
-  extract: modelStats.tracked((text, payeeIds) => extractProposal(config.gemini, text, payeeIds)),
+  extract: modelStats.tracked(reader),
   answeredByCode: () => modelStats.answeredByCode(),
   sendPayment: send,
 });

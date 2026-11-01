@@ -1,4 +1,4 @@
-import { addressesIn, headOf, isLookalike, knownAttackFor, type IndexStore, type Proposal } from "@countersign/core";
+import { addressesIn, headOf, isLookalike, knownAttackFor, payeeIdFor, usdcToBaseUnits, type IndexStore, type Proposal } from "@countersign/core";
 import type { Extraction } from "@countersign/adapters/gemini";
 
 export type ChangeProposal = Extract<Proposal, { kind: "change_address" }>;
@@ -17,9 +17,27 @@ export async function screenAddresses(index: IndexStore, text: string): Promise<
   return null;
 }
 
+const PAY_NAME_FIRST = /^\s*\/?(?:pay|send)\s+(?:the\s+)?(.+?)\s+(\d+(?:\.\d{1,6})?)\s*(?:usdc)?\s*[.!]?\s*$/i;
+const PAY_AMOUNT_FIRST = /^\s*\/?(?:pay|send)\s+(\d+(?:\.\d{1,6})?)\s*(?:usdc)?\s+to\s+(?:the\s+)?(.+?)\s*[.!]?\s*$/i;
+
+export function commandProposal(text: string, payeeIds: readonly string[]): Extract<Proposal, { kind: "pay" }> | null {
+  if (addressesIn(text).length > 0) return null;
+  const nameFirst = PAY_NAME_FIRST.exec(text);
+  const amountFirst = nameFirst ? null : PAY_AMOUNT_FIRST.exec(text);
+  const name = nameFirst?.[1] ?? amountFirst?.[2] ?? "";
+  const amount = nameFirst?.[2] ?? amountFirst?.[1] ?? "";
+  const payeeId = payeeIdFor(name);
+  const amountBaseUnits = usdcToBaseUnits(amount);
+  if (!payeeId || !payeeIds.includes(payeeId) || !amountBaseUnits) return null;
+  return { kind: "pay", payeeId, amountBaseUnits, reasonQuote: text.trim() };
+}
+
 export async function readMessage(index: IndexStore, extract: (text: string, payeeIds: readonly string[]) => Promise<Extraction>, text: string): Promise<Reading> {
   const screened = await screenAddresses(index, text);
   if (screened) return { status: "READ", by: "code", proposal: screened };
-  const extraction = await extract(text, await index.payeeIds());
+  const payeeIds = await index.payeeIds();
+  const command = commandProposal(text, payeeIds);
+  if (command) return { status: "READ", by: "code", proposal: command };
+  const extraction = await extract(text, payeeIds);
   return extraction.status === "READ" ? { status: "READ", by: "model", proposal: extraction.proposal } : extraction;
 }

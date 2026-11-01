@@ -10,7 +10,9 @@
     "./signer": "./src/signer.ts",
     "./payments": "./src/payments/runner.ts",
     "./postgres": "./src/postgres/index.ts",
-    "./sql": "./src/sql/rows.ts"
+    "./sql": "./src/sql/rows.ts",
+    "./groq": "./src/groq/extract.ts",
+    "./model": "./src/model/extraction.ts"
   },
   "dependencies": {
     "@countersign/core": "workspace:*",
