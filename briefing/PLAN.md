@@ -7,11 +7,12 @@ No feature commits after 17:00 UTC on 10 Nov unless organisers confirm it's allo
 Revised 2026-10-30 (owner review of the phase plan): skeleton deploy moved to Phase 2, real mainnet use starts in Phase 2, Phase 3 gets an extra half day from Phase 4, submission deliverables added.
 
 ## Where we are (2026-10-31, ~20:01 UTC)
-**Phase:** Phase 4; V20–V22 committed, none deployed. Gate: `pnpm gate`, 112 tests green with V22.
+**Phase:** Phase 4; V20–V22 deployed on the custom domain. Gate: `pnpm gate`, 115 tests green.
 
 **Deployed vs committed — read this first**
-- Render runs `4e141ba` (https://countersign-agent-7u1c.onrender.com). Local `main` is ahead with **V20, V21 and V22, committed and not pushed**.
-- **Render auto-deploys every push to `main`.** Pushing now would deploy V20, and the owner couldn't register an owner wallet there (Slush flags the onrender.com host, see Risks), which would block adding payees. Don't push until the custom domain is live, or turn auto-deploy off first.
+- Render runs `main` at https://countersign.nittings.xyz (custom domain, HTTPS; `PUBLIC_BASE_URL` points at it). `273dd39` went live 2026-10-31 23:09 UTC. `/api/health` reports the commit from `RENDER_GIT_COMMIT`. The old onrender.com host still answers.
+- **Render auto-deploys every push to `main`.**
+- Owner wallet registered on the new domain: 0xb2d3…6475 (Slush showed no warning there).
 
 **Done**
 - Phase 1: pnpm on Node 26 (D8); spikes (REALITY_SPIKES); Tatum adapters with a shared rate gate; MemWal adapter; digest-first payment ledger and runner (D11); Act 1.
@@ -26,12 +27,11 @@ Revised 2026-10-30 (owner review of the phase plan): skeleton deploy moved to Ph
 - Real-use memories: 6 of 10 (CL07).
 
 **Blocked / waiting**
-- **Custom domain** (owner): Slush shows "Malicious website" for countersign-agent-7u1c.onrender.com (alert id 9e1813c9-47b6-4edb-8562-f915fdd77fc0). Blocks V20 deploy, owner-wallet registration and Act 4 signing.
-- **Act 4**: change request for Rent, wallet B → `0x993ae91d7f9aedfc2724f69ac263d437e6fcd4bde521d696a895932582679496` (owner's second Slush account), nonce `875fe73f6ff24d0aae2ae431a42f666f`, expires 2026-11-01 17:44 UTC; started with `apps/agent/src/requestChange.ts`. Not signed (Slush flag). On the new domain, start a fresh request with that script, sign with wallet B then the new account, then pay 0.01 test USDC to Rent and capture into `evidence/acts/act4/` (`captureActs.ts` shows the pattern).
+- **Act 4**: fresh change request for Rent → wallet B `0x993ae91d7f9aedfc2724f69ac263d437e6fcd4bde521d696a895932582679496`, nonce `7b77c6d4f82b4019e297e16f63c70df2`, expires 2026-11-01 23:59 UTC: https://countersign.nittings.xyz/sign/7b77c6d4f82b4019e297e16f63c70df2. Waiting for the owner to sign with the current Rent wallet, then wallet B; then pay 0.01 test USDC to Rent and capture into `evidence/acts/act4/` (`captureActs.ts` shows the pattern). The old request (nonce 875fe73f…) expires unsigned.
 - Delegate key rotation after the relayer echoed it in an error (REALITY_SPIKES R4).
 
 **Next steps**
-1. Custom domain → deploy V20 → register the owner wallet → Act 4.
+1. Act 4: sign the change, pay Rent, capture.
 2. Rest of Phase 4: `/proof` page, `/status` page, lab upgrade, preregistered measurement; real use to ≥10 memories.
 
 **Background jobs and how to check them**

@@ -13,6 +13,7 @@ export type Config = {
   readonly memoryBackend: "walrus" | "sandbox";
   readonly port: number;
   readonly publicUrl: string | null;
+  readonly version: string | null;
 };
 
 export class ConfigError extends Error {
@@ -24,6 +25,11 @@ export class ConfigError extends Error {
 }
 
 const BASE_UNITS = /^(0|[1-9]\d*)$/;
+
+function commitOf(value: string | undefined): string | null {
+  const sha = value?.trim().toLowerCase() ?? "";
+  return /^[0-9a-f]{7,40}$/.test(sha) ? sha : null;
+}
 
 export function loadConfig(env: NodeJS.ProcessEnv): Config {
   const problems: string[] = [];
@@ -58,6 +64,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     memoryBackend: env["MEMORY_BACKEND"] === "sandbox" ? "sandbox" : "walrus",
     port: Number(env["WEB_PORT"] ?? env["PORT"]),
     publicUrl: env["PUBLIC_BASE_URL"]?.trim().replace(/\/+$/, "") || null,
+    version: commitOf(env["GIT_SHA"]) ?? commitOf(env["RENDER_GIT_COMMIT"]),
   };
   const backend = need("MEMORY_BACKEND");
   if (backend !== "" && backend !== "walrus" && backend !== "sandbox") problems.push("MEMORY_BACKEND (walrus|sandbox)");

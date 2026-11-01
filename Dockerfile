@@ -9,7 +9,7 @@ COPY scripts scripts
 COPY CLAIMS.md CLAIMS.md
 RUN pnpm install --frozen-lockfile
 RUN node scripts/build-web.mjs
-ARG GIT_SHA=unknown
+ARG GIT_SHA=
 ENV GIT_SHA=$GIT_SHA
 ENV DATABASE_PATH=/data/countersign.sqlite
 EXPOSE 8080
