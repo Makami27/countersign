@@ -12,5 +12,5 @@ startWebServer({
   network: process.env["NETWORK"] === "mainnet" ? "mainnet" : "testnet",
   proof: proofPath && existsSync(proofPath) ? new SqliteRows(proofPath, { readOnly: true }) : undefined,
   version: process.env["GIT_SHA"] ?? null,
-  owner: null,
+  owners: null,
 });

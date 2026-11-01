@@ -1,7 +1,6 @@
 import type { SharedAttackList } from "@countersign/core/shared";
 import type { Countersign, IndexStore, PaymentIntent, PaymentLedger, SignatureCheck, SuiAddress } from "@countersign/core";
 import type { ChangeSteps } from "./changeSteps.ts";
-import type { OwnerAuth } from "./ownerAuth.ts";
 import type { OwnerSettings } from "./ownerSettings.ts";
 import type { OwnerApprovals } from "./ownerApprovals.ts";
 import type { OwnerWallets } from "./ownerWallet.ts";
@@ -29,7 +28,6 @@ export type OwnerContext = {
   readonly engine: Countersign;
   readonly index: IndexStore;
   readonly ledger: PaymentLedger & { reservedFor(period: string): Promise<bigint> };
-  readonly auth: OwnerAuth;
   readonly settings: OwnerSettings;
   readonly balances: () => Promise<BalancesView>;
   readonly memory: () => MemoryView;

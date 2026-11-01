@@ -13,6 +13,7 @@ import { ChangeSteps } from "../../src/changeSteps.ts";
 import type { OwnerContext } from "../../src/ownerContext.ts";
 import { ownerExtras } from "./ownerExtras.ts";
 import { signInAs } from "./signIn.ts";
+import { singleOwner } from "./directory.ts";
 
 export type Challenge = { field: string; nonce: string; message: string; signer: string };
 
@@ -23,13 +24,13 @@ export async function ownerServer(t: TestContext, options: { readonly signIn?: b
   const auth = await OwnerAuth.open(rows, "example.test");
   const extras = await ownerExtras(rows, w, () => now);
   const owner: OwnerContext = {
-    ownerId: "owner1", network: "testnet", agentAddress: wallet().address, publicUrl: "https://example.test", engine: w.agent, index: w.index, ledger: w.payments, auth,
+    ownerId: "owner1", network: "testnet", agentAddress: wallet().address, publicUrl: "https://example.test", engine: w.agent, index: w.index, ledger: w.payments,
     settings: await OwnerSettings.open(rows, { perPaymentBaseUnits: 50_000_000n, perDayBaseUnits: 100_000_000n, cooldownSeconds: 0 }),
     balances: async () => ({ status: "UNKNOWN", detail: "test" }), memory: () => ({ relayer: "sandbox (not Walrus Memory)", restored: true, restoredAt: null, legacyRecords: 0, ignoredRecords: 0 }),
     memoryCounts: async () => null, sendPayment: async () => assert.fail("no payments here"), steps: await ChangeSteps.open(rows), cooldownMs: () => 0,
     verifySignature: (m, s, a) => w.signatures.verifyPersonalMessage(m, s, a), ...extras,
   };
-  const server = startWebServer({ port: 0, network: "testnet", proof: undefined, version: null, owner });
+  const server = startWebServer({ port: 0, network: "testnet", proof: undefined, version: null, owners: await singleOwner(rows, auth, owner) });
   await new Promise<void>((resolve) => server.once("listening", () => resolve()));
   t.after(() => {
     server.closeAllConnections();

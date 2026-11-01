@@ -35,6 +35,10 @@ async function changeView(ctx: OwnerContext, nonce: string, now: number) {
   };
 }
 
+export async function completedBy(ctx: OwnerContext, nonce: string): Promise<boolean> {
+  return (await completedView(ctx, nonce)) !== null;
+}
+
 async function completedView(ctx: OwnerContext, nonce: string) {
   for (const payeeId of await ctx.index.payeeIds()) {
     const versions = await ctx.index.payeeVersions(payeeId);

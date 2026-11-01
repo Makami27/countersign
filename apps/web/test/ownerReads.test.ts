@@ -13,6 +13,7 @@ import { ChangeSteps } from "../src/changeSteps.ts";
 import type { OwnerContext } from "../src/ownerContext.ts";
 import { ownerExtras } from "./support/ownerExtras.ts";
 import { signInAs } from "./support/signIn.ts";
+import { singleOwner } from "./support/directory.ts";
 
 type Slow = { balances?: () => Promise<never>; memoryCounts?: () => Promise<never> };
 const never = () => new Promise<never>(() => undefined);
@@ -22,7 +23,7 @@ async function signedIn(t: TestContext, slow: Slow = {}) {
   const rows = new SqliteRows(join(mkdtempSync(join(tmpdir(), "countersign-reads-")), "web.sqlite"));
   const auth = await OwnerAuth.open(rows, "example.test");
   const owner: OwnerContext = {
-    ownerId: "owner1", network: "testnet", agentAddress: wallet().address, publicUrl: "https://example.test", engine: w.agent, index: w.index, ledger: w.payments, auth,
+    ownerId: "owner1", network: "testnet", agentAddress: wallet().address, publicUrl: "https://example.test", engine: w.agent, index: w.index, ledger: w.payments,
     settings: await OwnerSettings.open(rows, { perPaymentBaseUnits: 50_000_000n, perDayBaseUnits: 100_000_000n, cooldownSeconds: 60 }),
     balances: slow.balances ?? (async () => ({ status: "KNOWN", suiBaseUnits: 1n, usdcBaseUnits: 2n })),
     memory: () => ({ relayer: "sandbox (not Walrus Memory)", restored: true, restoredAt: null, legacyRecords: 0, ignoredRecords: 0 }),
@@ -31,7 +32,7 @@ async function signedIn(t: TestContext, slow: Slow = {}) {
     verifySignature: (m, s, a) => w.signatures.verifyPersonalMessage(m, s, a),
     ...(await ownerExtras(rows, w)),
   };
-  const server = startWebServer({ port: 0, network: "testnet", proof: undefined, version: null, owner });
+  const server = startWebServer({ port: 0, network: "testnet", proof: undefined, version: null, owners: await singleOwner(rows, auth, owner) });
   await new Promise<void>((resolve) => server.once("listening", () => resolve()));
   t.after(() => {
     server.closeAllConnections();

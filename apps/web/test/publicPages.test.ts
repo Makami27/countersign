@@ -39,7 +39,7 @@ test("V16 /status names the network, links the deployed commit, says when restor
 });
 
 test("V15 V16 the pages are served at /proof and /status, and say so when the server isn't connected to the agent", async (t) => {
-  const server = startWebServer({ port: 0, network: "testnet", proof: undefined, version: null, owner: null });
+  const server = startWebServer({ port: 0, network: "testnet", proof: undefined, version: null, owners: null });
   await new Promise<void>((resolve) => server.once("listening", () => resolve()));
   t.after(() => server.close());
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
