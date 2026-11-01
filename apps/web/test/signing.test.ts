@@ -95,3 +95,20 @@ test("V12 an owner-confirmed change waits for the cooldown, refuses a current-wa
   const head = await ready.agent.payeeHead("landlord");
   assert.ok(head.kind === "verified" && head.version.address === later.address && head.version.evidence.kind === "owner_confirmed_change");
 });
+
+test("V11 V13 a used link says Done with the payee's new verified address, how it was confirmed and the receipt; expired and unknown links say so separately", async (t) => {
+  const { agent, landlord, base } = await setup(t);
+  const next = wallet();
+  const change = await startChange(agent, next);
+  await post(base, change.nonce, { role: "current", signature: landlord.sign(change.text) });
+  await post(base, change.nonce, { role: "new", signature: next.sign(change.text) });
+  const done = (await (await fetch(`${base}/api/sign/${change.nonce}`)).json()) as { kind: string; address: string; verifiedNumber: number; how: string; stillCurrent: boolean; receipt: string | null };
+  assert.deepEqual([done.kind, done.address, done.verifiedNumber, done.how, done.stillCurrent], ["completed", next.address, 2, "continuity_signature", true]);
+  assert.equal((await agent.receiptRecord(done.receipt ?? ""))?.verdict, "CHANGE_VERIFIED");
+  const unknown = await fetch(`${base}/api/sign/${"0".repeat(32)}`);
+  assert.equal(unknown.status, 404);
+  assert.equal(((await unknown.json()) as { unknown: boolean }).unknown, true);
+  const old = await setup(t, new Date(Date.now() - 25 * 3600 * 1000).toISOString());
+  const stale = await startChange(old.agent, wallet());
+  assert.equal(((await (await fetch(`${old.base}/api/sign/${stale.nonce}`)).json()) as { expired: boolean }).expired, true);
+});

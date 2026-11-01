@@ -1,6 +1,6 @@
 {
   "capturedAt": "2026-10-31T06:55:32.794Z",
-  "classification": "real use: the owner's own wallet B onboarded as payee Rent through the signing page; memory on the Walrus Memory mainnet relayer; money on Sui testnet",
+  "classification": "real use: the owner's own Slush account, as Rent's payee wallet onboarded as payee Rent through the signing page; memory on the Walrus Memory mainnet relayer; money on Sui testnet",
   "versions": [
     {
       "type": "payee_version",

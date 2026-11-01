@@ -13,7 +13,7 @@ These calls couldn't run from Claude's workspace, which blocks Tatum, Walrus and
 
 ## Run
 - `pnpm --filter @countersign/spikes spikes`: read-only Tatum checks + signature verification + 3 labelled Walrus Memory writes in a separate spike namespace. **No money moves.**
-- `pnpm --filter @countersign/spikes spikes:pay`: also sends 0.000001 SUI from wallet A to wallet B through Tatum and times when it becomes visible.
+- `pnpm --filter @countersign/spikes spikes:pay`: also sends 0.000001 SUI from the agent wallet to a second test wallet through Tatum and times when it becomes visible.
 
 ## What it tests
 | ID | Question |

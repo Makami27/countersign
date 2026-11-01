@@ -35,6 +35,22 @@ async function changeView(ctx: OwnerContext, nonce: string, now: number) {
   };
 }
 
+async function completedView(ctx: OwnerContext, nonce: string) {
+  for (const payeeId of await ctx.index.payeeIds()) {
+    const versions = await ctx.index.payeeVersions(payeeId);
+    const verified = versions.filter((v) => v.status === "VERIFIED").sort((a, b) => a.version - b.version);
+    const done = verified.find((v) => "nonce" in v.evidence && v.evidence.nonce === nonce);
+    if (!done) continue;
+    const head = headOf(versions);
+    const receipt = (await ctx.index.receiptsFor(payeeId, 200)).find((r) => r.ref === nonce && r.verdict === "CHANGE_VERIFIED")?.receipt ?? null;
+    return {
+      kind: "completed" as const, network: ctx.network, memory: ctx.memory().relayer, payeeName: done.name, address: done.address, verifiedNumber: verified.indexOf(done) + 1,
+      stillCurrent: head.kind === "verified" && head.version.version === done.version, how: done.evidence.kind, at: done.createdAt, receipt,
+    };
+  }
+  return null;
+}
+
 export async function signRoute(ctx: OwnerContext, req: IncomingMessage, res: ServerResponse, path: string): Promise<void> {
   const nonce = path.slice("/api/sign/".length);
   const now = Date.now();
@@ -43,7 +59,9 @@ export async function signRoute(ctx: OwnerContext, req: IncomingMessage, res: Se
   const change = onboarding ? null : await changeView(ctx, nonce, now);
   if (req.method === "GET") {
     if (onboarding) return send(res, 200, { kind: "onboarding", network: ctx.network, memory: ctx.memory().relayer, payeeName: onboarding.name, address: onboarding.address, expires: onboarding.expires, expired: Date.parse(onboarding.expires) <= now, message: onboardingMessage(onboarding) });
-    return change ? send(res, 200, change) : named(res, 404, "NONCE_REUSED");
+    if (change) return send(res, 200, change);
+    const completed = await completedView(ctx, nonce);
+    return completed ? send(res, 200, completed) : send(res, 404, { unknown: true, refusal: { reason: "NONCE_REUSED", ...REASONS.NONCE_REUSED } });
   }
   if (req.method !== "POST") return problem(res, 405, "Not allowed.");
   if (req.headers["x-countersign"] !== "1") return problem(res, 403, "Missing request header. Nothing was changed.");
