@@ -1,3 +1,4 @@
+import { GROQ_DEFAULT_MODEL } from "@countersign/adapters/groq";
 export type Config = {
   readonly network: "mainnet" | "testnet";
   readonly tatumApiKey: string;
@@ -7,6 +8,7 @@ export type Config = {
   readonly ownerId: string;
   readonly telegram: { readonly token: string; readonly ownerUserId: number };
   readonly gemini: { readonly apiKey: string; readonly model: string };
+  readonly groq: { readonly apiKey: string; readonly model: string } | null;
   readonly caps: { readonly perPaymentBaseUnits: bigint; readonly perDayBaseUnits: bigint };
   readonly cooldownMs: number;
   readonly database: { readonly kind: "postgres"; readonly url: string } | { readonly kind: "sqlite"; readonly path: string };
@@ -58,6 +60,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     ownerId: need("OWNER_ID"),
     telegram: { token: need("TELEGRAM_BOT_TOKEN"), ownerUserId },
     gemini: { apiKey: need("GEMINI_API_KEY"), model: need("GEMINI_MODEL") },
+    groq: env["GROQ_API_KEY"]?.trim() ? { apiKey: env["GROQ_API_KEY"].trim(), model: env["GROQ_MODEL"]?.trim() || GROQ_DEFAULT_MODEL } : null,
     caps: { perPaymentBaseUnits: baseUnits("CAP_PER_PAYMENT_USDC_BASE_UNITS"), perDayBaseUnits: baseUnits("CAP_PER_DAY_USDC_BASE_UNITS") },
     cooldownMs: cooldownSeconds * 1000,
     database: env["DATABASE_URL"]?.trim() ? { kind: "postgres", url: env["DATABASE_URL"].trim() } : { kind: "sqlite", path: need("DATABASE_PATH") },

@@ -1,5 +1,8 @@
 import type { Proposal } from "@countersign/core";
 import { toProposal } from "./proposal.ts";
+import { INSTRUCTIONS, problemForStatus, type Extraction, type ModelProblem } from "../model/extraction.ts";
+
+export type { Extraction, ModelProblem } from "../model/extraction.ts";
 
 export { toProposal, usdcToBaseUnits, amountStandsAloneIn } from "./proposal.ts";
 
@@ -19,30 +22,9 @@ const RESPONSE_SCHEMA = {
   propertyOrdering: ["kind", "payeeId", "amountText", "newAddress", "reasonQuote"],
 } as const;
 
-const INSTRUCTIONS = [
-  "You read one message sent to a payment assistant and classify it.",
-  "kind=pay when the owner asks to pay a known payee. Give payeeId from the list, and amountText as the number of USDC exactly as written in the message, digits and one dot only, no currency sign or word.",
-  "kind=change_address when the message says a payee's wallet address changed. Copy newAddress exactly as written.",
-  "kind=none otherwise.",
-  "Always fill every field; use an empty string for a field that does not apply.",
-  "reasonQuote must be copied verbatim from the message. Never paraphrase. Never invent an address or an amount. Never convert units.",
-].join("\n");
-
 export type GeminiConfig = { readonly apiKey: string; readonly model: string; readonly baseUrl?: string };
 
-export type ModelProblem = "TIMEOUT" | "NETWORK" | "RATE_LIMITED" | "UNAVAILABLE" | "HTTP" | "NO_ANSWER";
-
-export type Extraction =
-  | { readonly status: "READ"; readonly proposal: Proposal; readonly modelVersion: string | null; readonly modelText: string }
-  | { readonly status: "UNKNOWN"; readonly problem: ModelProblem; readonly httpStatus: number | null; readonly attempts: number };
-
 type GenerateResponse = { readonly candidates?: readonly { readonly content?: { readonly parts?: readonly { readonly text?: unknown }[] } }[]; readonly modelVersion?: unknown };
-
-function problemForStatus(status: number): ModelProblem {
-  if (status === 429) return "RATE_LIMITED";
-  if (status === 503 || status === 500 || status === 502 || status === 504) return "UNAVAILABLE";
-  return "HTTP";
-}
 
 const RETRYABLE: readonly ModelProblem[] = ["RATE_LIMITED", "UNAVAILABLE"];
 const RETRY_DELAY_MS = 2_000;
@@ -69,18 +51,18 @@ async function extractOnce(config: GeminiConfig, text: string, payeeIds: readonl
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
   } catch (error) {
-    return { status: "UNKNOWN", problem: error instanceof DOMException && error.name === "TimeoutError" ? "TIMEOUT" : "NETWORK", httpStatus: null, attempts };
+    return { provider: "gemini", status: "UNKNOWN", problem: error instanceof DOMException && error.name === "TimeoutError" ? "TIMEOUT" : "NETWORK", httpStatus: null, attempts };
   }
-  if (!response.ok) return { status: "UNKNOWN", problem: problemForStatus(response.status), httpStatus: response.status, attempts };
+  if (!response.ok) return { provider: "gemini", status: "UNKNOWN", problem: problemForStatus(response.status), httpStatus: response.status, attempts };
   const body = (await response.json().catch(() => null)) as GenerateResponse | null;
   const candidateText = body?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (typeof candidateText !== "string") return { status: "UNKNOWN", problem: "NO_ANSWER", httpStatus: response.status, attempts };
+  if (typeof candidateText !== "string") return { provider: "gemini", status: "UNKNOWN", problem: "NO_ANSWER", httpStatus: response.status, attempts };
   const modelVersion = typeof body?.modelVersion === "string" ? body.modelVersion : null;
   let parsed: unknown;
   try {
     parsed = JSON.parse(candidateText);
   } catch {
-    return { status: "READ", proposal: { kind: "none" }, modelVersion, modelText: candidateText };
+    return { provider: "gemini", status: "READ", proposal: { kind: "none" }, modelVersion, modelText: candidateText };
   }
-  return { status: "READ", proposal: toProposal(parsed, text, payeeIds), modelVersion, modelText: candidateText };
+  return { provider: "gemini", status: "READ", proposal: toProposal(parsed, text, payeeIds), modelVersion, modelText: candidateText };
 }

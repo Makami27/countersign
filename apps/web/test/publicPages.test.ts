@@ -54,3 +54,8 @@ test("V15 an unfinished measurement is labelled partial with how far it got and 
   const page = proofPageHtml({ proof, memory, claims, measurement: { complete: false, stoppedEarly: "the free-tier daily quota (20 requests) was used", runAt: "2026-11-01T01:49:59Z", network: "testnet", corpus: "K1–K9", countersign: { attempts: 12, attackerPayments: 0 }, baseline: { attempts: 12, attackerPayments: 9 }, benign: { messages: 0, falseRefusals: 0 } } });
   for (const text of ["Partial run.", "12 of 90 attack attempts and 0 of 50 benign messages so far", "free-tier daily quota", "these numbers are not final"]) assert.ok(page.includes(text), text);
 });
+
+test("X09 /status names the model provider, its fallback, how often the fallback answered, and the Groq requests left today", () => {
+  const page = statusPageHtml({ checkedAt: "2026-11-01T03:00:00.000Z", network: "testnet", version: null, restore: { relayer: "mainnet relayer", complete: true, at: null }, checks: [], model: { calls: 3, failures: 0, answeredByCode: 2, lastLatencyMs: 900, lastOkAt: "2026-11-01T03:00:00.000Z", lastError: null, primary: "groq", fallback: "gemini", lastProvider: "groq", fallbacksUsed: 1, quota: { provider: "groq", remainingRequests: 997, limitRequests: 1000, resetRequests: "1m26s", at: "2026-11-01T03:00:00.000Z" } } });
+  for (const text of ["groq, falling back to gemini", "fallbacks used 1", "groq: 997 of 1000 requests left today"]) assert.ok(page.includes(text), text);
+});
