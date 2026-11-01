@@ -21,10 +21,11 @@ export async function tryCompleteChange(ctx: OwnerContext, nonce: string, now: n
 
 export async function completeReadyChanges(ctx: OwnerContext, now: number): Promise<number> {
   let completed = 0;
-  for (const nonce of (await ctx.steps.ownerConfirmedNonces())) {
+  for (const nonce of (await ctx.steps.ownerConfirmedNonces(now))) {
     const result = await tryCompleteChange(ctx, nonce, now);
     if (result.state === "COMPLETED") completed += 1;
     if (result.state !== "WAITING") ctx.steps.settle(nonce);
+    else ctx.steps.waitUntil(nonce, result.readyAt ? Date.parse(result.readyAt) : Number.POSITIVE_INFINITY);
   }
   return completed;
 }

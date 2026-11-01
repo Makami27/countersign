@@ -8,6 +8,7 @@ import type { PaymentChain, Prepared, Submitted } from "../../../../packages/ada
 import { DEFAULT_CAPS, message, wallet, world } from "../../../../packages/core/test/fixtures.ts";
 import { Schedules } from "../../src/schedules.ts";
 import { ScheduleRunner } from "../../src/scheduleRuns.ts";
+import { CountingRows } from "./countingRows.ts";
 
 export const DAY_MS = 24 * 3600 * 1000;
 
@@ -28,7 +29,7 @@ export class ScriptedChain implements PaymentChain {
 
 export async function scheduleWorld(caps: Caps = DEFAULT_CAPS) {
   const w = await world(caps, "2026-10-30T10:00:00Z", 0);
-  const rows = new SqliteRows(join(mkdtempSync(join(tmpdir(), "countersign-schedules-")), "web.sqlite"));
+  const rows = new CountingRows(new SqliteRows(join(mkdtempSync(join(tmpdir(), "countersign-schedules-")), "web.sqlite")));
   const now = () => w.clock.now().getTime();
   const schedules = await Schedules.open({ rows, memory: w.memory, signer: w.signer, ownerId: "owner1", now });
   const chain = new ScriptedChain();
