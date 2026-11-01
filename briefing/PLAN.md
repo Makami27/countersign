@@ -6,46 +6,43 @@ No feature commits after 17:00 UTC on 10 Nov unless organisers confirm it's allo
 
 Revised 2026-10-30 (owner review of the phase plan): skeleton deploy moved to Phase 2, real mainnet use starts in Phase 2, Phase 3 gets an extra half day from Phase 4, submission deliverables added.
 
-## Where we are (2026-11-01, ~15:20 UTC)
-**Phase:** Phase 4 + V23–V25 committed. Gate: `pnpm gate`, 146 tests green.
+## Where we are (2026-11-01, ~17:00 UTC)
+**Phase:** Phase 4 plus V20–V25 (team decision 1 Nov), all deployed. Gate: `pnpm gate`, 146 tests green at `31579d2`.
 
 **Deployed vs committed — read this first**
-- Render runs `main` at https://countersign.nittings.xyz (custom domain, HTTPS; `PUBLIC_BASE_URL` points at it). `273dd39` went live 2026-10-31 23:09 UTC. `/api/health` reports the commit from `RENDER_GIT_COMMIT`. The old onrender.com host still answers.
-- **Render auto-deploys every push to `main`.**
-- Owner wallet registered on the new domain: 0xb2d3…6475 (Slush showed no warning there).
+- Render runs `main` at https://countersign.nittings.xyz (custom domain, HTTPS; `PUBLIC_BASE_URL` points at it). `/api/health` reports the deployed commit (`RENDER_GIT_COMMIT`). **Render auto-deploys every push to `main`.** The old onrender.com host still answers.
+- Live now: everything through V25 (`31579d2`). Multi-user (V24) runs **admin-only** because `MASTER_KEY` is not set on Render yet.
+- Owner wallet (admin): `0xb2d3c105022325393f44d66927510729bc82eb7675d2fe45368dfb6e96bd6475`, registered on the custom domain.
 
-**Done**
-- Phase 1: pnpm on Node 26 (D8); spikes (REALITY_SPIKES); Tatum adapters with a shared rate gate; MemWal adapter; digest-first payment ledger and runner (D11); Act 1.
-- Phase 2: one process for agent, bot and web (D16); owner sign-in by one-time code; owner app `/app`; self-hosted fonts.
-- Phase 3: onboarding only after the payee's wallet signs (D14); `/sign/:nonce`; two-signature change (V11); owner path with cooldown (V12); named refusals (V13).
-- Hosting: Render free + Neon Postgres (D19); async ports with an atomic reserve and payee-head check; Fly destroyed. README "Known limits" covers free-tier restarts.
-- Phase 4 so far: `/r/:receipt` (V14); `/proof` (V15) and `/status` (V16) pages, server-rendered; `/api/status` (Postgres, Tatum gRPC and GraphQL, Walrus relayer, Telegram polling, Gemini stats); landing claims table generated from CLAIMS.md; owner-app timeouts and the promise lint.
-- Act 4 on the custom domain (`evidence/acts/act4`, CL15): Rent's current wallet then the new wallet signed; Rent now pays `0x993ae91d…9496` (2nd verified address, record v5); 0.01 test USDC settled there (tx `DghoXibM…ZqyZ`) via `payPayee.ts`. The used link shows Done.
-- Acts 2–3 on Render (`evidence/acts/act2`, `act3`, CL14). Look-alikes and known attacks are now refused by code before the model; Gemini retries once on 429/5xx.
-- V20 owner-wallet protection (D20, THREAT_MODEL.md): committed `1d47c7f`, **not deployed**.
-- V21 scheduled payments (D21): monthly or yearly, owner-wallet signature to create/change/delete, one payment per period (`schedule:<id>:<period>`), late boot run, hourly retry only for retryable refusals, Telegram notice with receipt link; panel on the payee page. Committed, **not deployed**.
-- V22 shared scam memory (D22): look-alike and known-attack refusals share a signed attack_seen record; other agents refuse that address with SEEN_BY_OTHER_AGENT (first receipt, distinct agent keys); never blocks a VERIFIED payee, continuity overrides, 90-day window, owner-signed retraction, no endpoint lists it. No retract button in the owner app yet (API only). Committed, **not deployed**.
-- Real-use memories: 12 on the mainnet relayer (CL07 PROVEN, `evidence/a02-memory-count.json`, `apps/agent/src/countRealUse.ts`).
+**Done since V22 (newest last)**
+- Fix before deploy (D23): only attack refusals become known-attack memory; a verified payee's address never matches; README limit for shared memory (one Walrus account).
+- Deployed on the custom domain; Act 4 captured (`evidence/acts/act4`, CL15): Rent's current wallet then the new wallet signed; 0.01 test USDC settled to the new wallet via `payPayee.ts`. /sign shows Done / expired / unknown; wallet popups open straight from clicks (not yet checked in a real browser); wallets named by role.
+- CL07 PROVEN: 12 agent-signed records from real use on the mainnet relayer (`evidence/a02-memory-count.json`).
+- Owner inputs: login code box (later removed by V23), weekly and two-week schedules (ISO-week and fixed-pair keys), typed values no longer wiped by the payee-page refresh, caps and addresses checked before any signature.
+- /proof (V15) and /status (V16), server-rendered; /proof labels the measurement partial or not run.
+- Neon (D19): idle loops never touch the database; /status caches 5 min, its DB check 15 min; the 5-minute ping only hits /api/health.
+- Groq first, Gemini fallback, plain pay commands by code (D26); /status shows provider, fallbacks and Groq requests left today. GROQ_API_KEY is on Render.
+- Measurement re-preregistered on Groq (PRD Amendment 1, before any Groq trial). Gemini pilot (12 attack trials: Countersign 0, baseline 9) in `evidence/measurement/pilot-gemini/`.
+- V23 wallet sign-in (D27): login codes removed; first wallet registers as owner wallet; /login replies with the link. A stolen Telegram can't open the owner app.
+- V24 multi-user (D24): schema-per-owner runtimes (admin stays in `public`), sign-in creates owners (MAX_OWNERS), per-owner agent wallet and record key sealed with MASTER_KEY and backed up to Walrus as ciphertext, Telegram linking per owner, faucet links, checklist, "check a message" paste box (channel `paste`), admin page, hourly allowances. Cross-user tests in `apps/web/test/crossUser.test.ts`.
+- V25 public /demo (D25): sandbox letters (genuine, look-alike, fake history, forged record, paste your own), signature cards, activity; landing CTAs.
 
 **Blocked / waiting**
-- Delegate key rotation after the relayer echoed it in an error (REALITY_SPIKES R4).
-
-- Groq first, Gemini fallback, plain pay commands by code (D26), deployed; GROQ_API_KEY set on Render.
-- Measurement re-preregistered on Groq (PRD Amendment 1); running in the background from 1 Nov; the Gemini window is a pilot in `evidence/measurement/pilot-gemini/`.
-- V23 wallet sign-in (D27): login codes removed; the bot's /login sends the sign-in link. Deployed.
-- V24 multi-user (D24): schema-per-owner runtimes, sign-in creates owners, encrypted per-owner keys, Telegram linking, faucet links, checklist, paste box, admin page, hourly allowances. Deployed without MASTER_KEY (admin-only) until the owner sets MASTER_KEY, ADMIN_WALLET and MAX_OWNERS on Render.
-- V25 public /demo (D25): sandbox letters, signature cards, activity; landing CTAs.
+- **MASTER_KEY**: the owner said it is in `.env`, but `.env` has no MASTER_KEY line (file last saved 1 Nov 08:45). Once it's there: copy MASTER_KEY, `ADMIN_WALLET=0xb2d3c105022325393f44d66927510729bc82eb7675d2fe45368dfb6e96bd6475` and `MAX_OWNERS=8` to Render with the API (PUT `/v1/services/srv-dbj08anf3r2c73ejrggg/env-vars/<NAME>`, never print values), redeploy (push or POST `/deploys`), check /api/health and that the boot log shows no owner-load errors.
+- Delegate key rotation (REALITY_SPIKES R4): steps agreed; do it after the measurement finishes.
 
 **Next steps**
-1. Owner: set MASTER_KEY (backed up offline), ADMIN_WALLET and MAX_OWNERS on Render to open multi-user. Then Phase 5 essentials (Q01–Q10), the measurement results, blog and video. The mainnet switch comes last and is the first cut (SHIP).
-2. Rest of Phase 4: lab upgrade; commit the Groq measurement results when the run finishes (/proof reads `evidence/measurement/results.json`, which ships in the image).
+1. MASTER_KEY step above, then sign in as a second owner to check multi-user live.
+2. Commit the Groq measurement when it finishes (see Background jobs); report the numbers with failures and model errors; cite them only through a new CLAIMS entry.
+3. Check wallet popups and Telegram linking in a real browser and phone.
+4. Phase 5 essentials (Q01–Q10), blog and video. The mainnet switch comes last and is the first cut (SHIP); if cut, the header says "mainnet: coming later".
 
 **Background jobs and how to check them**
-- None running. Deployed agent: Render service `srv-dbj08anf3r2c73ejrggg` (Ohio); health and dependency timings at `/api/health` and `/api/status`; an external 5-minute ping (cron-job.org) keeps it awake.
+- Groq measurement (started 1 Nov 15:11 UTC) runs locally: `node --env-file=.env apps/agent/src/measure.ts`, log `../measure-groq.log`, raw rows `evidence/measurement/raw-2026-11-01T15-11-00-564Z.jsonl`. It writes `evidence/measurement/results.json` only when done; commit that file plus the raw file and push so /proof shows it. If it stopped early, continue with `MEASURE_RUN=2026-11-01T15-11-00-564Z`.
+- Deployed agent: Render service `srv-dbj08anf3r2c73ejrggg` (Ohio); /api/health, /api/status, /status; an external 5-minute ping (cron-job.org) keeps it awake.
 
 **Open decisions**
-- Custom domain and registrar (owner).
-- Neon free compute hours: idle loops skip the database so the compute can suspend; watch usage in the Neon console.
+- Neon free compute: set min and max to 0.25 CU; watch compute-hours in the Neon console.
 - Telegram polling vs webhook (polling; only one instance may poll).
 
 ## Workstreams
