@@ -25,7 +25,7 @@ async function signedIn(t: TestContext, slow: Slow = {}) {
     settings: await OwnerSettings.open(rows, { perPaymentBaseUnits: 50_000_000n, perDayBaseUnits: 100_000_000n, cooldownSeconds: 60 }),
     balances: slow.balances ?? (async () => ({ status: "KNOWN", suiBaseUnits: 1n, usdcBaseUnits: 2n })),
     memory: () => ({ relayer: "sandbox (not Walrus Memory)", restored: true, restoredAt: null, legacyRecords: 0, ignoredRecords: 0 }),
-    memoryCounts: slow.memoryCounts ?? (async () => ({ realUseMemories: 3, namespaces: 1 })),
+    memoryCounts: slow.memoryCounts ?? (async () => ({ realUseMemories: 3, namespaces: 1, byNamespace: [{ suffix: "receipts", count: 3 }] })),
     sendPayment: async () => assert.fail("no payments here"), steps: await ChangeSteps.open(rows), cooldownMs: () => 60_000,
     verifySignature: (m, s, a) => w.signatures.verifyPersonalMessage(m, s, a),
     ...(await ownerExtras(rows, w)),

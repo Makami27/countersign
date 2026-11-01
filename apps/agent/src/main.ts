@@ -13,7 +13,7 @@ import { OwnerAuth } from "@countersign/web/ownerAuth";
 import { OwnerSettings } from "@countersign/web/ownerSettings";
 import { ChangeSteps } from "@countersign/web/changeSteps";
 import { completeReadyChanges } from "@countersign/web/changeCompletion";
-import type { BalancesView, MemoryView, OwnerContext } from "@countersign/web/ownerContext";
+import type { BalancesView, MemoryCounts, MemoryView, OwnerContext } from "@countersign/web/ownerContext";
 import { loadConfig } from "./config.ts";
 import { startBot } from "./telegram.ts";
 import { openStorage } from "./storage.ts";
@@ -97,7 +97,7 @@ console.log(paymentsOpen ? "Boot reconciliation: some payments are still open; t
 setInterval(() => void reconcileIfOpen().catch((error: Error) => console.error(`Reconciliation skipped: ${error.message.slice(0, 200)}`)), RECONCILE_EVERY_MS).unref();
 
 let balanceCache: { at: number; view: BalancesView } | null = null;
-let countsCache: { at: number; view: { realUseMemories: number; namespaces: number } } | null = null;
+let countsCache: { at: number; view: NonNullable<MemoryCounts> } | null = null;
 async function balances(): Promise<BalancesView> {
   if (balanceCache && Date.now() - balanceCache.at < BALANCE_CACHE_MS) return balanceCache.view;
   const read = await readAgentBalances(grpc, config.network, agentAddress);
@@ -119,7 +119,7 @@ const owner: OwnerContext = {
     const counts = await walrus.namespaceCounts(`countersign:${config.ownerId}:`);
     if (!counts) return null;
     const real = counts.filter((c) => isRealUseNamespace(config.ownerId, c.name));
-    const view = { realUseMemories: real.reduce((sum, c) => sum + c.count, 0), namespaces: real.length };
+    const view = { realUseMemories: real.reduce((sum, c) => sum + c.count, 0), namespaces: real.length, byNamespace: real.map((c) => ({ suffix: c.name.slice(`countersign:${config.ownerId}:`.length), count: c.count })) };
     countsCache = { at: Date.now(), view };
     return view;
   },

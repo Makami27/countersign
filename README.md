@@ -19,7 +19,8 @@ Built for Walrus × Tatum *Total Recall*, Track 2 (Smart Agents for Real Life).
 | Real use (≥10 mainnet memories) | 12 agent-signed records from the owner's own use on the mainnet relayer [claim:CL07] |
 | Deploy | live at https://countersign.nittings.xyz (Render free, Neon Postgres, D19); `/api/health` reports the deployed commit. Testnet payments, mainnet Walrus Memory |
 | Receipt page `/r/:receipt` | built (V14): verdict, money sentence, checks in order, comparison, Walrus blob and Sui links |
-| Status | `/api/status` times Postgres, Tatum gRPC and GraphQL, the Walrus relayer and Telegram polling; the `/status` page is not built yet |
+| Status | `/status` (and `/api/status`) times Postgres, Tatum gRPC and GraphQL, the Walrus relayer and Telegram polling, and shows the network, deployed commit and last restore |
+| Proof page `/proof` | built (V15): live counters from the agent's records, memories per namespace, the preregistered measurement (not run yet), the claims ledger |
 | Proof page, measurement | not built (Phase 4); the landing's claims table is generated from CLAIMS.md |
 
 ## Known limits
