@@ -12,12 +12,20 @@ const STEPS: readonly (readonly [keyof Overview["checklist"] | "signedIn", strin
   ["telegram", "Connect Telegram (optional, in Settings)"],
 ];
 
+const OPTIONAL: ReadonlySet<string> = new Set(["telegram"]);
+
+export function checklistDone(overview: Overview): boolean {
+  return STEPS.every(([key]) => key === "signedIn" || OPTIONAL.has(key) || overview.checklist[key]);
+}
+
 export function checklistCard(overview: Overview): HTMLElement {
   const items = STEPS.map(([key, label]) => {
     const done = key === "signedIn" || overview.checklist[key];
     return h("li", { class: done ? "done" : "" }, h("span", { class: "n", "aria-hidden": "true" }, done ? "✓" : "·"), h("span", {}, label), h("span", { class: "when" }, done ? "Done" : "To do"));
   });
-  return h("section", { class: "card", "aria-labelledby": "checklist-title" }, h("h2", { id: "checklist-title" }, "Getting started"), h("ol", { class: "steps" }, ...items));
+  const steps = h("ol", { class: "steps" }, ...items);
+  if (checklistDone(overview)) return h("details", { class: "card checklist done" }, h("summary", {}, "Getting started: every step done"), steps);
+  return h("section", { class: "card checklist", "aria-labelledby": "checklist-title" }, h("h2", { id: "checklist-title" }, "Getting started"), steps);
 }
 
 type PasteAnswer = { readonly says?: string; readonly signUrl?: string | null; readonly refusal?: { readonly message: string; readonly nextAction: string; readonly receipt: string } };
