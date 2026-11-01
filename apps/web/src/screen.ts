@@ -1,5 +1,5 @@
 import { addressesIn, headOf, isLookalike, knownAttackFor, payeeIdFor, usdcToBaseUnits, type IndexStore, type Proposal } from "@countersign/core";
-import type { Extraction } from "@countersign/adapters/gemini";
+import type { Extraction } from "@countersign/adapters/model";
 
 export type ChangeProposal = Extract<Proposal, { kind: "change_address" }>;
 export type Reading = { readonly status: "READ"; readonly by: "code" | "model"; readonly proposal: Proposal } | Extract<Extraction, { status: "UNKNOWN" }>;

@@ -20,6 +20,7 @@ export type OwnerDirectoryDeps = {
   readonly create: (ownerId: string) => Promise<OwnerRuntime>;
   readonly notifyAdmin: (text: string) => Promise<void>;
   readonly now: () => number;
+  readonly destroy?: (ownerId: string) => Promise<void>;
 };
 
 function short(address: string): string {
@@ -30,6 +31,7 @@ export class OwnerDirectory {
   readonly #d: OwnerDirectoryDeps;
   readonly #owners = new Map<string, OwnerRuntime>();
   #creating: Promise<SignInOwner> | null = null;
+  readonly #lastActive = new Map<string, number>();
 
   private constructor(deps: OwnerDirectoryDeps) {
     this.#d = deps;
@@ -69,7 +71,13 @@ export class OwnerDirectory {
 
   async forSession(token: string | null): Promise<OwnerContext | null> {
     const session = await this.#d.auth.session(token);
+    if (session) this.#lastActive.set(session.ownerId, this.#d.now());
     return session ? this.get(session.ownerId) : null;
+  }
+
+  lastActive(ownerId: string): string | null {
+    const at = this.#lastActive.get(ownerId);
+    return at === undefined ? null : new Date(at).toISOString();
   }
 
   async listing(): Promise<readonly OwnerListing[]> {
@@ -123,6 +131,7 @@ export class OwnerDirectory {
     this.#owners.delete(ownerId);
     await this.#d.rows.run("DELETE FROM owners WHERE owner_id = ?", [ownerId]);
     await this.#d.rows.run("DELETE FROM wallet_sessions WHERE owner_id = ?", [ownerId]);
+    await this.#d.destroy?.(ownerId);
     return true;
   }
 }

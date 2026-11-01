@@ -2,6 +2,7 @@ import type { IndexStore, PaymentLedger } from "@countersign/core";
 import type { SqlRows } from "@countersign/adapters/sql";
 import { SqliteIndex, SqlitePaymentLedger, SqliteRows } from "@countersign/adapters/sqlite";
 import { PostgresIndex, PostgresPaymentLedger, PostgresRows, openPostgres } from "@countersign/adapters/postgres";
+import { rm } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { query } from "@countersign/adapters/postgres";
 import type { Config } from "./config.ts";
@@ -34,4 +35,15 @@ export async function openOwnerStorage(database: Config["database"], ownerId: st
   await admin.end();
   const pool = openPostgres({ url: database.url, schema });
   return { label: `Postgres schema ${schema}`, index: await PostgresIndex.open(pool), ledger: await PostgresPaymentLedger.open(pool), rows: new PostgresRows(pool), close: () => pool.end() };
+}
+
+export async function dropOwnerStorage(database: Config["database"], ownerId: string): Promise<void> {
+  if (!/^o[0-9a-f]{10}$/.test(ownerId)) return;
+  if (database.kind === "sqlite") {
+    await rm(join(dirname(database.path), `${ownerId}.sqlite`), { force: true });
+    return;
+  }
+  const admin = openPostgres({ url: database.url });
+  await query(admin, `DROP SCHEMA IF EXISTS owner_${ownerId} CASCADE`);
+  await admin.end();
 }

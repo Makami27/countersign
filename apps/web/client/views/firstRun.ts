@@ -15,6 +15,7 @@ export function agentFacts(overview: Overview): HTMLElement {
     h("div", {}, h("dt", {}, "Agent wallet"), h("dd", {}, addressEl(overview.agentAddress))),
     h("div", {}, h("dt", {}, "Network"), h("dd", {}, networkWords(overview.network))),
     h("div", {}, h("dt", {}, "Balance"), h("dd", {}, balances)),
+    overview.network === "testnet" ? h("div", {}, h("dt", {}, "Fund it"), h("dd", {}, "Send test funds to the agent wallet above: ", h("a", { href: "https://faucet.sui.io/?network=testnet", target: "_blank", rel: "noreferrer" }, "test SUI (faucet.sui.io)"), " · ", h("a", { href: "https://faucet.circle.com/", target: "_blank", rel: "noreferrer" }, "test USDC (faucet.circle.com, Sui testnet)"), ". Nothing is granted automatically.")) : "",
     h("div", {}, h("dt", {}, "Payee memory"), h("dd", {}, memory)),
     h("div", {}, h("dt", {}, "Caps"), h("dd", {}, `${usdc(overview.caps.perPaymentBaseUnits)} per payment, ${usdc(overview.caps.perDayBaseUnits)} per day (${usdc(overview.caps.usedTodayBaseUnits)} used today)`)));
 }

@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { Extraction } from "@countersign/adapters/gemini";
 import { lookalikeOf, message, wallet, world } from "../../../packages/core/test/fixtures.ts";
-import { readMessage } from "../src/screen.ts";
+import { readMessage } from "@countersign/web/screen";
 import { REFUSED_HEADLINE, refusalHtml } from "../src/telegramText.ts";
 
 const PUBLIC_URL = "https://countersign-agent-7u1c.onrender.com";

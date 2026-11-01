@@ -3,7 +3,8 @@ import { Bot, InlineKeyboard, type Context } from "grammy";
 import { headOf, type Countersign, type InboundMessage, type IndexStore, type PaymentIntent, type Proposal } from "@countersign/core";
 import type { Extraction } from "@countersign/adapters/gemini";
 import { MODEL_UNREADABLE_REPLY, RECEIPT_PENDING_REPLY, STORE_UNANSWERED_REPLY, paymentPendingReply, paymentReply, receiptReply, replyFor } from "./replies.ts";
-import { readMessage } from "./screen.ts";
+import { readMessage } from "@countersign/web/screen";
+import { BUSY } from "@countersign/web/quota";
 import { READING_REPLY, changeStartedHtml, confirmPaymentHtml, signInLinkText, refusalHtml, unlinkedText } from "./telegramText.ts";
 
 const CONFIRMATION_LIFETIME_MS = 5 * 60 * 1000;
@@ -11,7 +12,7 @@ const HTML = { parse_mode: "HTML" as const };
 
 const POLL_RETRY_MS = 15_000;
 
-export type BotOwner = { readonly ownerId: string; readonly engine: Countersign; readonly index: IndexStore; readonly sendPayment: (paymentId: string) => Promise<PaymentIntent> };
+export type BotOwner = { readonly ownerId: string; readonly engine: Countersign; readonly index: IndexStore; readonly sendPayment: (paymentId: string) => Promise<PaymentIntent>; readonly busy: () => boolean; readonly countModel: () => void };
 
 export type BotDeps = {
   readonly token: string;
@@ -49,10 +50,12 @@ export function startBot(deps: BotDeps): Bot {
     if (ctx.message.text.startsWith("/")) return;
     const owner = await ownerOf(ctx);
     if (!owner) return void (await ctx.reply(unlinkedText(deps.publicUrl)));
+    if (owner.busy()) return void (await ctx.reply(BUSY));
     const forwarded = ctx.message.forward_origin !== undefined;
     const inbound: InboundMessage = { id: `tg:${ctx.message.message_id}`, channel: "telegram", from: forwarded ? "forwarded" : String(ctx.from.id), text: ctx.message.text, receivedAt: new Date(ctx.message.date * 1000).toISOString() };
     const reading = await readMessage(owner.index, async (text, payeeIds) => {
       await ctx.reply(READING_REPLY);
+      owner.countModel();
       return deps.extract(text, payeeIds);
     }, inbound.text);
     if (reading.status === "UNKNOWN") return void (await ctx.reply(MODEL_UNREADABLE_REPLY));

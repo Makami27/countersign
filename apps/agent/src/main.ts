@@ -12,11 +12,12 @@ import { startWebServer } from "@countersign/web/server";
 import { OwnerAuth } from "@countersign/web/ownerAuth";
 import { OwnerDirectory } from "@countersign/web/ownerDirectory";
 import { TelegramLinks } from "@countersign/web/telegramLinks";
+import { DEFAULT_HOURLY_LIMITS, QuotaMeter } from "@countersign/web/quota";
 import { buildOwnerRuntime, type BuiltRuntime } from "@countersign/web/ownerRuntime";
 import type { BalancesView, MemoryCounts } from "@countersign/web/ownerContext";
 import { loadConfig } from "./config.ts";
 import { startBot } from "./telegram.ts";
-import { openOwnerStorage, openStorage, type Storage } from "./storage.ts";
+import { dropOwnerStorage, openOwnerStorage, openStorage, type Storage } from "./storage.ts";
 import { statusProbe } from "./statusChecks.ts";
 import { ModelStats } from "./modelStats.ts";
 import { OwnerKeyStore } from "./ownerKeys.ts";
@@ -92,6 +93,12 @@ function memoryCountsFor(ownerId: string): () => Promise<MemoryCounts> {
   };
 }
 
+const modelStats = new ModelStats(config.groq ? "groq" : "gemini", config.groq ? "gemini" : null);
+const gemini: ModelReader = (text, payeeIds) => extractProposal(config.gemini, text, payeeIds);
+const groq = config.groq;
+const reader: ModelReader = groq ? withFallback((text, payeeIds) => extractWithGroq(groq, text, payeeIds, (quota) => modelStats.quota(quota)), gemini) : gemini;
+const trackedReader = modelStats.tracked(reader);
+
 async function runtimeFor(ownerId: string, ownerStorage: Storage, walletKey: string, recordSeed: string): Promise<BuiltRuntime> {
   const wallet = Ed25519Keypair.fromSecretKey(decodeSuiPrivateKey(walletKey).secretKey);
   const agentAddress = wallet.toSuiAddress() as SuiAddress;
@@ -101,6 +108,7 @@ async function runtimeFor(ownerId: string, ownerStorage: Storage, walletKey: str
     roundTrips: new TatumRoundTripChecker(graphql, agentAddress, USDC_COIN_TYPE[config.network]),
     runner: new PaymentRunner({ ledger: ownerStorage.ledger, chain: tatumPaymentChain(grpc, wallet, config.network), clock }),
     balances: balancesFor(agentAddress), memoryCounts: memoryCountsFor(ownerId), notify: notifyFor(ownerId), telegram: telegramFor(ownerId),
+    reader: trackedReader, quota: new QuotaMeter(ownerId === config.ownerId ? null : DEFAULT_HOURLY_LIMITS), isAdmin: ownerId === config.ownerId,
     defaults: { perPaymentBaseUnits: config.caps.perPaymentBaseUnits, perDayBaseUnits: config.caps.perDayBaseUnits, cooldownSeconds: config.cooldownMs / 1000 },
     now: Date.now,
   });
@@ -112,23 +120,30 @@ const admin = await runtimeFor(config.ownerId, storage, config.agentWalletKey, c
 const keyStore = config.masterKey ? await OwnerKeyStore.open(storage.rows, memory, config.masterKey) : null;
 if (!keyStore) console.log("MASTER_KEY is not set: this agent serves only its admin owner.");
 
+const ownerStorages = new Map<string, Storage>();
+async function destroyOwner(ownerId: string): Promise<void> {
+  await keyStore?.forget(ownerId);
+  await links.forget(ownerId);
+  await ownerStorages.get(ownerId)?.close();
+  ownerStorages.delete(ownerId);
+  await dropOwnerStorage(config.database, ownerId);
+}
+
 async function ownerRuntime(ownerId: string, create: boolean): Promise<BuiltRuntime> {
   if (!keyStore) throw new Error("MASTER_KEY is not set.");
   const keys = create ? await keyStore.create(ownerId) : await keyStore.load(ownerId);
   if (!keys) throw new Error(create ? "Walrus Memory didn't confirm the key backup." : "keys couldn't be read or opened with MASTER_KEY.");
-  return runtimeFor(ownerId, await openOwnerStorage(config.database, ownerId), keys.agentWalletKey, keys.recordSeed);
+  const ownerStorage = await openOwnerStorage(config.database, ownerId);
+  ownerStorages.set(ownerId, ownerStorage);
+  return runtimeFor(ownerId, ownerStorage, keys.agentWalletKey, keys.recordSeed);
 }
 
 const owners = await OwnerDirectory.open({
   rows: storage.rows, auth, adminOwnerId: config.ownerId, adminAddress: config.adminAddress, maxOwners: keyStore ? config.maxOwners : 1,
-  create: (ownerId) => ownerRuntime(ownerId, true), notifyAdmin, now: Date.now,
+  create: (ownerId) => ownerRuntime(ownerId, true), notifyAdmin, now: Date.now, destroy: destroyOwner,
 }, admin, (ownerId) => ownerRuntime(ownerId, false));
 setInterval(() => void owners.tickAll(), TICK_EVERY_MS).unref();
 
-const modelStats = new ModelStats(config.groq ? "groq" : "gemini", config.groq ? "gemini" : null);
-const gemini: ModelReader = (text, payeeIds) => extractProposal(config.gemini, text, payeeIds);
-const groq = config.groq;
-const reader: ModelReader = groq ? withFallback((text, payeeIds) => extractWithGroq(groq, text, payeeIds, (quota) => modelStats.quota(quota)), gemini) : gemini;
 const status = statusProbe({
   network: config.network, version: config.version, database: { label: storage.label, rows: storage.rows }, graphql,
   grpcBalance: () => readAgentBalances(grpc, config.network, admin.ctx.agentAddress), walrus, ownerPrefix: `countersign:${config.ownerId}:`,
@@ -140,14 +155,14 @@ bot = startBot({
   ownerFor: async (telegramUserId) => {
     const ownerId = await links.ownerOf(telegramUserId);
     const ctx = ownerId ? owners.get(ownerId) : null;
-    return ctx ? { ownerId: ctx.ownerId, engine: ctx.engine, index: ctx.index, sendPayment: ctx.sendPayment } : null;
+    return ctx ? { ownerId: ctx.ownerId, engine: ctx.engine, index: ctx.index, sendPayment: ctx.sendPayment, busy: () => ctx.quota.busy(), countModel: () => ctx.quota.record("model") } : null;
   },
   redeemLink: async (token, telegramUserId) => {
     const linked = await links.redeem(token, telegramUserId);
     if (linked.ok) await notifyAdmin(`Owner ${linked.ownerId} connected a Telegram chat.`);
     return linked;
   },
-  extract: modelStats.tracked(reader),
+  extract: trackedReader,
   answeredByCode: () => modelStats.answeredByCode(),
 });
 void owners.tickAll();

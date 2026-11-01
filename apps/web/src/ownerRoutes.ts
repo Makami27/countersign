@@ -12,6 +12,9 @@ import { TookTooLong, within } from "./deadline.ts";
 import { ownerSigned } from "./ownerGate.ts";
 import { ownerWalletRoute } from "./ownerWalletRoutes.ts";
 import { scheduleList, scheduleRoute } from "./scheduleRoutes.ts";
+import { adminRoute } from "./adminRoutes.ts";
+import { pasteRoute } from "./pasteRoute.ts";
+import { BUSY } from "./quota.ts";
 import { retractSharedReport } from "./sharedReportRoutes.ts";
 
 export const SESSION_COOKIE = "cs_owner";
@@ -32,6 +35,9 @@ function refusalBody(outcome: Outcome) {
 export async function ownerRoute(owners: OwnerDirectory, req: IncomingMessage, res: ServerResponse, path: string): Promise<void> {
   const ctx = await owners.forSession(cookie(req, SESSION_COOKIE));
   if (!ctx) return problem(res, 401, SIGNED_OUT);
+  if (req.method !== "GET" && ctx.quota.busy()) return problem(res, 429, BUSY);
+  const parts = path.split("/").slice(3);
+  if (parts[0] === "admin") return adminRoute(owners, ctx, res, req.method ?? "", parts, req.method === "GET" ? null : await readJson(req));
   if (req.method !== "GET") return ownerRequest(ctx, req, res, path);
   try {
     await within(READ_DEADLINE_MS, `GET ${path}`, ownerRequest(ctx, req, res, path));
@@ -70,6 +76,7 @@ async function ownerRequest(ctx: OwnerContext, req: IncomingMessage, res: Server
     const link = await ctx.telegram.link();
     return link ? send(res, 200, link) : problem(res, 503, "The Telegram bot isn't running right now. Nothing was changed. Try again shortly.");
   }
+  if (req.method === "POST" && parts[0] === "paste") return pasteRoute(ctx, res, input);
   if (parts[0] === "schedules") return scheduleRoute(ctx, res, req.method ?? "", parts, input);
   if (req.method === "POST" && parts[0] === "receipts" && parts[1] && parts[2] === "retract") return retractSharedReport(ctx, res, decodeURIComponent(parts[1]), input);
   if (req.method === "POST" && parts[0] === "owner" && parts[1] === "wallet") return ownerWalletRoute(ctx, res, parts, input);
