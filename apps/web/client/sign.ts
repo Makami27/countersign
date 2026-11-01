@@ -49,6 +49,7 @@ function completed(view: CompletedView): HTMLElement[] {
   const parts: (HTMLElement | null)[] = [
     h("h1", { tabindex: "-1" }, "Done"),
     h("p", { class: "money" }, "Nothing was sent."),
+    h("p", { class: "note" }, networkWords(view.network)),
     h("p", {}, `${view.payeeName} now pays `, addressEl(view.address), ` (v${view.verifiedNumber}), ${CONFIRMED_BY[view.how] ?? "verified"}, ${when(view.at)}.`),
     view.stillCurrent ? null : h("p", { class: "note" }, "A later change has replaced this address since."),
     view.receipt ? h("p", { class: "links" }, h("a", { href: `/r/${view.receipt}` }, `Receipt ${view.receipt}`)) : null,
