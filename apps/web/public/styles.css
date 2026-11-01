@@ -38,7 +38,7 @@ code { font-family: var(--mono); font-size: 0.86em; font-stretch: 87.5%; overflo
 .wordmark .counter path { fill: none; stroke: var(--ballpoint); stroke-width: var(--pen); stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
 .wordmark:hover { text-decoration: none; }
 
-.netlabel { display: inline-flex; align-items: center; gap: 0.4em; font-size: var(--step--1); font-weight: 600; color: var(--ink); padding: 0.15rem 0.6rem; border: 1px solid var(--line-strong); border-radius: 999px; }
+.netlabel { display: inline-flex; align-items: baseline; gap: 0.4em; font-size: var(--step--1); font-weight: 600; line-height: 1.35; color: var(--ink); padding: 0.2rem 0.65rem; border: 1px solid var(--line-strong); border-radius: 8px; }
 .netlabel::before { content: ""; width: 0.5em; height: 0.5em; border-radius: 50%; background: var(--ballpoint); }
 
 .btn { appearance: none; min-height: var(--tap); display: inline-flex; align-items: center; justify-content: center; gap: 0.4em; padding: 0.7rem 1.15rem; border-radius: var(--radius); border: 1.5px solid var(--ink); background: transparent; color: var(--ink); font: 600 var(--step-0)/1.1 var(--sans); text-decoration: none; cursor: pointer; text-align: center; }

@@ -82,16 +82,29 @@
 .app .blobs a { display: inline-flex; align-items: center; min-height: var(--tap); }
 .app .proof-page li, .app .proof-page td { overflow-wrap: anywhere; }
 
-.app .demo { padding: var(--space-5) var(--gutter) var(--space-6); }
-.app .demo-grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-5); align-items: start; max-width: 1280px; margin: 0 auto; }
-.app .demo-tabs { display: none; }
-.app .demo-letters { display: grid; gap: var(--space-2); margin: var(--space-4) 0; }
-.app .demo-letter { display: grid; gap: var(--space-1); text-align: left; justify-items: start; }
-.app .demo-letter span { font-weight: 400; font-size: var(--step--1); }
-.app .demo-card { border-top: 1px solid var(--line); padding-top: var(--space-3); margin-top: var(--space-3); overflow-wrap: anywhere; }
+.app .demo { padding: 0 0 var(--space-6); }
+.app .demo .demo-intro { max-width: var(--page); padding-bottom: var(--space-5); }
+.app .demo-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-6); align-items: start; max-width: var(--page); margin: 0 auto; padding: 0 var(--gutter); }
+.app .demo-panel { display: grid; gap: var(--space-4); min-width: 0; }
+.app .demo-panel h2 { font-size: var(--step-1); }
+
+.app .segmented, .app .demo-tabs { display: flex; flex-wrap: wrap; gap: var(--space-1); border-bottom: 1px solid var(--line); }
+.app .segmented button, .app .demo-tabs button { appearance: none; min-height: var(--tap); padding: 0 var(--space-4); border: 0; border-bottom: 3px solid transparent; margin-bottom: -1px; background: none; color: var(--ink-soft); font: 600 var(--step-0)/1 var(--sans); cursor: pointer; }
+.app .segmented button[aria-checked="true"], .app .demo-tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--ballpoint); }
+.app .segmented button:hover, .app .demo-tabs button:hover { color: var(--ink); }
+.app .demo-tabs { display: none; max-width: var(--page); margin: 0 var(--gutter) var(--space-4); }
+
+.app .demo-letters { display: grid; margin: 0; border-bottom: 1px solid var(--line); }
+.app .demo-letter { appearance: none; display: grid; gap: var(--space-1); justify-items: start; text-align: left; min-height: var(--tap); padding: var(--space-3) var(--space-3) var(--space-3) var(--space-4); border: 0; border-top: 1px solid var(--line); border-left: 3px solid transparent; background: none; color: var(--ink); font: 600 var(--step-0)/1.3 var(--sans); cursor: pointer; }
+.app .demo-letter:hover { background: var(--paper-deep); border-left-color: var(--ballpoint); }
+.app .demo-letter span { font-weight: 400; font-size: var(--step--1); color: var(--ink-soft); }
+.app .compare-block { display: grid; gap: var(--space-3); }
+.app .demo-card { gap: var(--space-2); }
+.app .demo-card .sigcard-sig .scrawl { height: 4.5rem; }
+.app .stated-list li { grid-template-columns: 2.5rem minmax(0, 1fr); padding: var(--space-2) 0; }
 @media (max-width: 959px) {
   .app .demo-grid { grid-template-columns: minmax(0, 1fr); }
-  .app .demo-tabs { display: flex; gap: var(--space-2); margin: 0 0 var(--space-4); flex-wrap: wrap; }
+  .app .demo-tabs { display: flex; }
   .app .demo-grid[data-tab="letters"] .demo-panel:not([data-panel="letters"]),
   .app .demo-grid[data-tab="cards"] .demo-panel:not([data-panel="cards"]),
   .app .demo-grid[data-tab="activity"] .demo-panel:not([data-panel="activity"]) { display: none; }
