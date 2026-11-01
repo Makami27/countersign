@@ -20,6 +20,7 @@ export const INSTRUCTIONS = [
   "kind=pay when the owner asks to pay a known payee. Give payeeId from the list, and amountText as the number of USDC exactly as written in the message, digits and one dot only, no currency sign or word.",
   "kind=change_address when the message says a payee's wallet address changed. Copy newAddress exactly as written.",
   "kind=none otherwise.",
+  "For pay and for change_address, payeeId is the known payee the message is about, copied exactly from the list of known payees (for example 'Landlord here' or 'the landlord moved' means landlord).",
   "Always fill every field; use an empty string for a field that does not apply.",
   "reasonQuote must be copied verbatim from the message. Never paraphrase. Never invent an address or an amount. Never convert units.",
 ].join("\n");
