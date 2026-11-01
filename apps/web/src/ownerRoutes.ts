@@ -129,11 +129,26 @@ async function ownerRequest(ctx: OwnerContext, req: IncomingMessage, res: Server
     const nonce = parts[1];
     const change = await ctx.index.pendingChange(nonce);
     if (!change || Date.parse(change.expires) <= now) return send(res, 410, { refusal: { reason: "EXPIRED", ...REASONS.EXPIRED } });
-    if (await ctx.engine.seenElsewhere(change.toAddress)) return send(res, 422, { refusal: { reason: "SEEN_BY_OTHER_AGENT", ...REASONS.SEEN_BY_OTHER_AGENT } });
+    const screened = await ctx.engine.screenOwnerConfirmation(nonce);
+    if (screened) {
+      await ctx.notify(`Refused your confirmation of the address change for ${change.payeeId}: ${REASONS[screened.reason].message} Nothing was changed. Receipt ${screened.receipt}.`);
+      return send(res, 422, refusalBody(screened));
+    }
     if (!(await ownerSigned(ctx, res, input, "confirm_owner_change", { nonce, payee: change.payeeId, to: change.toAddress }))) return;
     await ctx.steps.confirmByOwner(nonce, `owner:${randomBytes(6).toString("hex")}`, new Date(now).toISOString());
-    await ctx.notify(`You confirmed the address change for ${change.payeeId} with your owner wallet. It can take effect after the waiting period, once the new wallet signs.`);
+    const readyAt = new Date(now + ctx.cooldownMs()).toISOString();
+    await ctx.notify(`You confirmed the address change for ${change.payeeId} to ${change.toAddress} with your owner wallet. Nothing has changed yet: it can take effect after ${readyAt.slice(0, 16).replace("T", " ")} UTC, once the new wallet signs. If this wasn't you, or the request didn't come from the payee, cancel it now: ${ctx.publicUrl ?? ""}/app/payees/${encodeURIComponent(change.payeeId)}`);
     return send(res, 200, { completion: await tryCompleteChange(ctx, nonce, now) });
+  }
+  if (req.method === "POST" && parts[0] === "changes" && parts[1] && parts[2] === "cancel") {
+    const nonce = parts[1];
+    const change = await ctx.index.pendingChange(nonce);
+    if (!change) return problem(res, 409, "There is no waiting address change with this link. Nothing was changed.");
+    if (!(await ownerSigned(ctx, res, input, "cancel_owner_change", { nonce, payee: change.payeeId, to: change.toAddress }))) return;
+    const cancelled = await ctx.engine.cancelChange(nonce);
+    if (!cancelled) return problem(res, 409, "This change already finished or expired. Nothing was changed.");
+    await ctx.notify(`Address change for ${change.payeeId} to ${change.toAddress} cancelled with your owner wallet's signature. Payments keep going to ${change.fromAddress}. Receipt ${cancelled.receipt}.`);
+    return send(res, 200, refusalBody(cancelled));
   }
   return problem(res, 404, "Not found.");
 }

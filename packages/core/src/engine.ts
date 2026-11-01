@@ -11,6 +11,7 @@ import { completeOnboarding, requestOnboarding } from "./onboarding.ts";
 import { KeyedMutex } from "./keyedMutex.ts";
 import { seenElsewhere } from "./sharedFlags.ts";
 import { repeatOf } from "./knownAttacks.ts";
+import { cancelChange, ownerPathFlag, screenOwnerConfirmation } from "./ownerPath.ts";
 import type { PaymentIntent } from "./payments.ts";
 import type { EngineDeps } from "./engineDeps.ts";
 import type { ContinuityProof, ControlProof, Evidence, InboundMessage, Outcome, PayeeHead, Proposal, ReceiptRecord, Refused, SeenElsewhere, SuiAddress } from "./types.ts";
@@ -70,6 +71,15 @@ export class Countersign {
     return this.#payees.run(pending?.payeeId ?? `change:${nonce}`, () => this.#completeChange(nonce, continuity, control));
   }
 
+  screenOwnerConfirmation(nonce: string): Promise<Refused | null> {
+    return screenOwnerConfirmation(this.#d, nonce);
+  }
+
+  async cancelChange(nonce: string): Promise<Refused | null> {
+    const pending = await this.#d.index.pendingChange(nonce);
+    return this.#payees.run(pending?.payeeId ?? `change:${nonce}`, () => cancelChange(this.#d, nonce));
+  }
+
   async #completeChange(nonce: string, continuity: ContinuityProof, control: ControlProof): Promise<Outcome> {
     const d = this.#d;
     const trail = new CheckTrail();
@@ -79,8 +89,8 @@ export class Countersign {
     if (new Date(change.expires) < d.clock.now()) return refuse(d, "CHANGE_REJECTED", "EXPIRED", subject, trail);
     const head = headOf(await d.index.payeeVersions(change.payeeId));
     if (head.kind !== "verified" || head.version.address !== change.fromAddress) return refuse(d, "CHANGE_REJECTED", "CONFLICT", subject, trail);
-    const flagged = continuity.kind === "owner_confirmed" ? await seenElsewhere(d, change.toAddress) : null;
-    if (flagged) return refuse(d, "CHANGE_REJECTED", "SEEN_BY_OTHER_AGENT", { ...subject, seenElsewhere: flagged }, trail, "NOT_SEEN_ELSEWHERE");
+    const flag = continuity.kind === "owner_confirmed" ? await ownerPathFlag(d, change.toAddress, trail) : null;
+    if (flag) return refuse(d, "CHANGE_REJECTED", flag.reason, { ...subject, ...flag.seen }, trail, flag.check, flag.cites);
     const message = changeMessage(change);
     const continuityStep = await checkContinuity(continuity, message, change.fromAddress, { signatures: d.signatures, nowMs: d.clock.now().getTime(), cooldownMs: d.cooldownMs }, trail);
     if (!continuityStep.ok) return refuse(d, "CHANGE_REJECTED", continuityStep.reason, subject, trail);

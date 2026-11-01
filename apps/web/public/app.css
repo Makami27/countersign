@@ -118,3 +118,6 @@
 .app .card > .facts:first-child > div:first-child, .app .card > h2 + .facts > div:first-child { border-top: 0; }
 .app .proof-page .facts dd strong { font-size: var(--step-2); font-weight: 600; letter-spacing: -0.02em; margin-right: var(--space-2); }
 .app .receipt > .label:first-child { margin-bottom: calc(-1 * var(--space-3)); }
+.app .cooldown { display: grid; gap: var(--space-3); padding: var(--space-4); border: 2px solid var(--on-highlight); border-radius: var(--radius-card); background: var(--paper-raised); box-shadow: inset 0 6px 0 var(--highlight); }
+.app .cooldown h3 { padding-top: var(--space-1); }
+.app .outcome.warning { border-left-color: var(--stamp); }

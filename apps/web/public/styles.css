@@ -142,3 +142,5 @@ code { font-family: var(--mono); font-size: 0.86em; font-stretch: 87.5%; overflo
   .stamp { animation-name: stamp-fade; animation-duration: 200ms; animation-delay: 0ms; }
   .scrawl.draw path, .scrawl.draw circle { animation: none; stroke-dashoffset: 0; opacity: 1; }
 }
+.btn.danger { background: var(--stamp); border-color: var(--stamp); color: var(--paper-raised); }
+.btn.danger:hover { background: var(--ink); border-color: var(--ink); color: var(--paper); }

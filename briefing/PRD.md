@@ -65,7 +65,7 @@ Owner of `packages/core` types: one person only (see CLAUDE.md).
 - **Payee head:** the latest version in the supersedes chain.
 - **Payable:** head status `VERIFIED`, no `CONFLICT`, index not stale, recall complete.
 - **Verdict codes:** `PAID | REFUSED | CHANGE_STARTED | CHANGE_VERIFIED | CHANGE_REJECTED | UNKNOWN`.
-- **Reason codes (closed set):** `PAYEE_NOT_VERIFIED, ADDRESS_NOT_IN_MESSAGE, LOOKALIKE_ADDRESS, CONFLICT, CAP_EXCEEDED, SIGNATURE_INVALID, NONCE_REUSED, EXPIRED, NO_CONTINUITY, COOLDOWN_ACTIVE, CONTROL_NOT_PROVEN, MEMORY_INCOMPLETE, INDEX_STALE, CHAIN_UNKNOWN, KNOWN_ATTACK_PATTERN`.
+- **Reason codes (closed set):** `PAYEE_NOT_VERIFIED, ADDRESS_NOT_IN_MESSAGE, LOOKALIKE_ADDRESS, CONFLICT, CAP_EXCEEDED, SIGNATURE_INVALID, NONCE_REUSED, EXPIRED, NO_CONTINUITY, COOLDOWN_ACTIVE, CONTROL_NOT_PROVEN, MEMORY_INCOMPLETE, INDEX_STALE, CHAIN_UNKNOWN, KNOWN_ATTACK_PATTERN`, plus `CANCELLED_BY_OWNER` (added 1 Nov with the owner-path cancel).
 - Each code has `{ message, retryable, nextAction }`.
 
 ## 6. Core engine: address change (ordered; first failure returns)
@@ -74,7 +74,7 @@ Owner of `packages/core` types: one person only (see CLAUDE.md).
 3. Matches an earlier rejected attack (same new address or same source) → refuse, `KNOWN_ATTACK_PATTERN`, citing the earlier receipt.
 4. Look-alike check: new address shares ≥4 leading and ≥4 trailing hex characters with any known payee or the old address (and isn't equal) → `LOOKALIKE_ADDRESS`; freeze the change.
 5. Store a `STATED` version (it can never pay); state `PENDING_PROOF`; nonce issued; expiry 24h.
-6. **Continuity:** a signature from the *current verified address* over the change message, verified via Tatum. **Or owner path:** owner confirmation in the web app with a fresh code, then a 24h cooldown (demo build: configurable, labelled).
+6. **Continuity:** a signature from the *current verified address* over the change message, verified via Tatum. **Or owner path:** owner confirmation in the web app with a fresh code, then a 24h cooldown (demo build: configurable, labelled). On the owner path the known-attack, look-alike and shared-list checks run again when the owner confirms and again when the change would take effect, so a scam address is refused even if the owner was fooled; the owner is told to confirm only through a channel they already had, and can cancel during the cooldown with an owner-wallet signature (`CANCELLED_BY_OWNER`, not remembered as an attack).
 7. **Control of the new address:** a signature from the new address, or a round trip (agent sends a random micro amount; the exact amount comes back from the new address within the window, matched by digest).
 8. All passed → new `VERIFIED` version superseding the old; receipt; old version kept.
 Failure at any step → `CHANGE_REJECTED` with a reason; a receipt; the pattern remembered.
