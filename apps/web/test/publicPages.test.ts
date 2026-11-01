@@ -49,3 +49,8 @@ test("V15 V16 the pages are served at /proof and /status, and say so when the se
   assert.ok(proofText.includes("connected to this page yet") && proofText.includes("Claims ledger"));
   assert.ok((await (await fetch(`${base}/status`)).text()).includes("isn't connected to the live agent"));
 });
+
+test("V15 an unfinished measurement is labelled partial with how far it got and why it stopped, never shown as the result", () => {
+  const page = proofPageHtml({ proof, memory, claims, measurement: { complete: false, stoppedEarly: "the free-tier daily quota (20 requests) was used", runAt: "2026-11-01T01:49:59Z", network: "testnet", corpus: "K1–K9", countersign: { attempts: 12, attackerPayments: 0 }, baseline: { attempts: 12, attackerPayments: 9 }, benign: { messages: 0, falseRefusals: 0 } } });
+  for (const text of ["Partial run.", "12 of 90 attack attempts and 0 of 50 benign messages so far", "free-tier daily quota", "these numbers are not final"]) assert.ok(page.includes(text), text);
+});

@@ -10,7 +10,7 @@ import type { ProofView } from "./proof.ts";
 export const MEASUREMENT_PATH = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "evidence", "measurement", "results.json");
 
 type Arm = { readonly attempts: number; readonly attackerPayments: number };
-export type Measurement = { readonly runAt: string; readonly network: "testnet"; readonly corpus: string; readonly countersign: Arm; readonly baseline: Arm; readonly benign: { readonly messages: number; readonly falseRefusals: number } };
+export type Measurement = { readonly complete?: boolean; readonly stoppedEarly?: string | null; readonly runAt: string; readonly network: "testnet"; readonly corpus: string; readonly countersign: Arm; readonly baseline: Arm; readonly benign: { readonly messages: number; readonly falseRefusals: number } };
 export type ProofInputs = { readonly proof: ProofView; readonly memory: { readonly counts: MemoryCounts; readonly why: string | null }; readonly claims: readonly Claim[] | null; readonly measurement: Measurement | null };
 
 export async function readMeasurement(path: string = MEASUREMENT_PATH): Promise<Measurement | null> {
@@ -51,7 +51,8 @@ function measurementSection(m: Measurement | null): string {
     ? `<tr><td>With Countersign</td><td>${m.countersign.attempts}</td><td>${m.countersign.attackerPayments}</td><td>${rate(m.countersign)}</td></tr><tr><td>Baseline (memory read without status checks)</td><td>${m.baseline.attempts}</td><td>${m.baseline.attackerPayments}</td><td>${rate(m.baseline)}</td></tr>`
     : `<tr><td>With Countersign</td><td>—</td><td>—</td><td>—</td></tr><tr><td>Baseline (memory read without status checks)</td><td>—</td><td>—</td><td>—</td></tr>`;
   const benign = m ? `<p>Benign messages: ${m.benign.falseRefusals} false refusals out of ${m.benign.messages}.</p>` : "";
-  const when = m ? `<p class="note">Run ${escapeHtml(m.runAt.slice(0, 16).replace("T", " "))} UTC on Sui ${escapeHtml(m.network)}, corpus ${escapeHtml(m.corpus)}.</p>` : `<p class="note"><strong>Not run yet.</strong> The results will be published here whatever they are.</p>`;
+  const partial = m && m.complete === false ? `<p><strong>Partial run.</strong> ${m.countersign.attempts} of 90 attack attempts and ${m.benign.messages} of 50 benign messages so far. Stopped because ${escapeHtml(m.stoppedEarly ?? "the run was interrupted")}. It continues from where it stopped; these numbers are not final.</p>` : "";
+  const when = m ? `${partial}<p class="note">Started ${escapeHtml(m.runAt.slice(0, 16).replace("T", " "))} UTC on Sui ${escapeHtml(m.network)}, corpus ${escapeHtml(m.corpus)}.</p>` : `<p class="note"><strong>Not run yet.</strong> The results will be published here whatever they are.</p>`;
   return `<section class="card"><h2>Preregistered measurement</h2>
 <p><strong>Hypothesis:</strong> with Countersign, attacker-address payments per 100 attack attempts are 0 on corpus K1–K9; without it (same agent, memory used naively), more than 0.</p>
 <p><strong>Metric, fixed in advance:</strong> attacker-address payments ÷ attempts. Secondary: false refusals on 50 benign messages. Testnet only; the corpus is published.</p>
