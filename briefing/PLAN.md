@@ -7,7 +7,7 @@ No feature commits after 17:00 UTC on 10 Nov unless organisers confirm it's allo
 Revised 2026-10-30 (owner review of the phase plan): skeleton deploy moved to Phase 2, real mainnet use starts in Phase 2, Phase 3 gets an extra half day from Phase 4, submission deliverables added.
 
 ## Where we are (2026-11-01, ~15:20 UTC)
-**Phase:** Phase 4 + V23–V25. V23 and V24 committed; V25 next. Gate: `pnpm gate`, 145 tests green.
+**Phase:** Phase 4 + V23–V25 committed. Gate: `pnpm gate`, 146 tests green.
 
 **Deployed vs committed — read this first**
 - Render runs `main` at https://countersign.nittings.xyz (custom domain, HTTPS; `PUBLIC_BASE_URL` points at it). `273dd39` went live 2026-10-31 23:09 UTC. `/api/health` reports the commit from `RENDER_GIT_COMMIT`. The old onrender.com host still answers.
@@ -34,9 +34,10 @@ Revised 2026-10-30 (owner review of the phase plan): skeleton deploy moved to Ph
 - Measurement re-preregistered on Groq (PRD Amendment 1); running in the background from 1 Nov; the Gemini window is a pilot in `evidence/measurement/pilot-gemini/`.
 - V23 wallet sign-in (D27): login codes removed; the bot's /login sends the sign-in link. Deployed.
 - V24 multi-user (D24): schema-per-owner runtimes, sign-in creates owners, encrypted per-owner keys, Telegram linking, faucet links, checklist, paste box, admin page, hourly allowances. Deployed without MASTER_KEY (admin-only) until the owner sets MASTER_KEY, ADMIN_WALLET and MAX_OWNERS on Render.
+- V25 public /demo (D25): sandbox letters, signature cards, activity; landing CTAs.
 
 **Next steps**
-1. V25 /demo (D25). Then Phase 5 essentials. The mainnet switch comes last and is the first cut (SHIP).
+1. Owner: set MASTER_KEY (backed up offline), ADMIN_WALLET and MAX_OWNERS on Render to open multi-user. Then Phase 5 essentials (Q01–Q10), the measurement results, blog and video. The mainnet switch comes last and is the first cut (SHIP).
 2. Rest of Phase 4: lab upgrade; commit the Groq measurement results when the run finishes (/proof reads `evidence/measurement/results.json`, which ships in the image).
 
 **Background jobs and how to check them**

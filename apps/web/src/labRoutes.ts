@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { LabSessions, isLabPayee, type LabReply } from "./lab.ts";
 import { cookie, problem, readJson, send } from "./http.ts";
+import { isLetter } from "./labLetters.ts";
 
 const LAB_COOKIE = "cs_lab";
 const LAB_ID = /^[0-9a-f]{32}$/;
@@ -31,6 +32,10 @@ export async function labRoute(lab: LabSessions, req: IncomingMessage, res: Serv
     const text = input["text"];
     if (typeof text !== "string" || text.trim().length === 0) return problem(res, 400, "Write a message to send to the agent. Nothing was changed.", labCookie(id));
     reply = await session.scam(payeeId, text);
+  } else if (path === "/api/lab/letter") {
+    const letter = input["letter"];
+    if (!isLetter(letter)) return problem(res, 400, "Choose one of the letters. Nothing was changed.", labCookie(id));
+    reply = await session.letter(letter, payeeId);
   } else if (path === "/api/lab/pay") reply = await session.pay(payeeId);
   else if (path === "/api/lab/genuine") reply = await session.genuineChange(payeeId);
   else return problem(res, 404, "Not found.", labCookie(id));

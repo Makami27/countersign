@@ -1,7 +1,7 @@
 import { build } from "esbuild";
 
 const result = await build({
-  entryPoints: ["apps/web/client/app.ts", "apps/web/client/sign.ts"],
+  entryPoints: ["apps/web/client/app.ts", "apps/web/client/sign.ts", "apps/web/client/demo.ts"],
   bundle: true,
   format: "esm",
   platform: "browser",

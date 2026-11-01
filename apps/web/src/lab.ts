@@ -1,8 +1,10 @@
-import { createHash, generateKeyPairSync, randomBytes, sign, verify, type KeyObject } from "node:crypto";
-import { isRefusal, Countersign, InMemoryIndex, InMemoryMemory, InMemoryPaymentLedger, addressesIn, changeMessage, headOf, onboardingMessage, type Outcome, type PayeeVersionRecord, type ReceiptRecord, type SignatureCheck, type SuiAddress } from "@countersign/core";
+import { randomBytes, sign } from "node:crypto";
+import { isRefusal, Countersign, InMemoryIndex, InMemoryMemory, InMemoryPaymentLedger, addressesIn, changeMessage, headOf, onboardingMessage, type Outcome, type PayeeVersionRecord, type ReceiptRecord, type SuiAddress } from "@countersign/core";
 import { SharedAttackList } from "@countersign/core/shared";
 import { recordSignerFromSeed } from "@countersign/adapters/signer";
 import { traceFor, type TraceStep } from "./trace.ts";
+import { labVerify, newWallet, type Wallet } from "./labWallets.ts";
+import { FORGED_NOTE, letterText, type LetterKind } from "./labLetters.ts";
 
 export const LAB_PAYEES = [
   { id: "landlord", name: "Landlord" },
@@ -10,39 +12,18 @@ export const LAB_PAYEES = [
 ] as const;
 
 type LabPayeeId = (typeof LAB_PAYEES)[number]["id"];
-type Wallet = { readonly address: SuiAddress; readonly key: KeyObject; readonly publicKey: KeyObject };
-
-const LAB_EPOCH = "lab sandbox";
-
-function signedBy(wallet: Wallet, message: string, signature: string): boolean {
-  try {
-    return verify(null, Buffer.from(message), wallet.publicKey, Buffer.from(signature, "base64"));
-  } catch {
-    return false;
-  }
-}
-
-function labVerify(wallets: ReadonlyMap<SuiAddress, Wallet>, message: string, signature: string, address: SuiAddress): SignatureCheck {
-  const expected = wallets.get(address);
-  if (expected && signedBy(expected, message, signature)) return { result: "VALID", scheme: "ED25519", maxEpoch: null, checkedAtEpoch: LAB_EPOCH };
-  return [...wallets.values()].some((w) => signedBy(w, message, signature)) ? { result: "WRONG_SIGNER" } : { result: "INVALID" };
-}
-
 const SESSION_TTL_MS = 30 * 60 * 1000;
 const MAX_SESSIONS = 500;
 const MAX_MESSAGE_CHARS = 2000;
-
-function newWallet(): Wallet {
-  const { publicKey, privateKey } = generateKeyPairSync("ed25519");
-  const address = `0x${createHash("sha256").update(publicKey.export({ format: "der", type: "spki" })).digest("hex")}` as SuiAddress;
-  return { address, key: privateKey, publicKey };
-}
 
 export type LabView = {
   readonly payees: readonly { id: string; name: string; payableAddress: SuiAddress | null; versions: readonly PayeeVersionRecord[] }[];
   readonly refusals: readonly ReceiptRecord[];
   readonly memoryRecords: number;
+  readonly activity: readonly ActivityEntry[];
 };
+
+export type ActivityEntry = { readonly at: string; readonly label: string; readonly verdict: string; readonly reason: string | null; readonly receipt: string | null; readonly note: string | null };
 
 export type LabReply = { readonly outcome: Outcome; readonly trace: readonly TraceStep[]; readonly view: LabView; readonly note: string | null };
 
@@ -61,6 +42,7 @@ class LabSession {
   readonly index = new LabIndex();
   readonly engine: Countersign;
   readonly current = new Map<LabPayeeId, Wallet>();
+  readonly activity: ActivityEntry[] = [];
   touched = Date.now();
   #seq = 0;
 
@@ -107,10 +89,30 @@ class LabSession {
       }),
       refusals: this.index.refusals.slice(0, 12),
       memoryRecords: [...this.memory.spaces.values()].reduce((n, texts) => n + texts.length, 0),
+      activity: this.activity.slice(0, 20),
     };
   }
 
-  async scam(payeeId: LabPayeeId, text: string): Promise<LabReply> {
+  #log(label: string, outcome: Outcome, note: string | null): void {
+    const receipt = "receipt" in outcome ? outcome.receipt : null;
+    this.activity.unshift({ at: new Date().toISOString(), label, verdict: outcome.verdict, reason: outcome.verdict === "REFUSED" ? outcome.reason : null, receipt, note });
+    this.activity.splice(20);
+  }
+
+  async letter(kind: LetterKind, payeeId: LabPayeeId): Promise<LabReply> {
+    const payee = LAB_PAYEES.find((p) => p.id === payeeId);
+    const current = this.current.get(payeeId);
+    if (!payee || !current) throw new Error(`unknown lab payee ${payeeId}`);
+    const text = letterText(kind, payeeId, payee.name, current.address);
+    if (kind !== "forged") return this.scam(payeeId, text, `Letter: ${kind}`);
+    this.memory.plant(`countersign:lab:payee:${payeeId}`, text);
+    await this.engine.restore();
+    const outcome = await this.engine.handle({ id: `lab:${randomBytes(4).toString("hex")}`, channel: "lab", from: "owner", text: `Pay ${payeeId}`, receivedAt: new Date().toISOString() }, { kind: "pay", payeeId, amountBaseUnits: "1000000", reasonQuote: `Pay ${payeeId}` });
+    this.#log("Letter: forged memory record", outcome, FORGED_NOTE);
+    return { outcome, trace: traceFor("pay", outcome), view: this.view(), note: FORGED_NOTE };
+  }
+
+  async scam(payeeId: LabPayeeId, text: string, label = "Your message"): Promise<LabReply> {
     const clipped = text.slice(0, MAX_MESSAGE_CHARS);
     const message = { id: `lab:${randomBytes(4).toString("hex")}`, channel: "lab" as const, from: "visitor", text: clipped, receivedAt: new Date().toISOString() };
     const address = addressesIn(clipped)[0];
@@ -119,12 +121,14 @@ class LabSession {
       : ({ kind: "pay", payeeId, amountBaseUnits: "1000000", reasonQuote: clipped } as const);
     const outcome = await this.engine.handle(message, proposal);
     const note = address ? null : "No wallet address in that message, so the agent treated it as a payment request.";
+    this.#log(label, outcome, note);
     return { outcome, trace: traceFor(proposal.kind, outcome), view: this.view(), note };
   }
 
   async pay(payeeId: LabPayeeId): Promise<LabReply> {
     const message = { id: `lab:${randomBytes(4).toString("hex")}`, channel: "lab" as const, from: "owner", text: `Pay ${payeeId}`, receivedAt: new Date().toISOString() };
     const outcome = await this.engine.handle(message, { kind: "pay", payeeId, amountBaseUnits: "1000000", reasonQuote: message.text });
+    this.#log(`Pay ${payeeId}`, outcome, null);
     return { outcome, trace: traceFor("pay", outcome), view: this.view(), note: null };
   }
 
