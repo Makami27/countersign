@@ -55,6 +55,6 @@ export function changeStartedHtml(outcome: Extract<Outcome, { verdict: "CHANGE_S
   ].join("\n");
 }
 
-export function loginCodeText(code: string): string {
-  return `Your owner app code: ${code}\nIt works once, for 10 minutes. Nothing else changes.`;
+export function signInLinkText(publicUrl: string | null): string {
+  return `Sign in to your owner app with your wallet: ${publicUrl ?? ""}/app/login\nSlush lets you continue with Google. Nothing else changes.`;
 }

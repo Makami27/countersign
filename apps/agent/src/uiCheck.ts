@@ -34,8 +34,9 @@ async function shoot(name: string, target: Page = page): Promise<void> {
 await page.goto(`${BASE}/app`);
 await page.waitForURL(`${BASE}/app/login`);
 await shoot("01-login");
-await page.fill("#code", await (await OwnerAuth.open(new SqliteRows(DATABASE))).issueCode());
-await page.click("button[type=submit]");
+const { token } = await (await OwnerAuth.open(new SqliteRows(DATABASE), new URL(BASE).host)).startSession(process.env["OWNER_ID"] ?? "owner1", "local screen check");
+await page.context().addCookies([{ name: "cs_owner", value: token, url: BASE }]);
+await page.goto(`${BASE}/app`);
 await page.waitForSelector("text=Your agent is ready", { timeout: 30_000 });
 await shoot("02-first-run");
 

@@ -13,9 +13,7 @@ const rent = { payeeId: "landlord", amount: "2.50", every: "month", day: 5 };
 
 test("V21 creating, changing and deleting a scheduled payment each need a fresh owner-wallet signature over the exact terms, and each sends a Telegram notice", async (t) => {
   const s = await ownerServer(t);
-  const me = wallet();
-  assert.equal((await s.call("POST", "/api/app/schedules", rent)).status, 409);
-  await s.signedBy("POST", "/api/app/owner/wallet", { address: me.address }, [me]);
+  const me = s.me;
   const asked = await s.call("POST", "/api/app/schedules", rent);
   assert.equal(asked.status, 428);
   assert.match((asked.body["approvals"] as Challenge[])[0]?.message ?? "", /action:create_schedule\nmeaning:create a scheduled payment\namount:2500000\nday:5\nevery:month\nmonth:\npayee:landlord/);
@@ -47,8 +45,7 @@ test("V21 creating, changing and deleting a scheduled payment each need a fresh 
 
 test("V21 schedules are signed Walrus Memory records: an empty database restores them, a Postgres row edited without the agent key is ignored, and an unconfirmed write changes nothing", async (t) => {
   const s = await ownerServer(t);
-  const me = wallet();
-  await s.signedBy("POST", "/api/app/owner/wallet", { address: me.address }, [me]);
+  const me = s.me;
   const created = await s.signedBy("POST", "/api/app/schedules", rent, [me]);
   const id = (created.body["schedule"] as { scheduleId: string }).scheduleId;
   const fresh = new SqliteRows(join(mkdtempSync(join(tmpdir(), "countersign-restore-")), "web.sqlite"));
@@ -67,8 +64,7 @@ test("V21 schedules are signed Walrus Memory records: an empty database restores
 
 test("V21 weekly and two-week schedules take a weekday from 1 to 7 and no month, and their notice names the weekday", async (t) => {
   const s = await ownerServer(t);
-  const me = wallet();
-  await s.signedBy("POST", "/api/app/owner/wallet", { address: me.address }, [me]);
+  const me = s.me;
   assert.equal((await s.signedBy("POST", "/api/app/schedules", { ...rent, every: "week", day: 8 }, [me])).status, 400);
   assert.equal((await s.signedBy("POST", "/api/app/schedules", { ...rent, every: "two_weeks", day: 3, month: 4 }, [me])).status, 400);
   assert.equal((await s.signedBy("POST", "/api/app/schedules", { ...rent, every: "two_weeks", day: 3 }, [me])).status, 200);

@@ -9,12 +9,12 @@ const DATABASE = process.argv[3] ?? "";
 const OUT = process.argv[4] ?? "evidence/screens/phase3";
 if (!DATABASE) throw new Error("Usage: signCheck.ts <base url> <database path> [out dir]");
 mkdirSync(OUT, { recursive: true });
-const auth = await OwnerAuth.open(new SqliteRows(DATABASE));
+const auth = await OwnerAuth.open(new SqliteRows(DATABASE), new URL(BASE).host);
 const problems: string[] = [];
 
 async function session(): Promise<string> {
-  const response = await fetch(`${BASE}/api/session`, { method: "POST", headers: { "content-type": "application/json", "x-countersign": "1" }, body: JSON.stringify({ code: await auth.issueCode() }) });
-  return (response.headers.get("set-cookie") ?? "").split(";")[0] ?? "";
+  const { token } = await auth.startSession(process.env["OWNER_ID"] ?? "owner1", "local screen check");
+  return `cs_owner=${token}`;
 }
 
 async function call<T>(cookie: string, method: string, path: string, body?: unknown): Promise<T> {

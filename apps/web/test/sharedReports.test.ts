@@ -6,8 +6,7 @@ import { ownerServer } from "./support/ownerServer.ts";
 
 test("V22 retracting a shared scam report needs the owner wallet's signature and sends a Telegram notice; a receipt this agent never shared can't be retracted", async (t) => {
   const s = await ownerServer(t);
-  const me = wallet();
-  await s.signedBy("POST", "/api/app/owner/wallet", { address: me.address }, [me]);
+  const me = s.me;
   const fake = lookalikeOf(s.landlord.address);
   const refused = await s.agent.handle(message(`pay ${fake}`), { kind: "change_address", payeeId: "landlord", newAddress: fake, reasonQuote: "x" });
   if (refused.verdict !== "REFUSED") return assert.fail("expected a refusal");

@@ -5,7 +5,7 @@ import type { Extraction } from "@countersign/adapters/gemini";
 import type { OwnerAuth } from "@countersign/web/ownerAuth";
 import { MODEL_UNREADABLE_REPLY, RECEIPT_PENDING_REPLY, STORE_UNANSWERED_REPLY, paymentPendingReply, paymentReply, receiptReply, replyFor } from "./replies.ts";
 import { readMessage } from "./screen.ts";
-import { READING_REPLY, changeStartedHtml, confirmPaymentHtml, loginCodeText, refusalHtml } from "./telegramText.ts";
+import { READING_REPLY, changeStartedHtml, confirmPaymentHtml, signInLinkText, refusalHtml } from "./telegramText.ts";
 
 const CONFIRMATION_LIFETIME_MS = 5 * 60 * 1000;
 const HTML = { parse_mode: "HTML" as const };
@@ -35,12 +35,12 @@ export function startBot(deps: BotDeps): Bot {
 
   bot.command("start", async (ctx) => {
     if (!isOwner(ctx)) return;
-    await ctx.reply("Countersign pays your verified payees and refuses new addresses it can't prove. Send \"pay <payee> <amount>\", forward a message about a payee, or send /login for an owner app code.");
+    await ctx.reply("Countersign pays your verified payees and refuses new addresses it can't prove. Send \"pay <payee> <amount>\", forward a message about a payee, or send /login for the owner app sign-in link.");
   });
 
   bot.command("login", async (ctx) => {
     if (!isOwner(ctx)) return;
-    await ctx.reply(loginCodeText(await deps.auth.issueCode()));
+    await ctx.reply(signInLinkText(deps.publicUrl));
   });
 
   bot.on("message:text", async (ctx) => {

@@ -12,14 +12,15 @@ import { OwnerSettings } from "../../src/ownerSettings.ts";
 import { ChangeSteps } from "../../src/changeSteps.ts";
 import type { OwnerContext } from "../../src/ownerContext.ts";
 import { ownerExtras } from "./ownerExtras.ts";
+import { signInAs } from "./signIn.ts";
 
 export type Challenge = { field: string; nonce: string; message: string; signer: string };
 
-export async function ownerServer(t: TestContext) {
+export async function ownerServer(t: TestContext, options: { readonly signIn?: boolean } = {}) {
   const w = await world(DEFAULT_CAPS, new Date().toISOString());
   let now = Date.now();
   const rows = new SqliteRows(join(mkdtempSync(join(tmpdir(), "countersign-owner-")), "web.sqlite"));
-  const auth = await OwnerAuth.open(rows);
+  const auth = await OwnerAuth.open(rows, "example.test");
   const extras = await ownerExtras(rows, w, () => now);
   const owner: OwnerContext = {
     ownerId: "owner1", network: "testnet", agentAddress: wallet().address, publicUrl: "https://example.test", engine: w.agent, index: w.index, ledger: w.payments, auth,
@@ -35,8 +36,8 @@ export async function ownerServer(t: TestContext) {
     server.close();
   });
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-  const login = await fetch(`${base}/api/session`, { method: "POST", headers: { "content-type": "application/json", "x-countersign": "1" }, body: JSON.stringify({ code: await auth.issueCode() }) });
-  const cookie = (login.headers.get("set-cookie") ?? "").split(";")[0] ?? "";
+  const me = wallet();
+  const { cookie } = options.signIn === false ? { cookie: "" } : await signInAs(base, me);
   const call = async (method: string, path: string, body: Record<string, unknown>) => {
     const r = await fetch(`${base}${path}`, { method, headers: { "content-type": "application/json", "x-countersign": "1", cookie }, body: JSON.stringify(body) });
     return { status: r.status, body: (await r.json()) as Record<string, unknown> };
@@ -52,6 +53,6 @@ export async function ownerServer(t: TestContext) {
     }
     return call(method, path, { ...body, approvals });
   };
-  return { ...w, owner, rows, extras, call, signedBy, base, cookie, advance: (ms: number) => void (now += ms) };
+  return { ...w, owner, rows, extras, call, signedBy, base, cookie, me, advance: (ms: number) => void (now += ms) };
 }
 
