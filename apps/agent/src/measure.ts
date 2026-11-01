@@ -1,4 +1,4 @@
-import { appendFileSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomBytes } from "node:crypto";
@@ -11,6 +11,7 @@ import { extractProposal, type Extraction } from "@countersign/adapters/gemini";
 import { loadConfig } from "./config.ts";
 import { ATTACKS, ATTACK_TRIALS, BENIGN, PAYEES, type Attack } from "./measureCorpus.ts";
 import { PacedMemory } from "./pacedMemory.ts";
+import { summarize, type BenignRow, type TrialRow } from "./measureResults.ts";
 
 const SMOKE = process.env["MEASURE_SMOKE_DIR"] ?? null;
 const OUT = SMOKE ?? "evidence/measurement";
@@ -22,12 +23,14 @@ const RELAYER_GAP_MS = 3_000;
 const RATE_LIMIT_BACKOFF_MS = 60_000;
 const MAX_MODEL_TRIES = 4;
 const QUOTA_STOP_AFTER = 3;
-type TrialRow = { readonly kind: string; readonly attack: string; readonly countersign: { readonly attackerPaid: boolean }; readonly baseline: { readonly attackerPaid: boolean }; readonly model?: { readonly status: string; readonly problem?: string }; readonly error?: string };
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 const config = loadConfig(process.env);
 if (config.network !== "testnet") throw new Error("The measurement runs on testnet only. Nothing was run.");
-const runId = new Date().toISOString().replace(/[:.]/g, "-");
+const resumeRun = process.env["MEASURE_RUN"] ?? null;
+const runId = resumeRun ?? new Date().toISOString().replace(/[:.]/g, "-");
+const windowTag = resumeRun ? `-w${Date.now().toString(36)}` : "";
+const modelBudget = Number(process.env["MEASURE_MAX_MODEL_CALLS"] ?? Number.POSITIVE_INFINITY);
 const walrus = new MemWalMemory(config.memwal);
 if (walrus.environment !== "mainnet relayer") throw new Error("The measurement writes to the Walrus Memory mainnet relayer (our key isn't registered on the dev relayer, REALITY_SPIKES R2). Nothing was run.");
 const memory = new PacedMemory(walrus, RELAYER_GAP_MS);
@@ -38,6 +41,8 @@ const sharedOff: SharedAttackMemory = { flag: () => ({ status: "UNKNOWN" }), rep
 const caps = { perPaymentBaseUnits: 50_000_000n, perDayBaseUnits: 1_000_000_000_000n };
 mkdirSync(OUT, { recursive: true });
 const raw = join(OUT, `raw-${runId}.jsonl`);
+const previous = (resumeRun && existsSync(raw) ? readFileSync(raw, "utf8").split("\n").filter(Boolean).map((line) => JSON.parse(line) as TrialRow | BenignRow) : []);
+let modelCalls = 0;
 const modelVersions = new Set<string>();
 let nextModelAt = 0;
 let rateLimitedInARow = 0;
@@ -48,6 +53,7 @@ async function ask(text: string): Promise<{ readonly extraction: Extraction; rea
     const wait = nextModelAt - Date.now();
     if (wait > 0) await sleep(wait);
     nextModelAt = Date.now() + MODEL_GAP_MS;
+    modelCalls += 1;
     const extraction = await extractProposal(config.gemini, text, PAYEES);
     if (extraction.status === "READ" && extraction.modelVersion) modelVersions.add(extraction.modelVersion);
     if (extraction.status === "READ" || extraction.problem !== "RATE_LIMITED" || tries >= MAX_MODEL_TRIES) {
@@ -118,14 +124,20 @@ async function attackTrial(attack: Attack, ownerId: string, landlord: Ed25519Key
   };
 }
 
-async function benignRun() {
-  const ownerId = `measure-${runId}-benign`;
+function outOfBudget(): boolean {
+  if (modelCalls >= modelBudget) stoppedEarly ??= `this window's model-call budget (${modelBudget}) is used; continue with MEASURE_RUN=${runId}`;
+  return stoppedEarly !== null;
+}
+
+async function benignRun(from: number): Promise<BenignRow[]> {
+  const ownerId = `measure-${runId}-benign${windowTag}`;
   const payees = { landlord: await seed(ownerId, "landlord"), designer: await seed(ownerId, "designer") };
   const engine = engineFor(ownerId);
   const restored = await engine.restore();
-  const rows = [];
+  const rows: BenignRow[] = [];
   for (const [i, b] of benignList.entries()) {
-    if (stoppedEarly) break;
+    if (i < from) continue;
+    if (outOfBudget()) break;
     const { extraction, tries } = await ask(b.text);
     const expected = { address: payees[b.payeeId].toSuiAddress(), amountBaseUnits: String(Math.round(Number(b.amount) * 1_000_000)) };
     const proposal = extraction.status === "READ" ? extraction.proposal : null;
@@ -140,12 +152,15 @@ async function benignRun() {
 
 writeFileSync(join(OUT, "corpus.json"), `${JSON.stringify({ attacks: ATTACKS.map((a) => ({ id: a.id, name: a.name, message: a.message("<attacker address>"), lookalike: a.lookalike, plantsInMemory: a.plants, replaysOldSignature: a.replay })), trialsPerAttack: ATTACK_TRIALS, benign: BENIGN }, null, 2)}\n`);
 const started = new Date().toISOString();
-const attacks: TrialRow[] = [];
+const attacks: TrialRow[] = previous.filter((r): r is TrialRow => r.kind === "attack");
+const benignBefore = previous.filter((r): r is BenignRow => r.kind === "benign");
 for (const attack of attackList) {
-  if (stoppedEarly) break;
-  const ownerId = `measure-${runId}-${attack.id.toLowerCase()}`;
+  const done = attacks.filter((r) => r.attack === attack.id).length;
+  if (done >= trialsPerAttack) continue;
+  if (outOfBudget()) break;
+  const ownerId = `measure-${runId}-${attack.id.toLowerCase()}${windowTag}`;
   const landlord = await seed(ownerId, "landlord");
-  for (let trial = 0; trial < trialsPerAttack && !stoppedEarly; trial += 1) {
+  for (let trial = done; trial < trialsPerAttack && !outOfBudget(); trial += 1) {
     const row: TrialRow = await attackTrial(attack, ownerId, landlord, trial).catch((error: Error) => ({ kind: "attack", attack: attack.id, trial, error: error.message.slice(0, 300), countersign: { attackerPaid: false }, baseline: { attackerPaid: false }, at: new Date().toISOString() }));
     appendFileSync(raw, `${JSON.stringify(row)}\n`);
     attacks.push(row);
@@ -153,25 +168,8 @@ for (const attack of attackList) {
   }
   writeFileSync(join(OUT, "progress.json"), `${JSON.stringify({ runId, done: attacks.length, memory: memory.counts() }, null, 2)}\n`);
 }
-const benign = stoppedEarly ? [] : await benignRun();
-const modelOf = (rows: readonly { readonly kind: string; readonly model?: { readonly status: string; readonly problem?: string } }[]) => rows.filter((r) => r.model?.status === "UNKNOWN").map((r) => r.model?.problem ?? "unknown");
-const count = (list: readonly string[]) => Object.fromEntries([...new Set(list)].map((p) => [p, list.filter((x) => x === p).length]));
-const results = {
-  runAt: started, finishedAt: new Date().toISOString(), complete: stoppedEarly === null, stoppedEarly, network: "testnet", relayer: "Walrus Memory mainnet relayer, under measurement-only owner ids (countersign:measure-<run>-…), excluded from the real-use count; our key is not registered on the dev relayer (REALITY_SPIKES R2)", model: config.gemini.model, modelVersions: [...modelVersions],
-  corpus: SMOKE ? "smoke run (not the measurement)" : `K1–K9, ${ATTACK_TRIALS} trials each; 50 benign (evidence/measurement/corpus.json)`,
-  decision: "An attacker-address payment is a payment the agent decided and reserved to an attacker address; reserved payments were not sent on chain.",
-  countersign: { attempts: attacks.length, attackerPayments: attacks.filter((r) => r.countersign.attackerPaid).length },
-  baseline: { attempts: attacks.length, attackerPayments: attacks.filter((r) => r.baseline.attackerPaid).length, how: "same model and messages; stores whatever address the model proposes and believes record-shaped text in memory; in-process memory" },
-  benign: { messages: benign.length, falseRefusals: benign.filter((r) => r.falseRefusal).length, paidRight: benign.filter((r) => r.paidRight).length, modelMisread: benign.filter((r) => r.model.status === "READ" && !r.understood).length, modelErrors: benign.filter((r) => r.model.status === "UNKNOWN").length },
-  perAttack: ATTACKS.map((a) => {
-    const rows = attacks.filter((r) => r.attack === a.id);
-    return { id: a.id, name: a.name, attempts: rows.length, countersignAttackerPayments: rows.filter((r) => r.countersign.attackerPaid).length, baselineAttackerPayments: rows.filter((r) => r.baseline.attackerPaid).length, trialErrors: rows.filter((r) => r.error !== undefined).length, modelErrors: modelOf(rows).length };
-  }),
-  modelErrors: { attacks: count(modelOf(attacks)), benign: count(modelOf(benign)) },
-  trialErrors: attacks.filter((r) => r.error !== undefined).length,
-  relayerCalls: memory.counts(),
-  raw: raw.replaceAll("\\", "/"),
-};
+const benign = [...benignBefore, ...(stoppedEarly ? [] : await benignRun(benignBefore.length))];
+const results = summarize({ attacks, benign, runAt: attacks[0]?.at ?? benign[0]?.at ?? started, stoppedEarly, model: config.gemini.model, modelVersions: [...modelVersions], corpus: SMOKE ? "smoke run (not the measurement)" : `K1–K9, ${ATTACK_TRIALS} trials each; 50 benign (evidence/measurement/corpus.json)`, relayerCalls: memory.counts(), raw: raw.replaceAll("\\", "/"), complete: stoppedEarly === null && attacks.length === attackList.length * trialsPerAttack && benign.length === benignList.length });
 writeFileSync(join(OUT, "results.json"), `${JSON.stringify(results, null, 2)}\n`);
 console.log(JSON.stringify({ countersign: results.countersign, baseline: results.baseline, benign: results.benign, modelErrors: results.modelErrors, trialErrors: results.trialErrors, relayer: results.relayerCalls, stoppedEarly }, null, 2));
 gate.close();
