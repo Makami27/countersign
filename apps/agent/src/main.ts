@@ -11,6 +11,7 @@ import { recordSignerFromSeed } from "@countersign/adapters/signer";
 import { startWebServer } from "@countersign/web/server";
 import { OwnerAuth } from "@countersign/web/ownerAuth";
 import { OwnerDirectory } from "@countersign/web/ownerDirectory";
+import { TelegramLinks } from "@countersign/web/telegramLinks";
 import { buildOwnerRuntime, type BuiltRuntime } from "@countersign/web/ownerRuntime";
 import type { BalancesView, MemoryCounts } from "@countersign/web/ownerContext";
 import { loadConfig } from "./config.ts";
@@ -36,6 +37,8 @@ const auth = await OwnerAuth.open(storage.rows, new URL(config.publicUrl ?? "htt
 const verifier = new TatumSignatureVerifier(grpc);
 const clock = { now: () => new Date() };
 let bot: ReturnType<typeof startBot> | null = null;
+const links = await TelegramLinks.open(storage.rows, { telegramUserId: config.telegram.ownerUserId, ownerId: config.ownerId });
+let botUsername: string | null = null;
 
 async function notifyAdmin(text: string): Promise<void> {
   await bot?.api.sendMessage(config.telegram.ownerUserId, text).catch((error: Error) => console.error(`Telegram notice not sent: ${error.message.slice(0, 120)}`));
@@ -43,7 +46,23 @@ async function notifyAdmin(text: string): Promise<void> {
 
 function notifyFor(ownerId: string): (text: string) => Promise<void> {
   if (ownerId === config.ownerId) return notifyAdmin;
-  return async () => console.log(`Notice for owner ${ownerId} not sent: Telegram isn't connected for this owner.`);
+  return async (text) => {
+    const chat = await links.chatOf(ownerId);
+    if (chat !== null) await bot?.api.sendMessage(chat, text).catch((error: Error) => console.error(`Telegram notice not sent: ${error.message.slice(0, 120)}`));
+  };
+}
+
+function telegramFor(ownerId: string) {
+  return {
+    link: async () => {
+      if (!bot) return null;
+      botUsername ??= (await bot.api.getMe().catch(() => null))?.username ?? null;
+      if (!botUsername) return null;
+      const issued = await links.issue(ownerId);
+      return { url: `https://t.me/${botUsername}?start=${issued.token}`, expires: issued.expires };
+    },
+    linked: async () => (await links.chatOf(ownerId)) !== null,
+  };
 }
 
 const balanceCache = new Map<string, { at: number; view: BalancesView }>();
@@ -81,7 +100,7 @@ async function runtimeFor(ownerId: string, ownerStorage: Storage, walletKey: str
     signer: recordSignerFromSeed(recordSeed), verifier,
     roundTrips: new TatumRoundTripChecker(graphql, agentAddress, USDC_COIN_TYPE[config.network]),
     runner: new PaymentRunner({ ledger: ownerStorage.ledger, chain: tatumPaymentChain(grpc, wallet, config.network), clock }),
-    balances: balancesFor(agentAddress), memoryCounts: memoryCountsFor(ownerId), notify: notifyFor(ownerId),
+    balances: balancesFor(agentAddress), memoryCounts: memoryCountsFor(ownerId), notify: notifyFor(ownerId), telegram: telegramFor(ownerId),
     defaults: { perPaymentBaseUnits: config.caps.perPaymentBaseUnits, perDayBaseUnits: config.caps.perDayBaseUnits, cooldownSeconds: config.cooldownMs / 1000 },
     now: Date.now,
   });
@@ -117,10 +136,19 @@ const status = statusProbe({
 });
 const server = startWebServer({ port: config.port, network: config.network, proof: storage.rows, version: config.version, owners, status });
 bot = startBot({
-  token: config.telegram.token, ownerUserId: config.telegram.ownerUserId, network: config.network, publicUrl: config.publicUrl, engine: admin.engine, index: admin.ctx.index, auth,
+  token: config.telegram.token, network: config.network, publicUrl: config.publicUrl,
+  ownerFor: async (telegramUserId) => {
+    const ownerId = await links.ownerOf(telegramUserId);
+    const ctx = ownerId ? owners.get(ownerId) : null;
+    return ctx ? { ownerId: ctx.ownerId, engine: ctx.engine, index: ctx.index, sendPayment: ctx.sendPayment } : null;
+  },
+  redeemLink: async (token, telegramUserId) => {
+    const linked = await links.redeem(token, telegramUserId);
+    if (linked.ok) await notifyAdmin(`Owner ${linked.ownerId} connected a Telegram chat.`);
+    return linked;
+  },
   extract: modelStats.tracked(reader),
   answeredByCode: () => modelStats.answeredByCode(),
-  sendPayment: admin.sendRaw,
 });
 void owners.tickAll();
 

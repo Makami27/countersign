@@ -56,6 +56,7 @@ async function ownerRequest(ctx: OwnerContext, req: IncomingMessage, res: Server
   }
   if (req.method === "GET" && parts[0] === "activity") return send(res, 200, { items: await activity(ctx) });
   if (req.method === "GET" && parts[0] === "schedules") return send(res, 200, scheduleList(ctx, now));
+  if (req.method === "GET" && parts[0] === "telegram") return send(res, 200, { linked: await ctx.telegram.linked() });
   if (req.method === "GET" && parts[0] === "settings") return send(res, 200, ctx.settings.values());
   if (req.method === "GET" && parts[0] === "payments" && parts[1]) {
     const payment = await ctx.ledger.payment(parts[1]);
@@ -65,6 +66,10 @@ async function ownerRequest(ctx: OwnerContext, req: IncomingMessage, res: Server
 
   const input = await readJson(req);
   if (!input) return problem(res, 400, "Send a JSON object under 8 KB. Nothing was changed.");
+  if (req.method === "POST" && parts[0] === "telegram") {
+    const link = await ctx.telegram.link();
+    return link ? send(res, 200, link) : problem(res, 503, "The Telegram bot isn't running right now. Nothing was changed. Try again shortly.");
+  }
   if (parts[0] === "schedules") return scheduleRoute(ctx, res, req.method ?? "", parts, input);
   if (req.method === "POST" && parts[0] === "receipts" && parts[1] && parts[2] === "retract") return retractSharedReport(ctx, res, decodeURIComponent(parts[1]), input);
   if (req.method === "POST" && parts[0] === "owner" && parts[1] === "wallet") return ownerWalletRoute(ctx, res, parts, input);

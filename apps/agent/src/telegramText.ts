@@ -58,3 +58,7 @@ export function changeStartedHtml(outcome: Extract<Outcome, { verdict: "CHANGE_S
 export function signInLinkText(publicUrl: string | null): string {
   return `Sign in to your owner app with your wallet: ${publicUrl ?? ""}/app/login\nSlush lets you continue with Google. Nothing else changes.`;
 }
+
+export function unlinkedText(publicUrl: string | null): string {
+  return `This chat isn't connected to a Countersign agent. Sign in at ${publicUrl ?? ""}/app and connect Telegram there. Nothing was stored.`;
+}

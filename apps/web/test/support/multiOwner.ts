@@ -11,6 +11,7 @@ import { recordSignerFromSeed } from "@countersign/adapters/signer";
 import { StandInVerifier, wallet, type TestWallet } from "../../../../packages/core/test/fixtures.ts";
 import { OwnerAuth } from "../../src/ownerAuth.ts";
 import { OwnerDirectory } from "../../src/ownerDirectory.ts";
+import { TelegramLinks } from "../../src/telegramLinks.ts";
 import { buildOwnerRuntime, type BuiltRuntime } from "../../src/ownerRuntime.ts";
 import { startWebServer } from "../../src/server.ts";
 import { ScriptedChain } from "./scheduleWorld.ts";
@@ -22,6 +23,10 @@ export async function multiOwnerServer(t: TestContext, maxOwners = 3) {
   const verifier = new StandInVerifier();
   const notices = new Map<string, string[]>();
   const built = new Map<string, BuiltRuntime>();
+  const admin = wallet();
+  const rows = new SqliteRows(join(dir, "public.sqlite"));
+  const auth = await OwnerAuth.open(rows, "example.test");
+  const links = await TelegramLinks.open(rows, { telegramUserId: 1001, ownerId: "admin1" });
   const build = async (ownerId: string): Promise<BuiltRuntime> => {
     const index = new InMemoryIndex();
     const ledger = new InMemoryPaymentLedger(index);
@@ -31,14 +36,12 @@ export async function multiOwnerServer(t: TestContext, maxOwners = 3) {
       roundTrips: { check: async () => "NOT_PROVEN" }, runner: new PaymentRunner({ ledger, chain: new ScriptedChain(), clock: { now: () => new Date() }, sleep: async () => undefined }),
       balances: async () => ({ status: "UNKNOWN", detail: "test" }), memoryCounts: async () => null,
       notify: async (text) => void notices.set(ownerId, [...(notices.get(ownerId) ?? []), text]),
+      telegram: { link: async () => { const issued = await links.issue(ownerId); return { url: `https://t.me/countersign_test_bot?start=${issued.token}`, expires: issued.expires }; }, linked: async () => (await links.chatOf(ownerId)) !== null },
       defaults: { perPaymentBaseUnits: 50_000_000n, perDayBaseUnits: 100_000_000n, cooldownSeconds: 0 }, now: Date.now,
     });
     built.set(ownerId, runtime);
     return runtime;
   };
-  const admin = wallet();
-  const rows = new SqliteRows(join(dir, "public.sqlite"));
-  const auth = await OwnerAuth.open(rows, "example.test");
   const owners = await OwnerDirectory.open({ rows, auth, adminOwnerId: "admin1", adminAddress: admin.address, maxOwners, create: build, notifyAdmin: async (text) => void notices.set("admin1", [...(notices.get("admin1") ?? []), text]), now: Date.now }, await build("admin1"), build);
   const server = startWebServer({ port: 0, network: "testnet", proof: undefined, version: null, owners });
   await new Promise<void>((resolve) => server.once("listening", () => resolve()));
@@ -63,5 +66,5 @@ export async function multiOwnerServer(t: TestContext, maxOwners = 3) {
     return { status: signed.status, cookie: signed.cookie, call, signedBy };
   };
   const ownerOf = (who: TestWallet) => owners.all().find((o) => o.ctx.wallets.current() === who.address)?.ctx ?? null;
-  return { base, owners, built, notices, memory, admin, as, ownerOf };
+  return { base, owners, built, notices, memory, admin, as, ownerOf, links };
 }
