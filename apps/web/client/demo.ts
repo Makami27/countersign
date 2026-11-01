@@ -1,11 +1,12 @@
 import { REASONS, type ReasonCode } from "@countersign/core";
 import { api } from "./api.ts";
-import { addressEl, h, listen, liveRegion, when } from "./dom.ts";
+import { addressEl, h, listen, liveRegion, scrawlEl, signatureFigure, statusPill, when } from "./dom.ts";
 
 type Version = { readonly version: number; readonly status: string; readonly address: string };
 type Payee = { readonly id: string; readonly name: string; readonly payableAddress: string | null; readonly versions: readonly Version[] };
 type Entry = { readonly at: string; readonly label: string; readonly verdict: string; readonly reason: string | null; readonly receipt: string | null; readonly note: string | null };
-type View = { readonly payees: readonly Payee[]; readonly activity: readonly Entry[] };
+type Refusal = { readonly receipt: string; readonly payeeId: string | null; readonly address: string | null };
+type View = { readonly payees: readonly Payee[]; readonly activity: readonly Entry[]; readonly refusals: readonly Refusal[] };
 type Reply = { readonly view: View; readonly note: string | null; readonly outcome: { readonly verdict: string; readonly reason?: string } };
 
 const LETTERS = [
@@ -27,8 +28,28 @@ function reasonText(reason: string | null): string {
 
 function cards(view: View): HTMLElement {
   return h("section", { class: "card demo-panel", "data-panel": "cards", "aria-labelledby": "cards-title" }, h("h2", { id: "cards-title" }, "Signature cards"),
-    ...view.payees.map((p) => h("article", { class: "demo-card" }, h("h3", {}, p.name), h("span", { class: "label" }, "Pays to"), p.payableAddress ? addressEl(p.payableAddress) : h("p", {}, "Nobody: no verified address"),
-      h("p", { class: "note" }, `${p.versions.filter((v) => v.status === "VERIFIED").length} verified, ${p.versions.filter((v) => v.status === "STATED").length} stated (never payable) in memory.`))));
+    ...view.payees.map((p) => {
+      const stated = p.versions.filter((v) => v.status === "STATED" && v.address !== p.payableAddress);
+      return h("article", { class: `sigcard demo-card ${p.payableAddress ? "verified" : "stated"}`, "aria-label": `Signature card for ${p.name}` },
+        h("div", { class: "sigcard-head" }, h("h3", { class: "sigcard-name" }, p.name), p.payableAddress ? statusPill("verified") : statusPill("not_payable")),
+        p.payableAddress ? signatureFigure(p.payableAddress, { drawWhenNew: true }) : null,
+        p.payableAddress ? addressEl(p.payableAddress) : h("p", {}, "Nobody: no verified address"),
+        h("p", { class: "note" }, `${p.versions.filter((v) => v.status === "VERIFIED").length} verified, ${p.versions.filter((v) => v.status === "STATED").length} stated (never payable) in memory.`),
+        stated.length ? h("ul", { class: "rows stated-list", "aria-label": "Stated addresses, never paid" }, ...stated.slice(-3).map((v) => h("li", {}, h("span", { class: "v" }, `v${v.version}`), h("span", { class: "what" }, h("span", {}, h("span", { class: "status stated" }, "Stated"), " ", addressEl(v.address, { short: true })))))) : null);
+    }));
+}
+
+function refusalCompare(view: View, entry: Entry | undefined): HTMLElement | null {
+  const refusal = entry?.receipt ? view.refusals.find((r) => r.receipt === entry.receipt) : undefined;
+  const onFile = view.payees.find((p) => p.id === refusal?.payeeId)?.payableAddress ?? null;
+  if (!refusal?.address || !onFile) return null;
+  return h("div", { class: "compare-block" },
+    h("div", { class: "versus" },
+      h("div", { class: "versus-side" }, h("span", { class: "label" }, "On file"), scrawlEl(onFile)),
+      h("div", { class: "versus-side attempted" }, h("span", { class: "label" }, "In the letter"), scrawlEl(refusal.address), h("span", { class: "stamp", "aria-hidden": "true" }, "VOID"))),
+    h("div", { class: "compare" },
+      h("div", { class: "row" }, h("span", { class: "label" }, "Address in the letter"), addressEl(refusal.address, { against: onFile })),
+      h("div", { class: "row on-file" }, h("span", { class: "label" }, "Address on file"), addressEl(onFile, { against: refusal.address }))));
 }
 
 function activity(view: View): HTMLElement {
@@ -39,8 +60,8 @@ function activity(view: View): HTMLElement {
 }
 
 function letters(view: View, result: HTMLElement, status: HTMLElement): HTMLElement {
-  const switcher = h("div", { class: "actions", role: "radiogroup", "aria-label": "Which payee the letter is about" }, ...view.payees.map((p) => {
-    const b = h("button", { class: p.id === payeeId ? "btn primary" : "btn", type: "button", role: "radio", "aria-checked": p.id === payeeId ? "true" : "false" }, p.name);
+  const switcher = h("div", { class: "segmented", role: "radiogroup", "aria-label": "Which payee the letter is about" }, ...view.payees.map((p) => {
+    const b = h("button", { type: "button", role: "radio", "aria-checked": p.id === payeeId ? "true" : "false" }, p.name);
     b.addEventListener("click", () => {
       payeeId = p.id;
       void draw();
@@ -52,11 +73,15 @@ function letters(view: View, result: HTMLElement, status: HTMLElement): HTMLElem
     const r = await api<Reply>("POST", path, { payeeId, ...body });
     if (!r.ok) return void (status.textContent = r.error.message);
     status.textContent = "";
-    result.replaceChildren(h("p", { class: "money" }, VERDICT_WORDS[r.data.outcome.verdict] ?? r.data.outcome.verdict), h("p", {}, reasonText(r.data.outcome.reason ?? null)), r.data.note ? h("p", { class: "note" }, r.data.note) : "");
+    const verdict = r.data.outcome.verdict;
+    const tone = verdict === "REFUSED" ? "refused" : verdict === "CHANGE_STARTED" || verdict === "NONE" ? "stated" : "verified";
+    const money = verdict === "REFUSED" ? "Nothing was sent and nothing was changed." : verdict === "PAY_RESERVED" ? "Sandbox: approved, nothing was sent." : verdict === "CHANGE_STARTED" ? "Nothing was sent; payments still go to the address on file." : "";
+    result.replaceChildren(h("div", { class: `outcome ${tone}` }, h("p", { class: "money" }, VERDICT_WORDS[verdict] ?? verdict), money ? h("p", {}, money) : "", h("p", {}, reasonText(r.data.outcome.reason ?? null)), r.data.note ? h("p", { class: "note" }, r.data.note) : ""),
+      verdict === "REFUSED" ? (refusalCompare(r.data.view, r.data.view.activity[0]) ?? "") : "");
     await draw(r.data.view);
   };
   const buttons = LETTERS.map((l) => {
-    const b = h("button", { class: "btn demo-letter", type: "button" }, h("strong", {}, l.title), h("span", {}, l.says));
+    const b = h("button", { class: "demo-letter", type: "button" }, h("strong", {}, l.title), h("span", {}, l.says));
     listen(b, "click", () => send("/api/lab/letter", { letter: l.id }), status);
     return b;
   });
@@ -66,7 +91,7 @@ function letters(view: View, result: HTMLElement, status: HTMLElement): HTMLElem
     event.preventDefault();
     await send("/api/lab/message", { text: own.value });
   }, status);
-  return h("section", { class: "card demo-panel", "data-panel": "letters", "aria-labelledby": "letters-title" }, h("h2", { id: "letters-title" }, "Letters"), switcher, h("div", { class: "demo-letters" }, ...buttons), form, status, result);
+  return h("section", { class: "card demo-panel", "data-panel": "letters", "aria-labelledby": "letters-title" }, h("h2", { id: "letters-title" }, "Letters"), switcher, h("div", { class: "demo-letters" }, ...buttons), status, result, form);
 }
 
 async function draw(known?: View): Promise<void> {
@@ -77,7 +102,7 @@ async function draw(known?: View): Promise<void> {
   status.dataset["status"] = "";
   const result = root.querySelector<HTMLElement>("[data-result]") ?? h("div", { "data-result": "" });
   const tabs = h("div", { class: "demo-tabs", role: "tablist", "aria-label": "Demo areas" }, ...[["letters", "Letters"], ["cards", "Signature cards"], ["activity", "Activity"]].map(([id, label]) => {
-    const b = h("button", { type: "button", role: "tab", "aria-selected": id === tab ? "true" : "false", class: id === tab ? "btn primary" : "btn" }, label ?? "");
+    const b = h("button", { type: "button", role: "tab", "aria-selected": id === tab ? "true" : "false" }, label ?? "");
     b.addEventListener("click", () => {
       tab = id ?? "letters";
       void draw(view);
