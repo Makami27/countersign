@@ -67,7 +67,7 @@ test("V12 V14 a verified change's receipt records CONTINUITY and CONTROL with th
   const owner = await startChange(agent, third);
   const waiting = await agent.completeChange(owner.nonce, { kind: "owner_confirmed", ownerConfirmationId: "c9", confirmedAt: clock.now().toISOString() }, { kind: "signature", signature: third.sign(owner.text) });
   assert.ok(waiting.verdict === "REFUSED" && waiting.reason === "COOLDOWN_ACTIVE");
-  assert.deepEqual((await index.receipt(waiting.receipt))?.checks, [{ check: "OWNER_CONFIRMED", result: "PASS" }, { check: "COOLDOWN_ELAPSED", result: "FAIL" }]);
+  assert.deepEqual((await index.receipt(waiting.receipt))?.checks, [{ check: "NOT_KNOWN_ATTACK", result: "PASS" }, { check: "NOT_LOOKALIKE", result: "PASS" }, { check: "NOT_SEEN_ELSEWHERE", result: "PASS" }, { check: "OWNER_CONFIRMED", result: "PASS" }, { check: "COOLDOWN_ELAPSED", result: "FAIL" }]);
 });
 
 test("V14 a settled payment's receipt cites the payee-version blob it paid from and the Sui digest; a failed one names its reason; an UNKNOWN one gets no receipt", async () => {

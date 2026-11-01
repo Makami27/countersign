@@ -34,7 +34,11 @@ if (onboarding.verdict !== "ONBOARDING_STARTED" || pending.verdict !== "CHANGE_S
 const doneText = changeMessage({ nonce: done.nonce, payeeId: "landlord", fromAddress: done.fromAddress, toAddress: done.toAddress, expires: done.expires });
 for (const [role, by] of [["current", s.landlord], ["new", doneTo]] as const) await fetch(`${s.base}/api/sign/${done.nonce}`, { method: "POST", headers: { "content-type": "application/json", "x-countersign": "1" }, body: JSON.stringify({ role, signature: by.sign(doneText) }) });
 const receipt = refused.verdict === "REFUSED" ? refused.receipt : null;
-const routes: [string, string, string?][] = [["sign-onboard", `/sign/${onboarding.nonce}`], ["sign-change", `/sign/${pending.nonce}`], ["sign-done", `/sign/${done.nonce}`], ...(receipt ? [["receipt", `/r/${receipt}`] as [string, string]] : []), ["landing", "/"], ["app-payee", "/app/payees/landlord"], ["app", "/app"], ["app-add", "/app", "button:has-text('Add a payee')"], ["app-activity", "/app/activity"], ["app-settings", "/app/settings"], ["app-admin", "/app/admin"], ["sign-in", "/app?signed-out"], ["demo", "/demo", "button.demo-letter >> nth=1"], ["proof", "/proof"], ["status", "/status"]];
+(s.owner as { cooldownMs: () => number }).cooldownMs = () => 24 * 3600 * 1000;
+await s.signedBy("POST", `/api/app/changes/${pending.nonce}/confirm`, {}, [s.me]);
+const laterTo = wallet();
+await s.agent.handle(message(`new wallet ${laterTo.address}`), { kind: "change_address", payeeId: "landlord", newAddress: laterTo.address, reasonQuote: "new wallet" });
+const routes: [string, string, string?][] = [["sign-onboard", `/sign/${onboarding.nonce}`], ["sign-change", `/sign/${pending.nonce}`], ["sign-done", `/sign/${done.nonce}`], ...(receipt ? [["receipt", `/r/${receipt}`] as [string, string]] : []), ["landing", "/"], ["app-payee", "/app/payees/landlord"], ["app", "/app"], ["app-add", "/app", "button:has-text('Add a payee')"], ["app-cooldown", "/app/payees/designer"], ["app-confirm", "/app/payees/landlord", "button:has-text('I confirm this change myself')"], ["app-activity", "/app/activity"], ["app-settings", "/app/settings"], ["app-admin", "/app/admin"], ["sign-in", "/app?signed-out"], ["demo", "/demo", "button.demo-letter >> nth=1"], ["proof", "/proof"], ["status", "/status"]];
 const browser = await chromium.launch();
 const host = new URL(s.base).hostname;
 const [name, value] = s.cookie.split("=");

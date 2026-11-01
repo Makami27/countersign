@@ -7,7 +7,7 @@ import { schedulesPanel } from "./views/schedules.ts";
 import { checklistCard, checklistDone, pasteCard } from "./views/dashboard.ts";
 import { adminPage } from "./views/admin.ts";
 import { addPayeeSheet, paySheet } from "./views/sheets.ts";
-import { confirmChangeSheet, requestChangeSheet } from "./views/changeSheets.ts";
+import { cancelChange, confirmChangeSheet, requestChangeSheet } from "./views/changeSheets.ts";
 import { activityPage, settingsPage } from "./views/pages.ts";
 import { signInPage } from "./views/signIn.ts";
 
@@ -125,7 +125,7 @@ async function renderPage(): Promise<void> {
   if (!selected) return show(h("div", { class: "owner single at-list" }, list));
   const detail = await api<PayeeDetail>("GET", `/api/app/payees/${encodeURIComponent(selected)}`);
   const rerender = () => void render();
-  const detailView = detail.ok ? payeeDetailView(detail.data, { onPay: () => paySheet(detail.data, overview.data, rerender), onRequestChange: () => requestChangeSheet(detail.data, rerender), onConfirm: (nonce) => confirmChangeSheet(nonce, overview.data.cooldownSeconds, overview.data.network, rerender) }) : failure(detail.error.message);
+  const detailView = detail.ok ? payeeDetailView(detail.data, { onPay: () => paySheet(detail.data, overview.data, rerender), onRequestChange: () => requestChangeSheet(detail.data, rerender), onConfirm: (nonce) => confirmChangeSheet(nonce, overview.data.cooldownSeconds, overview.data.network, rerender), onCancel: (nonce, status) => cancelChange(nonce, overview.data.network, status, rerender) }) : failure(detail.error.message);
   const schedules = detail.ok && detail.data.payTo ? await api<{ schedules: ScheduleItem[] }>("GET", "/api/app/schedules") : null;
   if (detail.ok && schedules?.ok) detailView.insertBefore(schedulesPanel(selected, schedules.data.schedules, overview.data.network, rerender), detailView.querySelector(".actions.sticky"));
   if (detail.ok && (detail.data.pendingChanges.length > 0 || detail.data.waiting)) schedulePoll(path);
