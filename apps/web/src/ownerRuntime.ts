@@ -30,6 +30,7 @@ export type RuntimeInput = {
   readonly balances: () => Promise<BalancesView>;
   readonly memoryCounts: () => Promise<MemoryCounts>;
   readonly notify: (text: string) => Promise<void>;
+  readonly telegram: OwnerContext["telegram"];
   readonly defaults: { readonly perPaymentBaseUnits: bigint; readonly perDayBaseUnits: bigint; readonly cooldownSeconds: number };
   readonly now: () => number;
 };
@@ -70,7 +71,7 @@ export async function buildOwnerRuntime(i: RuntimeInput): Promise<BuiltRuntime> 
     ownerId: i.ownerId, network: i.network, agentAddress: i.agentAddress, publicUrl: i.publicUrl, engine, index, ledger, settings, balances: i.balances,
     memory: () => memoryView, memoryCounts: i.memoryCounts, steps, cooldownMs: () => settings.values().cooldownSeconds * 1000,
     verifySignature: (message, signature, address) => i.verifier.verifyPersonalMessage(message, signature, address),
-    wallets, approvals, notify: i.notify, schedules, shared,
+    wallets, approvals, notify: i.notify, schedules, shared, telegram: i.telegram,
     sendPayment: async (paymentId) => {
       const payment = await sendRaw(paymentId);
       await recordFinished([payment].filter((p) => p.state === "SETTLED" || p.state === "FAILED"));

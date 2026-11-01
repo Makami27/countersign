@@ -24,7 +24,8 @@
     "./schedules": "./src/schedules.ts",
     "./scheduleRuns": "./src/scheduleRuns.ts",
     "./ownerDirectory": "./src/ownerDirectory.ts",
-    "./ownerRuntime": "./src/ownerRuntime.ts"
+    "./ownerRuntime": "./src/ownerRuntime.ts",
+    "./telegramLinks": "./src/telegramLinks.ts"
   },
   "devDependencies": {
     "esbuild": "0.28.2"

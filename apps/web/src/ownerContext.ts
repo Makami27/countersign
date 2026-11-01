@@ -41,4 +41,5 @@ export type OwnerContext = {
   readonly notify: (text: string) => Promise<void>;
   readonly schedules: Schedules;
   readonly shared: SharedAttackList;
+  readonly telegram: { readonly link: () => Promise<{ readonly url: string; readonly expires: string } | null>; readonly linked: () => Promise<boolean> };
 };
