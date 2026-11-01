@@ -24,7 +24,7 @@ code { font-family: var(--mono); font-size: 0.86em; font-stretch: 87.5%; overflo
 
 .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
-.skip { position: absolute; left: var(--gutter); top: -4rem; background: var(--ink); color: var(--paper); padding: 0.6rem 1rem; border-radius: var(--radius); z-index: 10; }
+.skip { position: absolute; left: var(--gutter); top: -5rem; min-height: var(--tap); display: inline-flex; align-items: center; background: var(--ink); color: var(--paper); padding: 0.6rem 1rem; border-radius: var(--radius); z-index: 10; }
 .skip:focus { top: 0.75rem; }
 
 .bar { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-2) var(--space-4); padding: var(--space-2) var(--gutter); border-bottom: 1px solid var(--line); background: var(--paper); }

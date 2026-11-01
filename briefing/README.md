@@ -47,6 +47,6 @@ Nautilus, Walrus Sites.
 | 5c | Live spikes | `../spikes/` | ready to run on your machine (sponsor hosts blocked here) |
 | 7b | Build plan | `PLAN.md` | done: day-by-day to 10 Nov, cut lines, workstreams |
 | 8 | Scaffold | repo root | done: core engine + SQLite + extraction guard tested (23 tests); Tatum/MemWal adapters written, untested live; web app not built |
-| 8b | v1 spec + design | `SHIP.md`, `DESIGN.md`, `../apps/web/design/` | done: V01–V19, Q01–Q10; owner/sign/receipt reference screens reviewed at 390/1440 light+dark |
+| 8b | v1 spec + design | `SHIP.md`, `DESIGN.md` | done: V01–V19, Q01–Q10; redesigned 1 Nov as "the signing desk" (DESIGN.md); the old reference screens are retired |
 | 8c | Claude Code prompt | `../CLAUDE_CODE_PROMPT.md` | done |
 | 9–10 | Proof → audit | — | after live spikes |

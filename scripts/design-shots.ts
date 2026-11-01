@@ -39,10 +39,10 @@ const browser = await chromium.launch();
 const host = new URL(s.base).hostname;
 const [name, value] = s.cookie.split("=");
 for (const scheme of ["light", "dark"] as const) for (const width of widths) {
-  const context = await browser.newContext({ viewport: { width, height: 900 }, colorScheme: scheme, reducedMotion: "reduce" });
+  const context = await browser.newContext({ viewport: { width, height: 900 }, colorScheme: scheme, reducedMotion: "reduce", bypassCSP: Boolean(process.env["AXE"]) });
   await context.addCookies([{ name: name ?? "", value: value ?? "", domain: host, path: "/" }]);
   const signedIn = await context.newPage();
-  const anonymous = await (await browser.newContext({ viewport: { width, height: 900 }, colorScheme: scheme, reducedMotion: "reduce" })).newPage();
+  const anonymous = await (await browser.newContext({ viewport: { width, height: 900 }, colorScheme: scheme, reducedMotion: "reduce", bypassCSP: Boolean(process.env["AXE"]) })).newPage();
   for (const [label, path, click] of routes) {
     if (only && !only.includes(label)) continue;
     const page = label === "sign-in" ? anonymous : signedIn;
@@ -56,6 +56,16 @@ for (const scheme of ["light", "dark"] as const) for (const width of widths) {
     }
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
     if (overflow) console.log(`horizontal scroll: ${label} ${width} ${scheme}`);
+    const small = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>("a, button, input, select, textarea, summary")].filter((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && r.height < 44 && !el.closest("p, li, td, dd, blockquote, .note"); }).map((el) => `${el.tagName.toLowerCase()} "${(el.textContent ?? "").trim().slice(0, 30)}" ${Math.round(el.getBoundingClientRect().height)}px`));
+    if (small.length) console.log(`small targets: ${label} ${width} ${scheme}: ${small.join("; ")}`);
+    if (process.env["AXE"]) {
+      await page.addScriptTag({ path: "node_modules/axe-core/axe.min.js" });
+      const serious = await page.evaluate(async () => {
+        const axe = (window as unknown as { axe: { run: () => Promise<{ violations: { id: string; impact: string; nodes: unknown[] }[] }> } }).axe;
+        return (await axe.run()).violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => `${v.id} (${v.nodes.length})`);
+      });
+      if (serious.length) console.log(`axe serious: ${label} ${width} ${scheme}: ${serious.join(", ")}`);
+    }
     await page.screenshot({ path: `${out}/${label}-${width}-${scheme}.png`, fullPage: true });
   }
   await context.close();

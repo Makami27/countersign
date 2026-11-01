@@ -5,8 +5,8 @@ const LATIN = Array.from({ length: 0x7e - 0x20 + 1 }, (_, i) => String.fromCodeP
 const LATIN_1 = Array.from({ length: 0xff - 0xa0 + 1 }, (_, i) => String.fromCodePoint(0xa0 + i)).join("");
 const PUNCTUATION = "‘’“”–—…•→×≥≤€£";
 const FONTS = [
-  ["apps/web/design/fonts/FamiljenGrotesk.ttf", "familjen-grotesk-latin.woff2", LATIN + LATIN_1 + PUNCTUATION],
-  ["apps/web/design/fonts/MartianMono.ttf", "martian-mono-latin.woff2", LATIN + "…–—"],
+  ["apps/web/fonts-src/FamiljenGrotesk.ttf", "familjen-grotesk-latin.woff2", LATIN + LATIN_1 + PUNCTUATION],
+  ["apps/web/fonts-src/MartianMono.ttf", "martian-mono-latin.woff2", LATIN + "…–—"],
 ];
 const OUT = "apps/web/public/fonts";
 
@@ -16,5 +16,5 @@ for (const [source, target, text] of FONTS) {
   writeFileSync(`${OUT}/${target}`, subset);
   console.log(`${target}: ${(statSync(source).size / 1024).toFixed(0)} KB TTF -> ${(subset.length / 1024).toFixed(1)} KB WOFF2`);
 }
-copyFileSync("apps/web/design/fonts/OFL-FamiljenGrotesk.txt", `${OUT}/OFL-FamiljenGrotesk.txt`);
-copyFileSync("apps/web/design/fonts/OFL-MartianMono.txt", `${OUT}/OFL-MartianMono.txt`);
+copyFileSync("apps/web/fonts-src/OFL-FamiljenGrotesk.txt", `${OUT}/OFL-FamiljenGrotesk.txt`);
+copyFileSync("apps/web/fonts-src/OFL-MartianMono.txt", `${OUT}/OFL-MartianMono.txt`);

@@ -54,6 +54,11 @@ Every text/background pair was checked ≥ 4.5:1 (tightest: stamp red on light `
 5. Waiting on memory is visible; a timeout is "not confirmed yet", never success.
 6. Q01–Q05: every route at 360/390/768/1024/1440, light and dark, no horizontal scroll (`scripts/design-shots.ts` checks scrollWidth), axe 0 serious, JS budget on public pages.
 
-## Status (1 Nov)
-Done: tokens, fonts, wordmark, scrawl module + tests, landing, /app payee list and payee page.
-Next: /demo (letters, signature cards, activity), the rest of /app (activity, settings, funding, checklist, paste box, admin, Connect Telegram, sheets), sign-in, /sign (scrawl draws on Done), /r, /proof, /status; retire `apps/web/design/`; screenshots of every route at 5 widths × 2 themes; axe; JS budget check.
+## Status (1 Nov, evening)
+Done and deployed: every route (landing, /demo, /app payees, payee page, add-payee sheet, activity, settings with funding and Connect Telegram, admin, sign-in, /sign onboarding / change / Done, /r, /proof, /status). The getting-started checklist sits above the payees until every required step is done (Telegram is optional), then folds below them. `apps/web/design/` is retired; font sources moved to `apps/web/fonts-src/`.
+
+Checks (`AXE=1 node scripts/design-shots.ts <dir> 360,390,768,1024,1440`): every route at 5 widths x 2 themes, no horizontal scroll, 0 serious or critical axe violations, tap targets >= 44 px except inline text links and the settings checkbox (its 44 px label is the target). The landing, /r, /proof and /status ship no JavaScript. Contact sheets (390 and 1440, light and dark): `evidence/screens/signing-desk/<route>.png`.
+
+Not covered: a paid receipt shows no signature (the receipt view carries no payee address for payments); the first-run screen of an empty account is styled by the same rules but has no screenshot (the screenshot world always has payees); wallet popups not checked in a real browser.
+
+Next: Lighthouse LCP on simulated 4G (Q05), and a real-phone pass of /sign with Slush.
