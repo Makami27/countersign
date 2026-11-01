@@ -4,6 +4,7 @@ import type { Schedules } from "./schedules.ts";
 
 export const LATE_AFTER_MS = 10 * 60 * 1000;
 export const RETRY_AFTER_MS = 60 * 60 * 1000;
+export const RECHECK_RESERVED_MS = 5 * 60 * 1000;
 const SCHEMA = "CREATE TABLE IF NOT EXISTS schedule_runs (schedule_id TEXT NOT NULL, period TEXT NOT NULL, state TEXT NOT NULL CHECK (state IN ('RETRYING','REFUSED','DONE','MISSED')), reason TEXT, attempted_at BIGINT NOT NULL, PRIMARY KEY (schedule_id, period))";
 
 type RunState = "RETRYING" | "REFUSED" | "DONE" | "MISSED";
@@ -24,6 +25,7 @@ export type ScheduleRunDeps = {
 export class ScheduleRunner {
   readonly #d: ScheduleRunDeps;
   readonly #closed = new Set<string>();
+  readonly #notBefore = new Map<string, number>();
   #running: Promise<void> | null = null;
 
   private constructor(deps: ScheduleRunDeps) {
@@ -47,7 +49,8 @@ export class ScheduleRunner {
     for (const schedule of this.#d.schedules.active()) {
       const due = duePeriods(schedule, new Date(schedule.createdAt), new Date(now));
       const latest = due.at(-1);
-      if (!latest || this.#closed.has(scheduleRunKey(schedule.scheduleId, latest.period))) continue;
+      const key = latest ? scheduleRunKey(schedule.scheduleId, latest.period) : null;
+      if (!latest || !key || this.#closed.has(key) || (this.#notBefore.get(key) ?? 0) > now) continue;
       await this.#runPeriod(schedule, latest, due.slice(0, -1), now);
     }
   }
@@ -56,12 +59,12 @@ export class ScheduleRunner {
     const runs = await this.#runs(schedule.scheduleId);
     const run = runs.get(due.period);
     if (run && run.state !== "RETRYING") return void this.#closed.add(scheduleRunKey(schedule.scheduleId, due.period));
-    if (run && now - run.attemptedAt < RETRY_AFTER_MS) return;
+    if (run && now - run.attemptedAt < RETRY_AFTER_MS) return void this.#notBefore.set(scheduleRunKey(schedule.scheduleId, due.period), run.attemptedAt + RETRY_AFTER_MS);
     const missed = earlier.filter((p) => !runs.has(p.period)).map((p) => p.period);
     for (const period of missed) await this.#d.rows.run("INSERT INTO schedule_runs (schedule_id, period, state, reason, attempted_at) VALUES (?,?,'MISSED',NULL,?) ON CONFLICT (schedule_id, period) DO NOTHING", [schedule.scheduleId, period, now]);
     const timing = { due, late: now - due.dueAt.getTime() > LATE_AFTER_MS, missed };
     const outcome = await this.#d.engine.reserveScheduled(schedule.scheduleId, due.period, schedule.payeeId);
-    if (outcome.verdict === "NOT_ACTIVE") return;
+    if (outcome.verdict === "NOT_ACTIVE") return void this.#closed.add(scheduleRunKey(schedule.scheduleId, due.period));
     if (outcome.verdict === "REFUSED") {
       const retryable = REASONS[outcome.reason].retryable;
       await this.#mark(schedule, due.period, retryable ? "RETRYING" : "REFUSED", outcome.reason, now);
@@ -71,7 +74,7 @@ export class ScheduleRunner {
     if (outcome.verdict === "PAY_RESERVED") return this.#finish(schedule, timing, await this.#d.sendPayment(outcome.paymentId));
     if (outcome.payment.state !== "RESERVED") return this.#finish(schedule, timing, outcome.payment);
     const recheck = await this.#d.engine.recheckReserved(outcome.payment);
-    if (recheck === "WAIT") return;
+    if (recheck === "WAIT") return void this.#notBefore.set(scheduleRunKey(schedule.scheduleId, due.period), now + RECHECK_RESERVED_MS);
     if (recheck === "SEND") return this.#finish(schedule, timing, await this.#d.sendPayment(outcome.payment.id));
     const failed = await this.#d.ledger.payment(outcome.payment.id);
     if (failed) await this.#d.engine.recordPaymentOutcome(failed);
@@ -114,6 +117,7 @@ export class ScheduleRunner {
   async #mark(schedule: ScheduleRecord, period: string, state: RunState, reason: string | null, at: number): Promise<boolean> {
     const changed = await this.#d.rows.run("INSERT INTO schedule_runs (schedule_id, period, state, reason, attempted_at) VALUES (?,?,?,?,?) ON CONFLICT (schedule_id, period) DO UPDATE SET state = excluded.state, reason = excluded.reason, attempted_at = excluded.attempted_at WHERE schedule_runs.state = 'RETRYING'", [schedule.scheduleId, period, state, reason, at]);
     if (state !== "RETRYING") this.#closed.add(scheduleRunKey(schedule.scheduleId, period));
+    else this.#notBefore.set(scheduleRunKey(schedule.scheduleId, period), at + RETRY_AFTER_MS);
     return changed === 1;
   }
 }

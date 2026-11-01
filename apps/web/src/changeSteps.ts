@@ -17,6 +17,7 @@ export type ChangeProgress = {
 export class ChangeSteps {
   readonly #rows: SqlRows;
   #open: Set<string> | null = null;
+  readonly #notBefore = new Map<string, number>();
 
   private constructor(rows: SqlRows) {
     this.#rows = rows;
@@ -29,6 +30,7 @@ export class ChangeSteps {
 
   async record(nonce: string, role: StepRole, signature: string, at: string): Promise<void> {
     await this.#rows.run("INSERT INTO change_steps (nonce, role, signature, signed_at) VALUES (?,?,?,?) ON CONFLICT (nonce, role) DO UPDATE SET signature = excluded.signature, signed_at = excluded.signed_at", [nonce, role, signature, at]);
+    this.#notBefore.delete(nonce);
   }
 
   async confirmByOwner(nonce: string, confirmationId: string, at: string): Promise<boolean> {
@@ -46,12 +48,17 @@ export class ChangeSteps {
     return { current: await step("current"), next: await step("new"), owner: owner ? { confirmationId: String(owner["confirmation_id"]), confirmedAt: String(owner["confirmed_at"]) } : null };
   }
 
-  async ownerConfirmedNonces(): Promise<readonly string[]> {
+  async ownerConfirmedNonces(now: number): Promise<readonly string[]> {
     this.#open ??= new Set((await this.#rows.all("SELECT nonce FROM owner_confirmations")).map((row) => String(row["nonce"])));
-    return [...this.#open];
+    return [...this.#open].filter((nonce) => (this.#notBefore.get(nonce) ?? 0) <= now);
+  }
+
+  waitUntil(nonce: string, at: number): void {
+    this.#notBefore.set(nonce, at);
   }
 
   settle(nonce: string): void {
     this.#open?.delete(nonce);
+    this.#notBefore.delete(nonce);
   }
 }

@@ -5,7 +5,8 @@ import type { MemoryView } from "@countersign/web/ownerContext";
 import type { ModelStatus, StatusCheck, StatusView } from "@countersign/web/status";
 
 const CHECK_DEADLINE_MS = 8_000;
-const STATUS_CACHE_MS = 30_000;
+export const STATUS_CACHE_MS = 5 * 60_000;
+export const DATABASE_CHECK_CACHE_MS = 15 * 60_000;
 
 export type StatusDeps = {
   readonly network: "mainnet" | "testnet";
@@ -35,10 +36,17 @@ async function check(name: string, work: () => Promise<string | null>): Promise<
 
 export function statusProbe(deps: StatusDeps): () => Promise<StatusView> {
   let cache: { at: number; view: StatusView } | null = null;
+  let database: { at: number; check: StatusCheck } | null = null;
+  const databaseCheck = async (): Promise<StatusCheck> => {
+    if (database && Date.now() - database.at < DATABASE_CHECK_CACHE_MS) return database.check;
+    const fresh = await check(`Database (${deps.database.label})`, async () => ((await deps.database.rows.get("SELECT 1 AS ok")) ? null : "no row returned"));
+    database = { at: Date.now(), check: fresh };
+    return fresh;
+  };
   return async () => {
     if (cache && Date.now() - cache.at < STATUS_CACHE_MS) return { ...cache.view, model: deps.model() };
     const checks = await Promise.all([
-      check(`Database (${deps.database.label})`, async () => ((await deps.database.rows.get("SELECT 1 AS ok")) ? null : "no row returned")),
+      databaseCheck(),
       check("Tatum gRPC", async () => {
         const read = await deps.grpcBalance();
         return read.status === "KNOWN" ? null : read.detail;

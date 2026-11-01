@@ -21,7 +21,7 @@ export function statusPageHtml(view: StatusView | null): string {
 <div><dt>Network</dt><dd>Sui ${escapeHtml(view.network)}${view.network === "testnet" ? " (test USDC, no real money)" : ""}</dd></div>
 <div><dt>Version</dt><dd>${version}</dd></div>
 <div><dt>Last restore from Walrus Memory</dt><dd>${view.restore.complete ? "complete" : "<strong>incomplete: payments are blocked</strong>"}, ${escapeHtml(view.restore.relayer)}, ${at(view.restore.at)}</dd></div>
-<div><dt>Checked</dt><dd>${at(view.checkedAt)} (refreshed at most every 30 s)</dd></div>
+<div><dt>Checked</dt><dd>${at(view.checkedAt)} (refreshed at most every 5 minutes; the database check at most every 15, so visits don't keep the database awake)</dd></div>
 </dl></section>
 <section class="card"><h2>Dependencies</h2><table class="claims"><thead><tr><th scope="col">Check</th><th scope="col">Result</th><th scope="col">Time</th><th scope="col">Detail</th></tr></thead><tbody>${rows}</tbody></table></section>
 ${model}
