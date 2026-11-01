@@ -3,6 +3,7 @@ node_modules
 .env
 **/.env
 evidence
+!evidence/measurement
 spikes/evidence
 apps/web/dist
 *.sqlite
