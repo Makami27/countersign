@@ -1,14 +1,7 @@
-import { groupAddress } from "../client/addressGroups.ts";
 import type { BlobLink, ReceiptView } from "./receiptView.ts";
-import { escapeHtml, publicPage } from "./publicPage.ts";
+import { addressHtml, escapeHtml, publicPage } from "./publicPage.ts";
 
 export { escapeHtml } from "./publicPage.ts";
-
-function addressHtml(address: string, against: string | null): string {
-  const grouped = groupAddress(address, against ? { against } : {});
-  const groups = grouped.groups.map((g) => `<span class="g${g.mark ? ` ${g.mark}` : ""}" aria-hidden="true">${escapeHtml(g.text)}</span>`).join("");
-  return `<span class="addr" role="text" title="${escapeHtml(grouped.full)}" aria-label="${escapeHtml(grouped.label)}">${groups}</span>`;
-}
 
 function utc(iso: string): string {
   const date = new Date(iso);

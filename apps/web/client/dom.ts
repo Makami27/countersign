@@ -1,5 +1,6 @@
 import { formatUsdc } from "@countersign/core";
 import { groupAddress } from "./addressGroups.ts";
+import { scrawlFor } from "./scrawl.ts";
 import type { PayeeStatus } from "./types.ts";
 
 type Child = Node | string | null | false | undefined;
@@ -51,19 +52,39 @@ export function networkWords(network: "mainnet" | "testnet"): string {
   return network === "mainnet" ? "Sui mainnet" : "Sui testnet (test USDC, no real money)";
 }
 
-export function countersignMark(): SVGSVGElement {
-  const ns = "http://www.w3.org/2000/svg";
-  const svg = document.createElementNS(ns, "svg");
-  svg.setAttribute("viewBox", "0 0 60 20");
-  svg.setAttribute("aria-hidden", "true");
-  const path = document.createElementNS(ns, "path");
-  path.setAttribute("d", "M2 14c6-1 8-11 13-10s-5 12 1 11 6-8 9-8-1 7 3 7 7-5 11-5 5 4 9 3");
-  path.setAttribute("fill", "none");
-  path.setAttribute("stroke", "currentColor");
-  path.setAttribute("stroke-width", "1.6");
-  path.setAttribute("stroke-linecap", "round");
-  svg.append(path);
+const SVG_NS = "http://www.w3.org/2000/svg";
+const SEEN_KEY = "countersign:drawn";
+
+function svgEl(tag: string, attrs: Record<string, string>): SVGElement {
+  const el = document.createElementNS(SVG_NS, tag);
+  for (const [key, value] of Object.entries(attrs)) el.setAttribute(key, value);
+  return el;
+}
+
+function firstSighting(address: string): boolean {
+  try {
+    const seen = new Set<string>(JSON.parse(localStorage.getItem(SEEN_KEY) ?? "[]") as string[]);
+    if (seen.has(address)) return false;
+    seen.add(address);
+    localStorage.setItem(SEEN_KEY, JSON.stringify([...seen].slice(-200)));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function scrawlEl(address: string, options: { readonly drawWhenNew?: boolean } = {}): SVGElement {
+  const s = scrawlFor(address);
+  const draw = options.drawWhenNew === true && firstSighting(address.toLowerCase());
+  const svg = svgEl("svg", { class: draw ? "scrawl draw" : "scrawl", viewBox: s.viewBox, preserveAspectRatio: "xMinYMid meet", "aria-hidden": "true", focusable: "false" });
+  svg.append(svgEl("path", { class: "scrawl-stroke", d: s.stroke, pathLength: "1" }));
+  if (s.underline) svg.append(svgEl("path", { class: "scrawl-under", d: s.underline, pathLength: "1" }));
+  for (const dot of s.dots) svg.append(svgEl("circle", { cx: String(dot.x), cy: String(dot.y), r: String(dot.r) }));
   return svg;
+}
+
+export function signatureFigure(address: string, options: { readonly drawWhenNew?: boolean } = {}): HTMLElement {
+  return h("div", { class: "sigcard-sig" }, scrawlEl(address, options), h("span", { class: "sigline" }, "Drawn from the address"));
 }
 
 export function liveRegion(): HTMLElement {

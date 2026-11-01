@@ -1,0 +1,97 @@
+@font-face { font-family: "Familjen Grotesk"; src: url("/fonts/familjen-grotesk-latin.woff2") format("woff2"); font-weight: 400 700; font-display: swap; }
+@font-face { font-family: "Martian Mono"; src: url("/fonts/martian-mono-latin.woff2") format("woff2"); font-weight: 100 800; font-stretch: 75% 112.5%; font-display: swap; }
+
+:root {
+  --paper: #F6F8FD;
+  --paper-raised: #FFFFFF;
+  --paper-deep: #E8EDF8;
+  --ink: #141B33;
+  --ink-soft: #4A5470;
+  --line: #CBD3E6;
+  --line-strong: #8D98B5;
+  --ballpoint: #2340C8;
+  --on-ballpoint: #F6F8FD;
+  --stamp: #C8321E;
+  --stamp-wash: #FCEBE7;
+  --highlight: #FFE45C;
+  --on-highlight: #7A5A00;
+  --seal: #0F7A5F;
+  --seal-wash: #E1F3EC;
+  --focus: #2340C8;
+  --scrim: rgba(20, 27, 51, 0.5);
+
+  --sans: "Familjen Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --mono: "Martian Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --step--1: clamp(0.84rem, 0.82rem + 0.1vw, 0.9rem);
+  --step-0: clamp(1rem, 0.97rem + 0.15vw, 1.07rem);
+  --step-1: clamp(1.18rem, 1.1rem + 0.4vw, 1.38rem);
+  --step-2: clamp(1.45rem, 1.25rem + 1vw, 1.95rem);
+  --step-3: clamp(2.1rem, 1.5rem + 2.9vw, 3.6rem);
+
+  --gutter: 16px;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2.25rem;
+  --space-7: 3.5rem;
+  --radius: 6px;
+  --radius-card: 10px;
+  --tap: 44px;
+  --measure: 64ch;
+  --page: 76rem;
+  --pen: 2.4px;
+  --pen-fine: 1.6px;
+
+  --draw-wordmark: 1200ms;
+  --draw-signature: 900ms;
+  --stamp-land: 420ms;
+  color-scheme: light;
+}
+
+@media (min-width: 768px) { :root { --gutter: clamp(24px, 4vw, 48px); } }
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0F1A3A;
+    --paper-raised: #16244B;
+    --paper-deep: #0A1430;
+    --ink: #EAF0FF;
+    --ink-soft: #AEBADB;
+    --line: #2C3B66;
+    --line-strong: #5B6C9C;
+    --ballpoint: #9DB1FF;
+    --on-ballpoint: #0F1A3A;
+    --stamp: #FF7A66;
+    --stamp-wash: #3B1F2E;
+    --highlight: #5A4A00;
+    --on-highlight: #FFE45C;
+    --seal: #6FD9BC;
+    --seal-wash: #12363D;
+    --focus: #9DB1FF;
+    --scrim: rgba(5, 10, 25, 0.7);
+    color-scheme: dark;
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper: #0F1A3A;
+  --paper-raised: #16244B;
+  --paper-deep: #0A1430;
+  --ink: #EAF0FF;
+  --ink-soft: #AEBADB;
+  --line: #2C3B66;
+  --line-strong: #5B6C9C;
+  --ballpoint: #9DB1FF;
+  --on-ballpoint: #0F1A3A;
+  --stamp: #FF7A66;
+  --stamp-wash: #3B1F2E;
+  --highlight: #5A4A00;
+  --on-highlight: #FFE45C;
+  --seal: #6FD9BC;
+  --seal-wash: #12363D;
+  --focus: #9DB1FF;
+  --scrim: rgba(5, 10, 25, 0.7);
+  color-scheme: dark;
+}

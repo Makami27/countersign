@@ -1,4 +1,4 @@
-import { addressEl, h, statusPill, usdc, when } from "../dom.ts";
+import { addressEl, h, scrawlEl, statusPill, usdc, when } from "../dom.ts";
 import type { Overview, PayeeSummary } from "../types.ts";
 import { firstRun } from "./firstRun.ts";
 
@@ -19,8 +19,9 @@ export function payeeList(payees: readonly PayeeSummary[], overview: Overview | 
     h("p", { class: "sub" }, "Your agent can only pay addresses marked verified."));
   if (payees.length === 0 && overview) section.append(firstRun(overview, onChanged));
   for (const payee of payees) {
-    section.append(h("a", { class: "cheque", href: `/app/payees/${encodeURIComponent(payee.id)}`, "data-link": true, "aria-current": payee.id === selected ? "page" : undefined },
-      h("span", { class: "name" }, payee.name, statusPill(payee.status)),
+    section.append(h("a", { class: `sigcard cheque ${payee.status === "verified" ? "verified" : payee.status === "attempt_refused" || payee.status === "conflict" ? "refused" : "stated"}`, href: `/app/payees/${encodeURIComponent(payee.id)}`, "data-link": true, "aria-current": payee.id === selected ? "page" : undefined },
+      h("span", { class: "sigcard-head" }, h("span", { class: "sigcard-name" }, payee.name), statusPill(payee.status)),
+      payee.address && payee.status !== "waiting_wallet" && payee.status !== "not_payable" ? h("span", { class: "sigcard-sig small" }, scrawlEl(payee.address)) : null,
       payee.address ? addressEl(payee.address, { short: true }) : null,
       h("span", { class: "meta" }, metaLine(payee))));
   }

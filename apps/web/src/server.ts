@@ -6,7 +6,9 @@ import type { SqlRows } from "@countersign/adapters/sql";
 import { readProof } from "./proof.ts";
 import { receiptRoute } from "./receiptRoute.ts";
 import type { StatusView } from "./status.ts";
-import { claimRowsHtml, readClaims } from "./claims.ts";
+import { readClaims } from "./claims.ts";
+import { landingHtml } from "./landingPage.ts";
+import { readMeasurement } from "./proofPage.ts";
 import { readFile } from "node:fs/promises";
 import { SECURITY_HEADERS, SIGN_PAGE_CSP, problem, send, serveFile } from "./http.ts";
 import { ownerRoute } from "./ownerRoutes.ts";
@@ -29,7 +31,7 @@ export type WebServerOptions = {
 };
 
 async function landing(res: ServerResponse): Promise<void> {
-  const page = (await readFile(`${PUBLIC_DIR}index.html`, "utf8")).replace(`<tbody id="claims-rows"></tbody>`, `<tbody id="claims-rows">${claimRowsHtml(await readClaims())}</tbody>`);
+  const page = landingHtml(await readFile(`${PUBLIC_DIR}index.html`, "utf8"), await readClaims(), await readMeasurement());
   res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-cache", ...SECURITY_HEADERS });
   res.end(page);
 }
