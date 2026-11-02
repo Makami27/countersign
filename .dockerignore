@@ -4,6 +4,10 @@ node_modules
 **/.env
 evidence
 !evidence/measurement
+!evidence/acts/act1-2026-10-30T21-53-37-449Z.json
+!evidence/acts/act2/records.json
+!evidence/acts/act3/records.json
+!evidence/acts/act4/records.json
 spikes/evidence
 apps/web/dist
 *.sqlite

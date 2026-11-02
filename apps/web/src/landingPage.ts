@@ -1,5 +1,6 @@
 import { scrawlMarkup } from "../client/scrawl.ts";
-import { claimRowsHtml, type Claim } from "./claims.ts";
+import type { Acts, Trial } from "./landingData.ts";
+import { monthHtml, replayHtml, twoAgentsHtml } from "./landingSections.ts";
 import type { Measurement } from "./proofPage.ts";
 import { addressHtml, shortAddressHtml, wordmarkSvg } from "./publicPage.ts";
 
@@ -18,7 +19,9 @@ ${line(`${m.benign.messages - m.benign.falseRefusals} of ${m.benign.messages}`, 
 <p class="note">Preregistered; run ${m.runAt.slice(0, 10)} on Sui ${m.network} with test USDC; corpus ${m.corpus}.</p>`;
 }
 
-export function landingHtml(template: string, claims: readonly Claim[] | null, measurement: Measurement | null): string {
+export const COMPARED_TRIAL = { attack: "K4", trial: 0 } as const;
+
+export function landingHtml(template: string, measurement: Measurement | null, acts: Acts, trial: Trial | null): string {
   const fill: Record<string, string> = {
     "<!--wordmark-->": wordmarkSvg(),
     "<!--scrawl:file-->": scrawlMarkup(HERO_ON_FILE),
@@ -28,7 +31,9 @@ export function landingHtml(template: string, claims: readonly Claim[] | null, m
     "<!--addr:attempt-->": addressHtml(HERO_ATTEMPT, HERO_ON_FILE),
     "<!--short:attempt-->": shortAddressHtml(HERO_ATTEMPT),
     "<!--measurement-->": measurementHtml(measurement),
-    [`<tbody id="claims-rows"></tbody>`]: `<tbody id="claims-rows">${claimRowsHtml(claims)}</tbody>`,
+    "<!--replay-->": replayHtml(acts),
+    "<!--month-->": monthHtml(acts),
+    "<!--two-agents-->": twoAgentsHtml(trial),
   };
   return Object.entries(fill).reduce((page, [mark, html]) => page.replaceAll(mark, html), template);
 }

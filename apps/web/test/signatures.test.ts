@@ -58,7 +58,7 @@ test("V26 every page carries the same hand-drawn \"counter\" in its wordmark", a
   }
 });
 
-test("V26 the landing shows Rent's card and the look-alike's signature beside it, drawn on the server with no script, and the measured figures", async (t) => {
+test("V26 the landing shows Rent's card and the look-alike's signature beside it, drawn on the server, with one small script only for the replay and live counts", async (t) => {
   const server = startWebServer({ port: 0, network: "testnet", proof: undefined, version: null, owners: null });
   await new Promise<void>((resolve) => server.once("listening", () => resolve()));
   t.after(() => server.close());
@@ -70,6 +70,6 @@ test("V26 the landing shows Rent's card and the look-alike's signature beside it
   assert.ok(page.includes("Drawn from the address") && page.includes("Nothing was sent and nothing was changed."));
   assert.match(page, /class="g diff"/);
   assert.ok(page.includes("Sandbox, no money moves") && page.includes("Sui testnet"));
-  assert.doesNotMatch(page, /<script/);
+  assert.deepEqual([...page.matchAll(/<script[^>]*>/g)].map((m) => m[0]), [`<script type="module" src="/build/landing.js">`]);
   assert.doesNotMatch(page, /<!--/);
 });

@@ -74,6 +74,13 @@ export class SharedAttackList implements SharedAttackMemory {
     return first ? { status: "SEEN", firstReceipt: first.receipt, agents: new Set(active.map((r) => r.agentKey)).size } : { status: "CLEAR" };
   }
 
+  summary(): { readonly agents: number; readonly reports: number } | null {
+    if (this.#seen === null) return null;
+    const now = this.#d.now().getTime();
+    const active = this.#seen.filter((r) => !this.#retracted.has(`${r.agentKey}:${r.receipt}`) && now - Date.parse(r.seenAt) <= SHARED_REPORT_LIFETIME_MS);
+    return { agents: new Set(active.map((r) => r.agentKey)).size, reports: active.length };
+  }
+
   async report(sighting: { readonly address: SuiAddress; readonly reason: SharedReason; readonly receipt: string }): Promise<MemoryWrite> {
     const record: AttackSeenRecord = { type: "attack_seen", ...sighting, agentKey: this.#d.signer.agentKey, seenAt: this.#d.now().toISOString() };
     const written = await this.#d.memory.remember(SHARED_ATTACKS_NAMESPACE, sealShared(this.#d.signer, record), `attack:${keyTag(this.#d.signer.agentKey)}:${sighting.receipt}`);
