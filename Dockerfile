@@ -8,6 +8,7 @@ COPY spikes/package.json spikes/package.json
 COPY scripts scripts
 COPY CLAIMS.md CLAIMS.md
 COPY evidence/measurement evidence/measurement
+COPY evidence/acts evidence/acts
 RUN pnpm install --frozen-lockfile
 RUN node scripts/build-web.mjs
 ARG GIT_SHA=

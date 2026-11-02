@@ -39,12 +39,14 @@ Every text/background pair was checked ≥ 4.5:1 (tightest: stamp red on light `
 - Phone first, left-aligned, 16 px gutter on phones.
 - **Only payees are cards** (signature card: name, status, scrawl on a signature line, address). Everything else is lists and lines: refusals are a section under a stamp-red rule, pending changes a highlighter-ruled block, proof/status/receipt sections are separated by hairlines, not boxes.
 - `/app` and `/demo`: tabs on phones, columns from 960 px (`/app`: payees | detail; `/demo`: letters | cards | activity).
-- Landing: headline "Your agent only pays signatures it has on file." → live signature card (Rent, a look-alike letter, both scrawls, VOID, grouped comparison, money sentence) → "Try the demo" / "Sign in with your wallet" → how it works (3 steps) → measured figures and the claims ledger → footer. The landing ships **no JavaScript**: scrawls, measurement and claims are rendered on the server.
+- Landing (v2, 2 Nov): one job per section, in full-width bands alternating paper and inset paper. Sticky header: wordmark, in-page links (Demo, How it works, Memory, Proof, FAQ), Status, GitHub, "Sign in with your wallet", "Try the demo"; on phones the links sit in a `<details>` menu. Sections: hero (unchanged) → the problem (IC3 2025 and the Dec 2025 look-alike loss, both cited) → watch it decide (Acts 2–3 replayed from `evidence/acts`) → how it works → a month with Countersign (the loud moment: rubber date stamps, Acts 1–4 receipts, dates marked illustrative) → memory → shared scam memory → measured → same message, two agents (measurement trial K4 #1 from the raw rows) → what it does → built on Sui and Walrus through Tatum → FAQ → final call to action → footer. Every figure, transcript and comparison is read from evidence files or `/api/proof` at request time; a missing file is said plainly, never filled in. Only the hero card, the date stamps and the two-agent comparison are loud. The claims ledger lives on /proof.
+- Landing script: one module, `build/landing.js` (under 1 KB), for the replay and the live counters (`/api/proof` `live`, cached 5 min on the server; "—" when unknown). Without it the page is complete.
 
-## Motion (only these three)
+## Motion (only these four)
 1. The wordmark drawing on the landing.
 2. A signature drawing itself the first time a payee is seen verified in this browser (`.scrawl.draw`; remembered in localStorage, which only decides the animation).
 3. The VOID stamp landing. Under reduced motion it fades (Q04) and the drawings appear complete.
+4. The landing replay of Acts 2–3: each step appears once, in order, when it first scrolls into view. Under reduced motion it is shown complete.
 
 ## Principles kept
 1. Every outcome starts with what happened to money ("Nothing was sent and nothing was changed.").

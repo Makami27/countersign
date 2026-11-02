@@ -13,14 +13,14 @@ function ledgerRows(): { id: string; status: string; paths: string[] }[] {
   });
 }
 
-test("V15 the landing's proof table is generated from CLAIMS.md: same claims, same statuses, same evidence links", async (t) => {
+test("V15 the claims ledger on /proof, linked from the landing, is generated from CLAIMS.md: same claims, same statuses, same evidence links", async (t) => {
   const server = startWebServer({ port: 0, network: "testnet", proof: undefined, version: null, owners: null });
   await new Promise<void>((resolve) => server.once("listening", () => resolve()));
   t.after(() => {
     server.closeAllConnections();
     server.close();
   });
-  const html = await (await fetch(`http://127.0.0.1:${(server.address() as AddressInfo).port}/`)).text();
+  const html = await (await fetch(`http://127.0.0.1:${(server.address() as AddressInfo).port}/proof`)).text();
   const rows = [...html.matchAll(/<tr data-claim="([^"]+)" data-status="([^"]+)">(.*?)<\/tr>/g)].map((m) => ({ id: m[1] ?? "", status: (m[2] ?? "").replace(/&#40;/g, "(").replace(/&#41;/g, ")"), html: m[3] ?? "" }));
   const ledger = ledgerRows();
   assert.ok(ledger.length >= 13);

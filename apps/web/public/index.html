@@ -12,20 +12,20 @@
   <link rel="stylesheet" href="/tokens.css">
   <link rel="stylesheet" href="/styles.css">
   <link rel="stylesheet" href="/landing.css">
+  <script type="module" src="/build/landing.js"></script>
 </head>
 <body class="landing">
+  <svg class="ink-defs" aria-hidden="true" focusable="false"><filter id="rubber" x="-15%" y="-15%" width="130%" height="130%"><feTurbulence type="fractalNoise" baseFrequency="0.7" numOctaves="2" seed="4" result="warp"/><feDisplacementMap in="SourceGraphic" in2="warp" scale="2.4" xChannelSelector="R" yChannelSelector="G" result="inked"/><feTurbulence type="fractalNoise" baseFrequency="1.8" numOctaves="1" seed="11" result="grain"/><feColorMatrix in="grain" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  -1.7 0 0 0 1.95" result="holes"/><feComposite in="inked" in2="holes" operator="in"/></filter></svg>
   <a class="skip" href="#main">Skip to content</a>
-  <header class="bar">
+  <header class="site-bar">
     <a class="wordmark drawn" href="/" aria-label="Countersign home"><!--wordmark--><span>sign</span></a>
-    <nav aria-label="Sections">
-      <a href="#how">How it works</a>
-      <a href="#measured">Proof</a>
-      <a href="/app">Sign in</a>
-    </nav>
+    <nav class="site-links" aria-label="Site"><a href="#demo">Demo</a><a href="#how">How it works</a><a href="#memory">Memory</a><a href="#proof">Proof</a><a href="#faq">FAQ</a><a href="/status">Status</a><a href="https://github.com/Makami27/countersign" rel="noreferrer">GitHub</a></nav>
+    <div class="site-actions"><a class="btn signin" href="/app">Sign in with your wallet</a><a class="btn primary" href="/demo">Try the demo</a></div>
+    <details class="site-menu"><summary>Menu</summary><nav aria-label="Menu"><a href="#demo">Demo</a><a href="#how">How it works</a><a href="#memory">Memory</a><a href="#proof">Proof</a><a href="#faq">FAQ</a><a href="/status">Status</a><a href="https://github.com/Makami27/countersign" rel="noreferrer">GitHub</a><a class="menu-signin" href="/app">Sign in with your wallet</a></nav></details>
   </header>
 
   <main id="main">
-    <section class="hero" aria-labelledby="hero-title">
+    <section class="hero band" aria-labelledby="hero-title">
       <div class="hero-words">
         <h1 id="hero-title">Your agent only pays signatures it has on file.</h1>
         <p class="lede">Countersign pays your regular payees in USDC on Sui. Like a bank comparing a cheque with the signature card, it checks every request against the wallet that signed for that payee, and refuses the rest.</p>
@@ -58,33 +58,149 @@
       <p class="hero-cta"><a class="btn primary" href="/demo">Try the demo</a><a class="btn" href="/app">Sign in with your wallet</a></p>
     </section>
 
-    <section id="how" class="how" aria-labelledby="how-title">
-      <h2 id="how-title">How it works</h2>
-      <ol class="how-steps">
-        <li><h3>A payee signs once</h3><p>When you add a payee, their own wallet signs a message proving the address is theirs. That signature goes on the card. Until then, the agent can't pay them.</p></li>
-        <li><h3>Messages can only suggest</h3><p>Emails, chats and invoices can name an address, but they only ever add one marked <span class="status stated">Stated</span>. Stated addresses are never paid, however convincing the letter.</p></li>
-        <li><h3>A change needs the old wallet's signature</h3><p>To move a payee to a new wallet, the wallet on file signs for it, or you confirm it and a waiting period passes. Proving control of the new wallet alone is never enough.</p></li>
-      </ol>
+
+    <section id="problem" class="band deep" aria-labelledby="problem-title">
+      <div class="band-inner narrow-text">
+        <h2 id="problem-title">The problem</h2>
+        <p>Sending a payment to the wrong account on someone's say-so is one of the costliest frauds there is. In 2025 the FBI's Internet Crime Complaint Center counted <a href="https://www.ic3.gov/AnnualReport/Reports/2025_IC3Report.pdf" rel="noreferrer">$3.0 billion lost to business email compromise</a>, where an email asks for a payment to go somewhere new.</p>
+        <p>Crypto has no bank to call back. In December 2025 one person sent <a href="https://cointelegraph.com/news/address-poisoning-copy-paste-mistake-50m-usdt-loss" rel="noreferrer">about $50 million in USDT to a look-alike address</a> copied from their own history.</p>
+        <p>An AI agent that pays your bills reads every message it gets, and it is never suspicious.</p>
+      </div>
     </section>
 
-    <section id="measured" class="measured" aria-labelledby="measured-title">
-      <h2 id="measured-title">Measured, not promised</h2>
-      <!--measurement-->
-      <p class="more"><a href="/proof">Live counters, the full measurement and every claim</a><br><a href="/status">Status of everything the agent depends on</a></p>
-      <details class="ledger">
-      <summary>Every claim with its evidence</summary>
-      <table class="claims">
-        <caption>What's proven so far, generated from <a href="https://github.com/Makami27/countersign/blob/main/CLAIMS.md" rel="noreferrer">CLAIMS.md</a></caption>
-        <thead><tr><th scope="col">Claim</th><th scope="col">Status</th><th scope="col">Evidence</th></tr></thead>
-        <tbody id="claims-rows"></tbody>
-      </table>
-      </details>
+    <section id="demo" class="band" aria-labelledby="demo-title">
+      <div class="band-inner">
+        <div class="section-head">
+          <h2 id="demo-title">Watch it decide</h2>
+          <p>Recorded on 31 Oct 2026 on the live agent: two messages forwarded on Telegram, the checks the code ran, in order, and what it wrote to Walrus Memory. Sui testnet; memory on Walrus Memory mainnet.</p>
+        </div>
+        <div class="replay-head" aria-hidden="true"><span>Messages as they arrived</span><span>What the code checked and kept</span></div>
+        <!--replay-->
+        <p class="section-cta"><a class="btn" href="/demo">Try it yourself</a></p>
+      </div>
     </section>
+
+    <section id="how" class="band deep" aria-labelledby="how-title">
+      <div class="band-inner">
+        <h2 id="how-title">How it works</h2>
+        <ol class="how-steps">
+          <li><h3>The payee signs once</h3><p>When you add a payee, their own wallet signs a message proving the address is theirs. Until it does, the agent can't pay them.</p></li>
+          <li><h3>Messages can only suggest an address</h3><p>Emails, chats and invoices can name an address, but it is only ever kept as <span class="status stated">Stated</span>, and stated addresses are never paid.</p></li>
+          <li><h3>A change needs two signatures, or you and a wait</h3><p>The wallet on file signs the change and the new wallet signs too. If the old wallet is lost, you approve it with your own wallet and it waits 24 hours, so you can still cancel.</p></li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="month" class="band" aria-labelledby="month-title">
+      <div class="band-inner">
+        <div class="section-head">
+          <h2 id="month-title">A month with Countersign</h2>
+          <p>The dates are illustrative. Each step is a real flow on the live agent between 30 Oct and 1 Nov 2026, with its receipt, on Sui testnet with test USDC.</p>
+        </div>
+        <!--month-->
+      </div>
+    </section>
+
+    <section id="memory" class="band deep" aria-labelledby="memory-title">
+      <div class="band-inner split">
+        <div>
+          <h2 id="memory-title">Memory it can't be talked out of</h2>
+          <p>Everything the agent relies on lives on Walrus Memory as records signed by your agent:</p>
+          <ul class="plain-list">
+            <li>every payee address, and how it is known: proven by the payee's own wallet, or only said in a message</li>
+            <li>a receipt for every decision</li>
+            <li>your scheduled payments</li>
+            <li>your owner wallet</li>
+          </ul>
+        </div>
+        <div class="memory-rules">
+          <p>On every restart the agent rebuilds what it knows from Walrus Memory. If memory can't be read completely, nothing is paid.</p>
+          <p>Text shaped like a record but not signed by the agent is ignored, however official it looks.</p>
+          <p class="live-line">Real-use records on Walrus Memory mainnet from the main agent right now: <strong class="live" data-live="memories">—</strong></p>
+        </div>
+      </div>
+    </section>
+
+    <section id="shared" class="band" aria-labelledby="shared-title">
+      <div class="band-inner narrow-text">
+        <h2 id="shared-title">One refusal protects every agent</h2>
+        <p>When an agent on this deployment refuses a scam address, it shares a signed note about that address with the other agents here: the address, the reason and a receipt id, nothing about you or your payee. The others then refuse it too.</p>
+        <p class="live-line">Shared scam reports right now: <strong class="live" data-live="sharedReports">—</strong>. Agents that shared them: <strong class="live" data-live="sharedAgents">—</strong>.</p>
+        <p>A shared report can only stop an address nobody has proven. It never blocks a payee whose own wallet signed.</p>
+      </div>
+    </section>
+
+    <section id="proof" class="band deep" aria-labelledby="proof-title">
+      <div class="band-inner">
+        <h2 id="proof-title">Measured</h2>
+        <!--measurement-->
+        <p class="section-cta"><a href="/proof">Full results</a></p>
+      </div>
+    </section>
+
+    <section id="compare" class="band" aria-labelledby="compare-title">
+      <div class="band-inner">
+        <h2 id="compare-title">Same message, two agents</h2>
+        <!--two-agents-->
+      </div>
+    </section>
+
+    <section id="features" class="band deep" aria-labelledby="features-title">
+      <div class="band-inner">
+        <h2 id="features-title">What it does</h2>
+        <ul class="feature-list">
+          <li><strong>Pays from Telegram or the app.</strong> Send "pay rent 0.10" to the bot, or press Pay in the owner app.</li>
+          <li><strong>Scheduled payments</strong> every week, every two weeks, every month or every year.</li>
+          <li><strong>Look-alike detection.</strong> An address that copies the start and end of a known one is refused.</li>
+          <li><strong>A receipt for every decision,</strong> paid or refused, stored on Walrus Memory.</li>
+          <li><strong>Approvals with your own wallet.</strong> Adding payees, loosening limits and confirming changes need its signature.</li>
+          <li><strong>A lost-wallet path.</strong> You confirm the new address, it waits 24 hours, and you can cancel.</li>
+          <li><strong>Telegram.</strong> Forward any message about a payee to have it checked; /login sends your sign-in link.</li>
+          <li><strong>Several owners,</strong> each with their own agent, wallet and memory.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="built" class="band" aria-labelledby="built-title">
+      <div class="band-inner narrow-text">
+        <h2 id="built-title">Built on Sui and Walrus, through Tatum</h2>
+        <ul class="plain-list">
+          <li>Every wallet signature is checked through Tatum's Sui gateway, including Slush accounts that sign in with Google (zkLogin).</li>
+          <li>USDC payments are sent through Tatum and looked up by their transaction id. A payment is never sent twice.</li>
+          <li>Memory lives on Walrus Memory mainnet.</li>
+          <li>Payments run on Sui testnet with test USDC unless a page says mainnet.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="faq" class="band deep" aria-labelledby="faq-title">
+      <div class="band-inner narrow-text">
+        <h2 id="faq-title">Questions</h2>
+        <div class="faq">
+          <details><summary>What if my landlord loses their old wallet?</summary><p>You confirm the new address yourself in the owner app, signing with your owner wallet. Check it with your landlord first through contact details you already had, never ones from the message asking for the change. The change then waits 24 hours, during which you can cancel it, and the new wallet still has to sign. The address is checked against known scams and look-alikes when you confirm and again when it takes effect.</p></details>
+          <details><summary>Can the AI be tricked into paying?</summary><p>The model only reads messages and suggests what they mean. Code decides, and it pays only addresses whose owner's wallet signed; nothing the model returns can mark an address as verified. In our preregistered measurement, the same model and messages made an agent without these checks pay the attacker 71 times in 90. With Countersign it was 0.</p></details>
+          <details><summary>Who holds the money?</summary><p>Your agent's own Sui wallet, which you fund. Its key is kept sealed on this server, so treat it like a hot wallet: keep small amounts in it. Caps limit what it can send per payment and per day.</p></details>
+          <details><summary>What is stored on Walrus, and who can read it?</summary><p>Payee addresses with how each was proven, receipts, schedules and your owner wallet, as records signed by your agent. The blobs on Walrus are encrypted, and this deployment reads them through its Walrus Memory account. Shared scam reports hold only an address, a reason and a receipt id.</p></details>
+          <details><summary>What happens if Walrus, Tatum or the model is down?</summary><p>Nothing is paid until the agent can check. If memory can't be read completely or Tatum can't give a definite answer, payments wait, and a payment whose outcome is unknown is never sent again. If the model is down, look-alikes and known scams are still refused by code, and plain pay commands still work.</p></details>
+          <details><summary>Does it work on mainnet?</summary><p>Memory already runs on Walrus Memory mainnet. Payments run on Sui testnet with test USDC for now, and every page says which network it uses.</p></details>
+          <details><summary>What does it cost?</summary><p>Trying this testnet deployment is free. Payments use test USDC, and Sui gas is paid in test SUI from your agent's wallet.</p></details>
+          <details><summary>Is it open source?</summary><p>The source is public <a href="https://github.com/Makami27/countersign" rel="noreferrer">on GitHub</a>. It doesn't carry an open-source licence yet.</p></details>
+        </div>
+      </div>
+    </section>
+
+    <section id="start" class="band closing" aria-labelledby="start-title">
+      <div class="band-inner">
+        <h2 id="start-title">Send it a scam and watch it refuse</h2>
+        <p class="hero-cta"><a class="btn primary" href="/demo">Try to scam it</a><a class="btn" href="/app">Sign in with your wallet</a></p>
+      </div>
+    </section>
+
   </main>
 
   <footer class="colophon">
     <p>Built for Walrus × Tatum Total Recall. Memory on Walrus Memory, chain access through Tatum's Sui gateway. Payments run on Sui testnet with test USDC unless a page says mainnet.</p>
-    <p><a href="/demo">Demo</a> <a href="/proof">Proof</a> <a href="/status">Status</a> <a href="https://github.com/Makami27/countersign" rel="noreferrer">Source</a></p>
+    <p><a href="/demo">Demo</a> <a href="/proof">Proof</a> <a href="/status">Status</a> <a href="https://github.com/Makami27/countersign" rel="noreferrer">Source</a> <a href="https://github.com/Makami27/countersign/blob/main/CLAIMS.md" rel="noreferrer">CLAIMS</a></p>
   </footer>
 </body>
 </html>

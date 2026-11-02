@@ -7,14 +7,15 @@ import { readProof } from "./proof.ts";
 import { receiptRoute } from "./receiptRoute.ts";
 import type { StatusView } from "./status.ts";
 import { readClaims } from "./claims.ts";
-import { landingHtml } from "./landingPage.ts";
+import { COMPARED_TRIAL, landingHtml } from "./landingPage.ts";
+import { readActs, readTrial } from "./landingData.ts";
 import { readMeasurement } from "./proofPage.ts";
 import { readFile } from "node:fs/promises";
 import { SECURITY_HEADERS, SIGN_PAGE_CSP, problem, send, serveFile } from "./http.ts";
 import { ownerRoute } from "./ownerRoutes.ts";
 import { sessionRoute } from "./signInRoutes.ts";
 import { completedBy, signRoute } from "./signRoutes.ts";
-import { proofPageRoute, statusPageRoute } from "./publicRoutes.ts";
+import { liveCounts, proofPageRoute, statusPageRoute } from "./publicRoutes.ts";
 import type { OwnerContext } from "./ownerContext.ts";
 import type { OwnerDirectory } from "./ownerDirectory.ts";
 
@@ -31,7 +32,7 @@ export type WebServerOptions = {
 };
 
 async function landing(res: ServerResponse): Promise<void> {
-  const page = landingHtml(await readFile(`${PUBLIC_DIR}index.html`, "utf8"), await readClaims(), await readMeasurement());
+  const page = landingHtml(await readFile(`${PUBLIC_DIR}index.html`, "utf8"), await readMeasurement(), await readActs(), await readTrial(COMPARED_TRIAL.attack, COMPARED_TRIAL.trial));
   res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-cache", ...SECURITY_HEADERS });
   res.end(page);
 }
@@ -54,7 +55,7 @@ export function startWebServer(options: WebServerOptions): Server {
       if (path === "/api/health" && req.method === "GET") return send(res, 200, { ok: true, network: options.network, version: options.version });
       if (path === "/api/status" && req.method === "GET") return options.status ? send(res, 200, await options.status()) : problem(res, 404, "This server isn't connected to the live agent.");
       if (path === "/api/claims" && req.method === "GET") return send(res, 200, { source: "CLAIMS.md", claims: await readClaims() });
-      if (path === "/api/proof" && req.method === "GET") return send(res, 200, await readProof(options.proof, options.network));
+      if (path === "/api/proof" && req.method === "GET") return send(res, 200, { ...(await readProof(options.proof, options.network)), live: await liveCounts(options.owners?.get(options.owners.adminOwnerId) ?? null) });
       if (path.startsWith("/api/lab/") && req.method === "POST") return labRoute(lab, req, res, path);
       const owners = options.owners;
       if ((path === "/api/session" || path === "/api/session/challenge") && owners) return sessionRoute(owners, options.network, req, res, path);
