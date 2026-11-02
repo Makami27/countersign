@@ -20,6 +20,8 @@ import { startBot } from "./telegram.ts";
 import { dropOwnerStorage, openOwnerStorage, openStorage, type Storage } from "./storage.ts";
 import { statusProbe } from "./statusChecks.ts";
 import { ModelStats } from "./modelStats.ts";
+import { payeeSummary } from "@countersign/web/ownerViews";
+import { scheduleList } from "@countersign/web/scheduleRoutes";
 import { OwnerKeyStore } from "./ownerKeys.ts";
 
 const TICK_EVERY_MS = 60_000;
@@ -155,7 +157,11 @@ bot = startBot({
   ownerFor: async (telegramUserId) => {
     const ownerId = await links.ownerOf(telegramUserId);
     const ctx = ownerId ? owners.get(ownerId) : null;
-    return ctx ? { ownerId: ctx.ownerId, engine: ctx.engine, index: ctx.index, sendPayment: ctx.sendPayment, busy: () => ctx.quota.busy(), countModel: () => ctx.quota.record("model") } : null;
+    return ctx ? {
+      ownerId: ctx.ownerId, engine: ctx.engine, index: ctx.index, sendPayment: ctx.sendPayment, busy: () => ctx.quota.busy(), countModel: () => ctx.quota.record("model"),
+      agentAddress: ctx.agentAddress, balances: ctx.balances, schedules: () => scheduleList(ctx, Date.now()).schedules,
+      payees: async () => Promise.all((await ctx.index.payeeIds()).map((id) => payeeSummary(ctx, id, Date.now()))),
+    } : null;
   },
   redeemLink: async (token, telegramUserId) => {
     const linked = await links.redeem(token, telegramUserId);
