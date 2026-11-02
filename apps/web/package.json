@@ -27,7 +27,9 @@
     "./ownerRuntime": "./src/ownerRuntime.ts",
     "./telegramLinks": "./src/telegramLinks.ts",
     "./screen": "./src/screen.ts",
-    "./quota": "./src/quota.ts"
+    "./quota": "./src/quota.ts",
+    "./ownerViews": "./src/ownerViews.ts",
+    "./scheduleRoutes": "./src/scheduleRoutes.ts"
   },
   "devDependencies": {
     "esbuild": "0.28.2"

@@ -5,6 +5,8 @@ import type { Extraction } from "@countersign/adapters/gemini";
 import { MODEL_UNREADABLE_REPLY, RECEIPT_PENDING_REPLY, STORE_UNANSWERED_REPLY, paymentPendingReply, paymentReply, receiptReply, replyFor } from "./replies.ts";
 import { readMessage } from "@countersign/web/screen";
 import { BUSY } from "@countersign/web/quota";
+import { COMMANDS, balanceHtml, cancelText, helpText, payeesHtml, schedulesText, type PayeeLine, type ScheduleLine } from "./commands.ts";
+import type { BalancesView } from "@countersign/web/ownerContext";
 import { READING_REPLY, changeStartedHtml, confirmPaymentHtml, signInLinkText, refusalHtml, unlinkedText } from "./telegramText.ts";
 
 const CONFIRMATION_LIFETIME_MS = 5 * 60 * 1000;
@@ -12,7 +14,7 @@ const HTML = { parse_mode: "HTML" as const };
 
 const POLL_RETRY_MS = 15_000;
 
-export type BotOwner = { readonly ownerId: string; readonly engine: Countersign; readonly index: IndexStore; readonly sendPayment: (paymentId: string) => Promise<PaymentIntent>; readonly busy: () => boolean; readonly countModel: () => void };
+export type BotOwner = { readonly ownerId: string; readonly engine: Countersign; readonly index: IndexStore; readonly sendPayment: (paymentId: string) => Promise<PaymentIntent>; readonly busy: () => boolean; readonly countModel: () => void; readonly agentAddress: string; readonly balances: () => Promise<BalancesView>; readonly payees: () => Promise<readonly PayeeLine[]>; readonly schedules: () => readonly ScheduleLine[] };
 
 export type BotDeps = {
   readonly token: string;
@@ -39,11 +41,41 @@ export function startBot(deps: BotDeps): Bot {
       return void (await ctx.reply(linked.ok ? "Connected: this chat now runs your Countersign agent and gets its notices." : linked.why === "ADMIN_CHAT" ? "This chat already belongs to this agent's admin. Nothing was changed." : "That link expired or was already used. Nothing was changed. Make a new one in the owner app."));
     }
     if (!(await ownerOf(ctx))) return void (await ctx.reply(unlinkedText(deps.publicUrl)));
-    await ctx.reply("Countersign pays your verified payees and refuses new addresses it can't prove. Send \"pay <payee> <amount>\", forward a message about a payee, or send /login for the owner app sign-in link.");
+    await ctx.reply(helpText(deps.publicUrl, deps.network));
   });
 
   bot.command("login", async (ctx) => {
     await ctx.reply(signInLinkText(deps.publicUrl));
+  });
+
+  bot.command("help", async (ctx) => {
+    const linked = await ownerOf(ctx);
+    await ctx.reply(linked ? helpText(deps.publicUrl, deps.network) : `${helpText(deps.publicUrl, deps.network)}
+
+${unlinkedText(deps.publicUrl)}`);
+  });
+
+  bot.command("payees", async (ctx) => {
+    const owner = await ownerOf(ctx);
+    await ctx.reply(owner ? payeesHtml(await owner.payees(), deps.publicUrl) : unlinkedText(deps.publicUrl), HTML);
+  });
+
+  bot.command("balance", async (ctx) => {
+    const owner = await ownerOf(ctx);
+    await ctx.reply(owner ? balanceHtml(owner.agentAddress, await owner.balances(), deps.network) : unlinkedText(deps.publicUrl), HTML);
+  });
+
+  bot.command("schedules", async (ctx) => {
+    const owner = await ownerOf(ctx);
+    await ctx.reply(owner ? schedulesText(owner.schedules(), deps.publicUrl) : unlinkedText(deps.publicUrl));
+  });
+
+  bot.command("cancel", async (ctx) => {
+    const owner = await ownerOf(ctx);
+    if (!owner) return void (await ctx.reply(unlinkedText(deps.publicUrl)));
+    const mine = [...confirmations.entries()].filter(([, p]) => p.ownerId === owner.ownerId && p.expires >= Date.now());
+    for (const [id] of mine) confirmations.delete(id);
+    await ctx.reply(cancelText(mine.length, deps.publicUrl));
   });
 
   bot.on("message:text", async (ctx) => {
@@ -100,6 +132,7 @@ export function startBot(deps: BotDeps): Bot {
     console.error(`Telegram update failed: ${error.message.slice(0, 200)}`);
     await error.ctx.reply(STORE_UNANSWERED_REPLY).catch(() => undefined);
   });
+  bot.api.setMyCommands(COMMANDS.map((c) => ({ command: c.command, description: c.description }))).catch((error: Error) => console.error(`Telegram command menu not set: ${error.message.slice(0, 200)}`));
   const poll = (): void => {
     bot.start().catch((error: Error) => {
       console.error(`Telegram polling stopped: ${error.message.slice(0, 200)}. Retrying in ${POLL_RETRY_MS / 1000} s.`);
