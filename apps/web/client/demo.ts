@@ -1,6 +1,7 @@
 import { REASONS, type ReasonCode } from "@countersign/core";
 import { api } from "./api.ts";
 import { addressEl, h, listen, liveRegion, scrawlEl, signatureFigure, statusPill, when } from "./dom.ts";
+import { installPlainCopy } from "./copyHandler.ts";
 
 type Version = { readonly version: number; readonly status: string; readonly address: string };
 type Payee = { readonly id: string; readonly name: string; readonly payableAddress: string | null; readonly versions: readonly Version[] };
@@ -85,6 +86,7 @@ function letters(view: View, result: HTMLElement, status: HTMLElement): HTMLElem
     const b = h("button", { type: "button", role: "radio", "aria-checked": p.id === payeeId ? "true" : "false" }, p.name);
     b.addEventListener("click", () => {
       payeeId = p.id;
+      installPlainCopy();
 void draw();
     });
     return b;

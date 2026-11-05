@@ -2,6 +2,7 @@ import { api } from "./api.ts";
 import { addressEl, h, liveRegion, networkWords, scrawlEl, signatureFigure, statusPill, when } from "./dom.ts";
 import { walletStep, type WalletRole } from "./walletSteps.ts";
 import { showMoment, startMoments } from "./moment.ts";
+import { installPlainCopy } from "./copyHandler.ts";
 
 type Step = { readonly signedAt: string } | null;
 type Base = { readonly network: "mainnet" | "testnet"; readonly memory: string; readonly payeeName: string; readonly message: string; readonly expires: string; readonly expired: boolean };
@@ -118,4 +119,5 @@ async function render(): Promise<CompletedView | null> {
 }
 
 startMoments(document.querySelector(".bar"));
+installPlainCopy();
 void render();

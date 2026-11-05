@@ -11,7 +11,7 @@ export function wordmarkSvg(): string {
 
 export function addressHtml(address: string, against: string | null): string {
   const grouped = groupAddress(address, against ? { against } : {});
-  const groups = grouped.groups.map((g) => `<span class="g${g.mark ? ` ${g.mark}` : ""}" aria-hidden="true">${escapeHtml(g.text)}</span>`).join("");
+  const groups = grouped.groups.map((g) => `<span class="g${g.mark ? ` ${g.mark}` : ""}" aria-hidden="true">${escapeHtml(g.text)}</span>`).join("<wbr>");
   return `<span class="addr" role="text" title="${escapeHtml(grouped.full)}" aria-label="${escapeHtml(grouped.label)}">${groups}</span>`;
 }
 

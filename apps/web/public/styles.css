@@ -61,10 +61,11 @@ code { font-family: var(--mono); font-size: 0.86em; font-stretch: 87.5%; overflo
 .status.stated { color: var(--on-highlight); background: var(--highlight); border-radius: 3px 8px 4px 9px; }
 .status.refused { color: var(--stamp); background: var(--stamp-wash); }
 
-.addr { font-family: var(--mono); font-stretch: 87.5%; font-size: 0.86em; display: inline-flex; flex-wrap: wrap; gap: 0.15em 0.6em; max-width: 100%; line-height: 1.6; color: var(--ink); }
+.addr { font-family: var(--mono); font-stretch: 87.5%; font-size: 0.86em; display: inline; max-width: 100%; line-height: 1.75; color: var(--ink); }
 .addr.short { display: inline; }
 .addr.short .g + .g { margin-left: 0.2em; }
-.addr .g { white-space: nowrap; }
+.addr .g { white-space: nowrap; margin-right: 0.6em; }
+.addr.short .g { margin-right: 0; }
 .addr .same { color: var(--ink-soft); }
 .addr .diff { color: var(--stamp); font-weight: 700; text-decoration: underline 2px; text-underline-offset: 0.25em; }
 

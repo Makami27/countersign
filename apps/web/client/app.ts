@@ -15,6 +15,7 @@ import { agentWalletPanel } from "./views/walletPanel.ts";
 import { depositSheet } from "./views/depositSheet.ts";
 import { showMoment, startMoments } from "./moment.ts";
 import { notePayees } from "./momentFacts.ts";
+import { installPlainCopy } from "./copyHandler.ts";
 
 const root = document.querySelector<HTMLElement>("#app");
 const nav = document.querySelector<HTMLElement>("#nav");
@@ -175,4 +176,5 @@ document.addEventListener("click", (event) => {
 });
 window.addEventListener("popstate", () => void render());
 startMoments(document.querySelector(".bar"));
+installPlainCopy();
 void render();
