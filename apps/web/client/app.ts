@@ -163,7 +163,7 @@ async function renderPage(): Promise<void> {
     if (detail.data.payTo) openPay(detail.data.summary.id, detail.data.summary.name, detail.data.payTo.address);
   }, onRequestChange: () => requestChangeSheet(detail.data, rerender), onConfirm: (nonce) => confirmChangeSheet(nonce, overview.data.cooldownSeconds, overview.data.network, rerender), onCancel: (nonce, status) => cancelChange(nonce, overview.data.network, status, rerender) }) : failure(detail.error.message);
   const schedules = detail.ok && detail.data.payTo ? await api<{ schedules: ScheduleItem[] }>("GET", "/api/app/schedules") : null;
-  if (detail.ok && schedules?.ok) detailView.append(schedulesPanel(selected, schedules.data.schedules, overview.data.network, rerender));
+  if (detail.ok && schedules?.ok) detailView.querySelector(".pay-actions")?.after(schedulesPanel(selected, schedules.data.schedules, overview.data.network, rerender));
   if (detail.ok && (detail.data.pendingChanges.length > 0 || detail.data.waiting)) schedulePoll(path);
   show(h("div", { class: `owner ${match ? "at-detail" : "at-list"}` }, wallet, list, detailView));
 }
