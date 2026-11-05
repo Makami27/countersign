@@ -21,7 +21,10 @@ export function h<K extends keyof HTMLElementTagNameMap>(tag: K, attrs: Attrs = 
 export function addressEl(address: string, options: { readonly against?: string | null; readonly short?: boolean } = {}): HTMLElement {
   const grouped = groupAddress(address, { ...(options.against ? { against: options.against } : {}), ...(options.short ? { short: true } : {}) });
   const el = h("span", { class: grouped.short ? "addr short" : "addr", title: grouped.full, "aria-label": grouped.label, role: "text" });
-  for (const group of grouped.groups) el.append(h("span", { class: group.mark ? `g ${group.mark}` : "g", "aria-hidden": "true" }, group.text));
+  grouped.groups.forEach((group, i) => {
+    if (i > 0) el.append(document.createElement("wbr"));
+    el.append(h("span", { class: group.mark ? `g ${group.mark}` : "g", "aria-hidden": "true" }, group.text));
+  });
   return el;
 }
 
@@ -73,9 +76,9 @@ function firstSighting(address: string): boolean {
   }
 }
 
-export function scrawlEl(address: string, options: { readonly drawWhenNew?: boolean } = {}): SVGElement {
+export function scrawlEl(address: string, options: { readonly drawWhenNew?: boolean; readonly draw?: boolean } = {}): SVGElement {
   const s = scrawlFor(address);
-  const draw = options.drawWhenNew === true && firstSighting(address.toLowerCase());
+  const draw = options.draw === true || (options.drawWhenNew === true && firstSighting(address.toLowerCase()));
   const svg = svgEl("svg", { class: draw ? "scrawl draw" : "scrawl", viewBox: s.viewBox, preserveAspectRatio: "xMinYMid meet", "aria-hidden": "true", focusable: "false" });
   svg.append(svgEl("path", { class: "scrawl-stroke", d: s.stroke, pathLength: "1" }));
   if (s.underline) svg.append(svgEl("path", { class: "scrawl-under", d: s.underline, pathLength: "1" }));
