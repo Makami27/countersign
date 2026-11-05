@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import type { AddressInfo } from "node:net";
 import { startWebServer } from "../src/server.ts";
-import { readActs, readTrial } from "../src/landingData.ts";
+import { readActs, readTrial, type RecordedAct } from "../src/landingData.ts";
+import { monthHtml } from "../src/landingSections.ts";
 import { COMPARED_TRIAL } from "../src/landingPage.ts";
 import { countText, sharedSentence } from "../client/liveCounts.ts";
 
@@ -41,7 +42,7 @@ test("V27 the month timeline says its dates are illustrative and links a real re
   const acts = await readActs();
   assert.ok(page.includes("The dates are illustrative."));
   const month = page.slice(page.indexOf(`<ol class="month">`), page.indexOf(`id="memory"`));
-  assert.equal((month.match(/class="month-entry/g) ?? []).length, 5);
+  assert.equal((month.match(/class="month-entry/g) ?? []).length, acts.sharedSecond ? 6 : 5);
   for (const act of [acts.paid, acts.refused, acts.repeated, acts.changed, acts.paidAfter]) assert.ok(act && month.includes(act.receipt.receipt), act?.source ?? "missing act");
   assert.equal(acts.changed?.receipt.address, acts.paidAfter?.receipt.address);
 });
@@ -75,4 +76,14 @@ test("V27 the shared counter says \"No shared reports yet\" at zero, counts agen
   assert.equal(sharedSentence({ memories: 12, sharedAgents: 3, sharedReports: 4 }), "Shared scam reports right now: 4, from 3 agents.");
   assert.equal(sharedSentence({ memories: null, sharedAgents: null, sharedReports: null }), null);
   assert.equal(countText(null), "—");
+});
+
+test("V27 the month shows the two-owner step only when Act 5 holds a real SEEN_BY_OTHER_AGENT refusal", async () => {
+  const acts = await readActs();
+  const recorded = (reason: string, receipt: string): RecordedAct => ({ source: "evidence/acts/act5/records.json", blobId: null, receipt: { receipt, verdict: "REFUSED", reason, ref: "x", address: null, amountBaseUnits: null, checks: [], createdAt: "2026-11-05T10:00:00.000Z", suiDigest: null } });
+  const without = monthHtml({ ...acts, sharedFirst: null, sharedSecond: null });
+  assert.doesNotMatch(without, /Another owner gets the same scam/);
+  assert.doesNotMatch(monthHtml({ ...acts, sharedFirst: recorded("LOOKALIKE_ADDRESS", "rcpt_a"), sharedSecond: recorded("LOOKALIKE_ADDRESS", "rcpt_b") }), /Another owner gets the same scam/);
+  const shown = monthHtml({ ...acts, sharedFirst: recorded("LOOKALIKE_ADDRESS", "rcpt_a"), sharedSecond: recorded("SEEN_BY_OTHER_AGENT", "rcpt_b") });
+  assert.ok(shown.includes("Another owner gets the same scam") && shown.includes(`href="/r/rcpt_a"`) && shown.includes(`href="/r/rcpt_b"`));
 });

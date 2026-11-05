@@ -8,6 +8,7 @@ evidence
 !evidence/acts/act2/records.json
 !evidence/acts/act3/records.json
 !evidence/acts/act4/records.json
+!evidence/acts/act5/records.json
 spikes/evidence
 apps/web/dist
 *.sqlite

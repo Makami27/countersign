@@ -55,6 +55,11 @@ function entry(day: string, spoken: string, tone: "ink" | "red", title: string, 
   return `<li class="month-entry ${tone}">${stamp(day, tone)}<div class="month-body"><h3><span class="visually-hidden">${spoken}: </span>${title}</h3>${body}${proof}</div></li>`;
 }
 
+function sharedEntry(acts: Acts): string {
+  if (!acts.sharedFirst || !acts.sharedSecond || acts.sharedSecond.receipt.reason !== "SEEN_BY_OTHER_AGENT") return "";
+  return `${entry("13th", "The 13th", "red", "Another owner gets the same scam. Refused.", `<p>Their agent has never seen this address, and it imitates nothing in their account. Another agent's signed report is enough: ${receiptLink(acts.sharedFirst)} was the first refusal. Nothing is sent and nothing changes.</p>`, acts.sharedSecond, "Act 5")}\n`;
+}
+
 export function monthHtml(acts: Acts): string {
   const usdc = (a: RecordedAct | null) => (a?.receipt.amountBaseUnits ? `${formatUsdc(BigInt(a.receipt.amountBaseUnits))} test USDC` : "Test USDC");
   const attempt = acts.refused?.receipt.address ?? null;
@@ -67,7 +72,7 @@ export function monthHtml(acts: Acts): string {
 ${entry("1st", "The 1st", "ink", "Rent is paid", `<p>${usdc(acts.paid)} goes to Rent at ${v1Address ? shortAddressHtml(v1Address) : "the verified address"}, the address Rent's own wallet signed for.</p>`, acts.paid, "Act 1")}
 ${entry("9th", "The 9th", "red", "A “new wallet” email arrives. Refused.", `<p>It names an address that copies the first and last characters of Rent's. Nothing is sent and nothing changes.</p>${versus}`, acts.refused, "Act 2")}
 ${entry("12th", "The 12th", "red", "The same scam again. Refused at once.", `<p>The address was refused before, so the agent refuses it without asking the model and cites the first receipt.</p>`, acts.repeated, "Act 3")}
-${entry("15th", "The 15th", "ink", "The landlord really changes wallets", `<p>Rent's current wallet signs the change, then the new wallet signs too. Rent's card now holds version 2.</p>${v2 ? `<div class="sigcard verified month-card"><div class="sigcard-head"><span class="sigcard-name">Rent, version 2</span><span class="status verified">Verified</span></div><div class="sigcard-sig">${scrawlMarkup(v2)}<span class="sigline">Drawn from the address</span></div>${addressHtml(v2, null)}</div>` : ""}`, acts.changed, "Act 4")}
+${sharedEntry(acts)}${entry("15th", "The 15th", "ink", "The landlord really changes wallets", `<p>Rent's current wallet signs the change, then the new wallet signs too. Rent's card now holds version 2.</p>${v2 ? `<div class="sigcard verified month-card"><div class="sigcard-head"><span class="sigcard-name">Rent, version 2</span><span class="status verified">Verified</span></div><div class="sigcard-sig">${scrawlMarkup(v2)}<span class="sigline">Drawn from the address</span></div>${addressHtml(v2, null)}</div>` : ""}`, acts.changed, "Act 4")}
 ${entry("1st", "The next 1st", "ink", "Next month's rent goes to version 2", `<p>${usdc(acts.paidAfter)} goes to ${v2 ? shortAddressHtml(v2) : "the new address"} without anyone touching a setting.</p>`, acts.paidAfter, "Act 4")}
 </ol>`;
 }
