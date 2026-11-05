@@ -17,6 +17,9 @@ function scheduleRow(item: ScheduleItem, network: "mainnet" | "testnet", status:
   return h("li", {}, h("span", { class: "v" }, "Scheduled"), h("span", { class: "what" }, h("span", {}, item.says), h("span", { class: "meta" }, item.nextDue ? `Next run ${when(item.nextDue)}.` : "")), remove);
 }
 
+let openFor: string | null = null;
+let creatingFor: string | null = null;
+
 export function schedulesPanel(payeeId: string, items: readonly ScheduleItem[], network: "mainnet" | "testnet", onChanged: () => void): HTMLElement {
   const status = liveRegion();
   const rows = items.filter((item) => item.schedule.payeeId === payeeId).map((item) => scheduleRow(item, network, status, onChanged));
@@ -46,11 +49,36 @@ export function schedulesPanel(payeeId: string, items: readonly ScheduleItem[], 
     const result = await withApprovals("POST", "/api/app/schedules", body, network, status);
     status.textContent = result.ok ? "Scheduled. Each run re-checks the verified address, your caps and Walrus Memory." : result.error.message;
     if (result.ok) {
+      creatingFor = null;
+      openFor = null;
       showMoment({ title: "Payment scheduled", detail: "Each run re-checks the verified address, your caps and Walrus Memory." });
       onChanged();
     }
   }, status);
-  return h("section", { "aria-labelledby": "schedules-title" }, h("h3", { id: "schedules-title" }, "Scheduled payments"),
-    h("p", { class: "hint" }, "Each runs once per period on the day you pick. Creating, changing or deleting one needs your wallet's signature."),
-    rows.length ? h("ol", { class: "rows" }, ...rows) : h("p", { class: "empty" }, "No scheduled payments."), form);
+  const list = rows.length ? h("ol", { class: "rows" }, ...rows) : h("p", { class: "empty" }, "No scheduled payments yet.");
+  const start = h("button", { class: "btn", type: "button" }, "Schedule a payment");
+  const hint = h("p", { class: "hint" }, "Each runs once per period on the day you pick. Creating, changing or deleting one needs your wallet's signature.");
+  const panel = h("div", { class: "schedule-panel", id: `schedules-${payeeId}` }, list, hint, start, form);
+  const toggle = h("button", { class: "btn schedule-toggle", type: "button", "aria-controls": panel.id }, `Scheduled payments (${rows.length})`);
+  const draw = () => {
+    const creating = creatingFor === payeeId;
+    const open = creating || openFor === payeeId;
+    panel.hidden = !open;
+    form.hidden = !creating;
+    start.hidden = creating;
+    toggle.setAttribute("aria-expanded", open ? "true" : "false");
+  };
+  toggle.addEventListener("click", () => {
+    const open = openFor === payeeId || creatingFor === payeeId;
+    openFor = open ? null : payeeId;
+    if (open) creatingFor = null;
+    draw();
+  });
+  start.addEventListener("click", () => {
+    creatingFor = payeeId;
+    draw();
+    amount.focus();
+  });
+  draw();
+  return h("section", { class: "schedules", "aria-label": "Scheduled payments" }, toggle, panel);
 }

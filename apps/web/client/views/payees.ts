@@ -5,7 +5,7 @@ import { firstRun } from "./firstRun.ts";
 function metaLine(payee: PayeeSummary): string {
   switch (payee.status) {
     case "attempt_refused": return `Still paying the verified address. ${payee.refusalsLastDay} refused attempt${payee.refusalsLastDay === 1 ? "" : "s"} in the last 24 hours.`;
-    case "change_pending": return "A new address was requested. It is not payable yet.";
+    case "change_pending": return "A new address was requested and can't be paid yet. Payments still go to the verified one.";
     case "waiting_wallet": return `Added ${when(payee.since)}. Not payable until the payee's wallet signs.`;
     case "not_payable": return "Not payable. The signing link expired; add the payee again.";
     case "conflict": return "Frozen: two verified records disagree. Nothing will be paid.";
