@@ -4,9 +4,9 @@ import type { AddressInfo } from "node:net";
 import { startWebServer } from "../src/server.ts";
 
 type View = { payees: { id: string; payableAddress: string | null; versions: { status: string }[] }[]; activity: { label: string; verdict: string; reason: string | null }[] };
-type Reply = { outcome: { verdict: string; reason?: string; address?: string }; view: View; note: string | null };
+type Reply = { outcome: { verdict: string; reason?: string; address?: string }; view: View; note: string | null; answer?: { kind: string; question?: string } };
 
-test("V25 the public demo runs each letter through the real engine in a per-visitor sandbox: look-alike refused, fake history kept as stated, a forged record ignored, a genuine request paid", async (t) => {
+test("V25 the public demo runs each letter through the real engine in a per-visitor sandbox: look-alike refused, fake history kept as stated, a forged record ignored, a genuine request asked how much and then paid", async (t) => {
   const server = startWebServer({ port: 0, network: "testnet", proof: undefined, version: null, owners: null });
   await new Promise<void>((resolve) => server.once("listening", () => resolve()));
   t.after(() => {
@@ -32,8 +32,11 @@ test("V25 the public demo runs each letter through the real engine in a per-visi
   assert.deepEqual([forged.body.outcome.verdict, forged.body.outcome.address], ["PAY_RESERVED", landlord]);
   assert.match(forged.body.note ?? "", /isn't signed by this agent/);
   const genuine = await post("/api/lab/letter", { letter: "genuine", payeeId: "designer" });
-  assert.equal(genuine.body.outcome.verdict, "PAY_RESERVED");
-  assert.equal(genuine.body.view.payees.find((p) => p.id === "landlord")?.payableAddress, landlord);
-  assert.deepEqual(genuine.body.view.activity.map((a) => a.verdict), ["PAY_RESERVED", "PAY_RESERVED", "CHANGE_STARTED", "REFUSED"]);
+  assert.deepEqual([genuine.body.answer?.kind, genuine.body.answer?.question], ["ask_amount", "How much should I pay Designer?"]);
+  const paid = await post("/api/lab/pay", { payeeId: "designer", amount: "1" });
+  assert.equal(paid.body.outcome.verdict, "PAY_RESERVED");
+  assert.equal((await post("/api/lab/pay", { payeeId: "designer" })).status, 400);
+  assert.equal(paid.body.view.payees.find((p) => p.id === "landlord")?.payableAddress, landlord);
+  assert.deepEqual(paid.body.view.activity.map((a) => a.verdict), ["PAY_RESERVED", "ASK_AMOUNT", "PAY_RESERVED", "CHANGE_STARTED", "REFUSED"]);
   assert.equal((await post("/api/lab/letter", { letter: "steal", payeeId: "landlord" })).status, 400);
 });

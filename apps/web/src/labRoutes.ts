@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import { usdcToBaseUnits } from "@countersign/core";
 import { LabSessions, isLabPayee, type LabReply } from "./lab.ts";
 import { cookie, problem, readJson, send } from "./http.ts";
 import { isLetter } from "./labLetters.ts";
@@ -36,7 +37,11 @@ export async function labRoute(lab: LabSessions, req: IncomingMessage, res: Serv
     const letter = input["letter"];
     if (!isLetter(letter)) return problem(res, 400, "Choose one of the letters. Nothing was changed.", labCookie(id));
     reply = await session.letter(letter, payeeId);
-  } else if (path === "/api/lab/pay") reply = await session.pay(payeeId);
+  } else if (path === "/api/lab/pay") {
+    const amountBaseUnits = usdcToBaseUnits(String(input["amount"] ?? "").trim());
+    if (!amountBaseUnits) return problem(res, 400, "Give the amount in USDC, for example 0.10. Nothing was sent.", labCookie(id));
+    reply = await session.pay(payeeId, amountBaseUnits);
+  }
   else if (path === "/api/lab/genuine") reply = await session.genuineChange(payeeId);
   else return problem(res, 404, "Not found.", labCookie(id));
   return send(res, 200, reply, labCookie(id));

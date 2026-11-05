@@ -7,7 +7,10 @@ type Payee = { readonly id: string; readonly name: string; readonly payableAddre
 type Entry = { readonly at: string; readonly label: string; readonly verdict: string; readonly reason: string | null; readonly receipt: string | null; readonly note: string | null };
 type Refusal = { readonly receipt: string; readonly payeeId: string | null; readonly address: string | null };
 type View = { readonly payees: readonly Payee[]; readonly activity: readonly Entry[]; readonly refusals: readonly Refusal[] };
-type Reply = { readonly view: View; readonly note: string | null; readonly outcome: { readonly verdict: string; readonly reason?: string } };
+type Answer =
+  | { readonly kind: "ask_amount"; readonly payeeId: string; readonly name: string; readonly address: string; readonly question: string; readonly amounts: readonly string[] }
+  | { readonly kind: "preview"; readonly payeeId: string; readonly name: string; readonly address: string; readonly amount: string };
+type Reply = { readonly view: View; readonly note: string | null; readonly answer?: Answer; readonly outcome: { readonly verdict: string; readonly reason?: string } };
 
 const LETTERS = [
   { id: "genuine", title: "A genuine payment request", says: "The payee asks for this month's payment." },
@@ -16,7 +19,7 @@ const LETTERS = [
   { id: "forged", title: "A forged memory record", says: "Text shaped like a stored VERIFIED record, written straight into memory." },
 ] as const;
 
-const VERDICT_WORDS: Record<string, string> = { PAY_RESERVED: "Payment approved (sandbox: nothing sent)", REFUSED: "Refused", CHANGE_STARTED: "Kept as stated: never payable until both wallets sign", CHANGE_VERIFIED: "Address change verified", NONE: "Nothing to do" };
+const VERDICT_WORDS: Record<string, string> = { PAY_RESERVED: "Payment approved (sandbox: nothing sent)", REFUSED: "Refused", CHANGE_STARTED: "Saved as said, not proven", CHANGE_VERIFIED: "Address change verified", ASK_AMOUNT: "Asked how much to pay", PAY_PREVIEW: "Showed a payment preview", NONE: "Understood, nothing to send" };
 
 const root = document.querySelector<HTMLElement>("#demo");
 let payeeId = "landlord";
@@ -37,6 +40,24 @@ function cards(view: View): HTMLElement {
         h("p", { class: "note" }, `${p.versions.filter((v) => v.status === "VERIFIED").length} verified, ${p.versions.filter((v) => v.status === "STATED").length} stated (never payable) in memory.`),
         stated.length ? h("ul", { class: "rows stated-list", "aria-label": "Stated addresses, never paid" }, ...stated.slice(-3).map((v) => h("li", {}, h("span", { class: "v" }, `v${v.version}`), h("span", { class: "what" }, h("span", {}, h("span", { class: "status stated" }, "Stated"), " ", addressEl(v.address, { short: true })))))) : null);
     }));
+}
+
+function amountPreview(answer: { readonly payeeId: string; readonly name: string; readonly address: string }, amount: string, status: HTMLElement, after: (reply: Reply) => Promise<void>): HTMLElement {
+  const pay = h("button", { class: "btn primary", type: "button" }, `Pay ${amount} USDC`);
+  listen(pay, "click", async () => {
+    pay.disabled = true;
+    const r = await api<Reply>("POST", "/api/lab/pay", { payeeId: answer.payeeId, amount });
+    pay.disabled = false;
+    if (!r.ok) return void (status.textContent = r.error.message);
+    await after(r.data);
+  }, status);
+  return h("div", { class: "outcome stated pay-preview" }, h("p", { class: "money" }, `Pay ${amount} USDC to ${answer.name}? Nothing has been sent yet.`), h("p", {}, "It goes to the verified address, and nowhere else:"), signatureFigure(answer.address), addressEl(answer.address), h("div", { class: "actions" }, pay));
+}
+
+function amountAsk(answer: Extract<Answer, { kind: "ask_amount" }>, note: string | null, status: HTMLElement, result: HTMLElement, after: (reply: Reply) => Promise<void>): HTMLElement {
+  const choose = (amount: string) => result.replaceChildren(amountPreview(answer, amount, status, after));
+  return h("div", { class: "outcome stated" }, h("p", { class: "money" }, answer.question), note ? h("p", {}, note) : "",
+    h("div", { class: "actions amounts" }, ...answer.amounts.map((amount) => h("button", { class: "btn", type: "button", onclick: () => choose(amount) }, `${amount} USDC`))));
 }
 
 function refusalCompare(view: View, entry: Entry | undefined): HTMLElement | null {
@@ -73,10 +94,21 @@ function letters(view: View, result: HTMLElement, status: HTMLElement): HTMLElem
     const r = await api<Reply>("POST", path, { payeeId, ...body });
     if (!r.ok) return void (status.textContent = r.error.message);
     status.textContent = "";
+    const shown = async (reply: Reply) => {
+      const paid = reply.outcome.verdict === "PAY_RESERVED";
+      result.replaceChildren(h("div", { class: `outcome ${paid ? "verified" : "refused"}` }, h("p", { class: "money" }, VERDICT_WORDS[reply.outcome.verdict] ?? reply.outcome.verdict), h("p", {}, paid ? "Sandbox: approved, nothing was sent." : reasonText(reply.outcome.reason ?? null))));
+      await draw(reply.view);
+    };
+    const answer = r.data.answer;
+    if (answer) {
+      result.replaceChildren(answer.kind === "ask_amount" ? amountAsk(answer, r.data.note, status, result, shown) : amountPreview(answer, answer.amount, status, shown));
+      return draw(r.data.view);
+    }
     const verdict = r.data.outcome.verdict;
     const tone = verdict === "REFUSED" ? "refused" : verdict === "CHANGE_STARTED" || verdict === "NONE" ? "stated" : "verified";
-    const money = verdict === "REFUSED" ? "Nothing was sent and nothing was changed." : verdict === "PAY_RESERVED" ? "Sandbox: approved, nothing was sent." : verdict === "CHANGE_STARTED" ? "Nothing was sent; payments still go to the address on file." : "";
-    result.replaceChildren(h("div", { class: `outcome ${tone}` }, h("p", { class: "money" }, VERDICT_WORDS[verdict] ?? verdict), money ? h("p", {}, money) : "", h("p", {}, reasonText(r.data.outcome.reason ?? null)), r.data.note ? h("p", { class: "note" }, r.data.note) : ""),
+    const money = verdict === "REFUSED" ? "Nothing was sent and nothing was changed." : verdict === "PAY_RESERVED" ? "Sandbox: approved, nothing was sent." : "";
+    const headline = r.data.outcome.reason === "LOOKALIKE_ADDRESS" ? "Look-alike refused" : VERDICT_WORDS[verdict] ?? verdict;
+    result.replaceChildren(h("div", { class: `outcome ${tone}` }, h("p", { class: "money" }, headline), money ? h("p", {}, money) : "", h("p", {}, reasonText(r.data.outcome.reason ?? null)), r.data.note ? h("p", { class: "note" }, r.data.note) : ""),
       verdict === "REFUSED" ? (refusalCompare(r.data.view, r.data.view.activity[0]) ?? "") : "");
     await draw(r.data.view);
   };
@@ -85,7 +117,7 @@ function letters(view: View, result: HTMLElement, status: HTMLElement): HTMLElem
     listen(b, "click", () => send("/api/lab/letter", { letter: l.id }), status);
     return b;
   });
-  const own = h("textarea", { id: "own-letter", rows: "3", maxlength: "2000", placeholder: "Paste or write any message about this payee." });
+  const own = h("textarea", { id: "own-letter", rows: "3", maxlength: "2000", placeholder: "Try: pay rent to landlord. Or paste a message with a wallet address." });
   const form = h("form", {}, h("label", { for: "own-letter" }, "Or paste your own", own), h("div", { class: "actions" }, h("button", { class: "btn", type: "submit" }, "Send to the agent")));
   listen(form, "submit", async (event) => {
     event.preventDefault();

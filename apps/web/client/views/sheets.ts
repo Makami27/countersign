@@ -49,11 +49,11 @@ async function follow(paymentId: string, status: HTMLElement, overview: Overview
   }
 }
 
-export function paySheet(detail: PayeeDetail, overview: Overview, onClosed: () => void): void {
+export function paySheet(detail: PayeeDetail, overview: Overview, onClosed: () => void, prefilled: string | null = null): void {
   const payTo = detail.payTo;
   if (!payTo) return;
   openSheet(`Pay ${detail.summary.name}`, (close, body) => {
-    const amount = h("input", { id: "amount", name: "amount", inputmode: "decimal", autocomplete: "off", required: true, placeholder: "0.10" });
+    const amount = h("input", { id: "amount", name: "amount", inputmode: "decimal", autocomplete: "off", required: true, placeholder: "0.10", value: prefilled ?? undefined });
     const error = h("p", { class: "error", role: "alert" });
     const step = h("div", {});
     const form = h("form", {}, h("label", { for: "amount" }, "Amount in USDC", h("span", { class: "hint" }, `Up to ${usdc(overview.caps.perPaymentBaseUnits)} per payment; ${usdc((BigInt(overview.caps.perDayBaseUnits) - BigInt(overview.caps.usedTodayBaseUnits)).toString())} left today.`), amount), error,

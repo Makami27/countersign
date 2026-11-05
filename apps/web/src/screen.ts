@@ -1,8 +1,12 @@
 import { addressesIn, headOf, isLookalike, knownAttackFor, payeeIdFor, usdcToBaseUnits, type IndexStore, type Proposal } from "@countersign/core";
 import type { Extraction } from "@countersign/adapters/model";
+import { readPayment, type KnownPayee, type PaymentQuestion, type PaymentReading } from "./paymentReading.ts";
 
 export type ChangeProposal = Extract<Proposal, { kind: "change_address" }>;
-export type Reading = { readonly status: "READ"; readonly by: "code" | "model"; readonly proposal: Proposal } | Extract<Extraction, { status: "UNKNOWN" }>;
+export type Reading =
+  | { readonly status: "READ"; readonly by: "code" | "model"; readonly proposal: Proposal }
+  | { readonly status: "QUESTION"; readonly question: PaymentQuestion; readonly payeeNames: readonly string[] }
+  | Extract<Extraction, { status: "UNKNOWN" }>;
 
 export async function screenAddresses(index: IndexStore, text: string): Promise<ChangeProposal | null> {
   const found = addressesIn(text);
@@ -32,12 +36,38 @@ export function commandProposal(text: string, payeeIds: readonly string[]): Extr
   return { kind: "pay", payeeId, amountBaseUnits, reasonQuote: text.trim() };
 }
 
+export async function knownPayees(index: IndexStore): Promise<readonly KnownPayee[]> {
+  return Promise.all((await index.payeeIds()).map(async (id) => {
+    const versions = await index.payeeVersions(id);
+    const head = headOf(versions);
+    const name = [...versions].sort((a, b) => b.version - a.version)[0]?.name ?? id;
+    return { id, name, verified: head.kind === "verified" ? head.version.address : null };
+  }));
+}
+
+function fromPayment(payment: PaymentReading, text: string, payees: readonly KnownPayee[]): Reading {
+  const reasonQuote = text.trim();
+  if (payment.kind === "pay") return { status: "READ", by: "code", proposal: { kind: "pay", payeeId: payment.payee.id, amountBaseUnits: payment.amountBaseUnits, reasonQuote } };
+  if (payment.kind === "change") return { status: "READ", by: "code", proposal: { kind: "change_address", payeeId: payment.payee.id, newAddress: payment.address, reasonQuote } };
+  return { status: "QUESTION", question: payment, payeeNames: payees.map((p) => p.name) };
+}
+
+function settledByCode(payment: PaymentReading | null, text: string): payment is PaymentReading {
+  if (!payment || payment.kind === "no_payee") return false;
+  return addressesIn(text).length > 0 || !/\d/.test(text);
+}
+
 export async function readMessage(index: IndexStore, extract: (text: string, payeeIds: readonly string[]) => Promise<Extraction>, text: string): Promise<Reading> {
   const screened = await screenAddresses(index, text);
   if (screened) return { status: "READ", by: "code", proposal: screened };
   const payeeIds = await index.payeeIds();
   const command = commandProposal(text, payeeIds);
   if (command) return { status: "READ", by: "code", proposal: command };
+  const payees = await knownPayees(index);
+  const payment = readPayment(text, payees);
+  if (settledByCode(payment, text)) return fromPayment(payment, text, payees);
   const extraction = await extract(text, payeeIds);
-  return extraction.status === "READ" ? { status: "READ", by: "model", proposal: extraction.proposal } : extraction;
+  if (extraction.status !== "READ") return extraction;
+  if (extraction.proposal.kind === "none" && payment) return fromPayment(payment, text, payees);
+  return { status: "READ", by: "model", proposal: extraction.proposal };
 }

@@ -27,6 +27,7 @@
     "./ownerRuntime": "./src/ownerRuntime.ts",
     "./telegramLinks": "./src/telegramLinks.ts",
     "./screen": "./src/screen.ts",
+    "./paymentReading": "./src/paymentReading.ts",
     "./quota": "./src/quota.ts",
     "./ownerViews": "./src/ownerViews.ts",
     "./scheduleRoutes": "./src/scheduleRoutes.ts"

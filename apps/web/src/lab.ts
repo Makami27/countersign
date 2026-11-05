@@ -1,10 +1,11 @@
 import { randomBytes, sign } from "node:crypto";
-import { isRefusal, Countersign, InMemoryIndex, InMemoryMemory, InMemoryPaymentLedger, addressesIn, changeMessage, headOf, onboardingMessage, type Outcome, type PayeeVersionRecord, type ReceiptRecord, type SuiAddress } from "@countersign/core";
+import { isRefusal, Countersign, InMemoryIndex, InMemoryMemory, InMemoryPaymentLedger, addressesIn, changeMessage, formatUsdc, headOf, onboardingMessage, type Outcome, type PayeeVersionRecord, type ReceiptRecord, type SuiAddress } from "@countersign/core";
 import { SharedAttackList } from "@countersign/core/shared";
 import { recordSignerFromSeed } from "@countersign/adapters/signer";
 import { traceFor, type TraceStep } from "./trace.ts";
 import { labVerify, newWallet, type Wallet } from "./labWallets.ts";
 import { FORGED_NOTE, letterText, type LetterKind } from "./labLetters.ts";
+import { NOTHING_ASKED, amountQuestion, questionWords, quickAmounts, readPayment, saidNotProvenWords, type KnownPayee } from "./paymentReading.ts";
 
 export const LAB_PAYEES = [
   { id: "landlord", name: "Landlord" },
@@ -15,6 +16,7 @@ type LabPayeeId = (typeof LAB_PAYEES)[number]["id"];
 const SESSION_TTL_MS = 30 * 60 * 1000;
 const MAX_SESSIONS = 500;
 const MAX_MESSAGE_CHARS = 2000;
+const CAPS = { perPaymentBaseUnits: 5_000_000n, perDayBaseUnits: 1_000_000_000n };
 
 export type LabView = {
   readonly payees: readonly { id: string; name: string; payableAddress: SuiAddress | null; versions: readonly PayeeVersionRecord[] }[];
@@ -25,7 +27,11 @@ export type LabView = {
 
 export type ActivityEntry = { readonly at: string; readonly label: string; readonly verdict: string; readonly reason: string | null; readonly receipt: string | null; readonly note: string | null };
 
-export type LabReply = { readonly outcome: Outcome; readonly trace: readonly TraceStep[]; readonly view: LabView; readonly note: string | null };
+export type LabAnswer =
+  | { readonly kind: "ask_amount"; readonly payeeId: string; readonly name: string; readonly address: SuiAddress; readonly question: string; readonly amounts: readonly string[] }
+  | { readonly kind: "preview"; readonly payeeId: string; readonly name: string; readonly address: SuiAddress; readonly amount: string };
+
+export type LabReply = { readonly outcome: Outcome; readonly trace: readonly TraceStep[]; readonly view: LabView; readonly note: string | null; readonly answer?: LabAnswer };
 
 class LabIndex extends InMemoryIndex {
   readonly refusals: ReceiptRecord[] = [];
@@ -62,7 +68,7 @@ class LabSession {
       roundTrips: { check: async () => "NOT_PROVEN" },
       clock: { now: () => new Date() },
       nonces: { next: () => `${(++this.#seq).toString(36)}${randomBytes(3).toString("hex")}` },
-      caps: { perPaymentBaseUnits: 5_000_000n, perDayBaseUnits: 1_000_000_000n },
+      caps: CAPS,
       cooldownMs: 60_000,
       shared: new SharedAttackList({ memory: this.memory, signer, now: () => new Date() }),
     });
@@ -112,22 +118,45 @@ class LabSession {
     return { outcome, trace: traceFor("pay", outcome), view: this.view(), note: FORGED_NOTE };
   }
 
-  async scam(payeeId: LabPayeeId, text: string, label = "Your message"): Promise<LabReply> {
-    const clipped = text.slice(0, MAX_MESSAGE_CHARS);
-    const message = { id: `lab:${randomBytes(4).toString("hex")}`, channel: "lab" as const, from: "visitor", text: clipped, receivedAt: new Date().toISOString() };
-    const address = addressesIn(clipped)[0];
-    const proposal = address
-      ? ({ kind: "change_address", payeeId, newAddress: address, reasonQuote: clipped } as const)
-      : ({ kind: "pay", payeeId, amountBaseUnits: "1000000", reasonQuote: clipped } as const);
-    const outcome = await this.engine.handle(message, proposal);
-    const note = address ? null : "No wallet address in that message, so the agent treated it as a payment request.";
-    this.#log(label, outcome, note);
-    return { outcome, trace: traceFor(proposal.kind, outcome), view: this.view(), note };
+  #known(): readonly KnownPayee[] {
+    return this.view().payees.map((p) => ({ id: p.id, name: p.name, verified: p.payableAddress }));
   }
 
-  async pay(payeeId: LabPayeeId): Promise<LabReply> {
+  #answered(label: string, verdict: string, note: string, answer?: LabAnswer): LabReply {
+    this.activity.unshift({ at: new Date().toISOString(), label, verdict, reason: null, receipt: null, note });
+    this.activity.splice(20);
+    return { outcome: { verdict: "NONE" }, trace: [], view: this.view(), note, ...(answer ? { answer } : {}) };
+  }
+
+  async #change(payeeId: string, address: SuiAddress, text: string, label: string): Promise<LabReply> {
+    const message = { id: `lab:${randomBytes(4).toString("hex")}`, channel: "lab" as const, from: "visitor", text, receivedAt: new Date().toISOString() };
+    const outcome = await this.engine.handle(message, { kind: "change_address", payeeId, newAddress: address, reasonQuote: text });
+    const name = LAB_PAYEES.find((p) => p.id === payeeId)?.name ?? payeeId;
+    const note = outcome.verdict === "CHANGE_STARTED" ? saidNotProvenWords(name) : null;
+    this.#log(label, outcome, note);
+    return { outcome, trace: traceFor("change_address", outcome), view: this.view(), note };
+  }
+
+  async scam(payeeId: LabPayeeId, text: string, label = "Your message"): Promise<LabReply> {
+    const clipped = text.slice(0, MAX_MESSAGE_CHARS);
+    const reading = readPayment(clipped, this.#known(), payeeId);
+    const stated = addressesIn(clipped)[0];
+    if (!reading) return stated ? this.#change(payeeId, stated, clipped, label) : this.#answered(label, "NONE", NOTHING_ASKED);
+    if (reading.kind === "change") return this.#change(reading.payee.id, reading.address, clipped, label);
+    if (reading.kind === "ask_amount") {
+      const amounts = quickAmounts(CAPS.perPaymentBaseUnits);
+      return this.#answered(label, "ASK_AMOUNT", questionWords(reading, []), { kind: "ask_amount", payeeId: reading.payee.id, name: reading.payee.name, address: reading.verified, question: amountQuestion(reading.payee.name), amounts });
+    }
+    if (reading.kind === "pay") {
+      const amount = formatUsdc(BigInt(reading.amountBaseUnits));
+      return this.#answered(label, "PAY_PREVIEW", `This reads as a payment of ${amount} USDC to ${reading.payee.name}. Nothing was sent.`, { kind: "preview", payeeId: reading.payee.id, name: reading.payee.name, address: reading.verified, amount });
+    }
+    return this.#answered(label, "NONE", questionWords(reading, LAB_PAYEES.map((p) => p.name)));
+  }
+
+  async pay(payeeId: LabPayeeId, amountBaseUnits = "1000000"): Promise<LabReply> {
     const message = { id: `lab:${randomBytes(4).toString("hex")}`, channel: "lab" as const, from: "owner", text: `Pay ${payeeId}`, receivedAt: new Date().toISOString() };
-    const outcome = await this.engine.handle(message, { kind: "pay", payeeId, amountBaseUnits: "1000000", reasonQuote: message.text });
+    const outcome = await this.engine.handle(message, { kind: "pay", payeeId, amountBaseUnits, reasonQuote: message.text });
     this.#log(`Pay ${payeeId}`, outcome, null);
     return { outcome, trace: traceFor("pay", outcome), view: this.view(), note: null };
   }

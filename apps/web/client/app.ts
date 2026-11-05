@@ -116,11 +116,14 @@ async function renderPage(): Promise<void> {
   if (!payees.ok) return show(failure(payees.error.message));
   const match = /^\/app\/payees\/([^/]+)$/.exec(path);
   const selected = match?.[1] ? decodeURIComponent(match[1]) : (payees.data.payees[0]?.id ?? null);
+  const payFromMessage = (payeeId: string, amount: string | null) => void api<PayeeDetail>("GET", `/api/app/payees/${encodeURIComponent(payeeId)}`).then((found) => {
+    if (found.ok) paySheet(found.data, overview.data, () => void render(), amount);
+  });
   const list = payeeList(payees.data.payees, overview.data, selected, () => addPayeeSheet(overview.data.network, () => void render()), () => void render());
-  if (checklistDone(overview.data)) list.append(pasteCard(() => void render()), checklistCard(overview.data));
+  if (checklistDone(overview.data)) list.append(pasteCard(() => void render(), payFromMessage), checklistCard(overview.data));
   else {
     list.prepend(checklistCard(overview.data));
-    list.append(pasteCard(() => void render()));
+    list.append(pasteCard(() => void render(), payFromMessage));
   }
   if (!selected) return show(h("div", { class: "owner single at-list" }, list));
   const detail = await api<PayeeDetail>("GET", `/api/app/payees/${encodeURIComponent(selected)}`);
