@@ -1,5 +1,5 @@
 import { withApprovals } from "../approvals.ts";
-import { h, liveRegion, listen } from "../dom.ts";
+import { copyButton, h, liveRegion, listen } from "../dom.ts";
 import { ADDRESS_PROBLEM, attachAddressCleaning, cleanAddress, isSuiAddress } from "../addressInput.ts";
 import type { Refusal } from "../types.ts";
 
@@ -37,8 +37,8 @@ export function addPayeeSheet(network: "mainnet" | "testnet", onClosed: () => vo
         const refusal = result.error.body?.["refusal"] as Refusal | undefined;
         return void (status.textContent = refusal ? [refusal.message, refusal.nextAction].filter(Boolean).join(" ") : result.error.message);
       }
-      form.replaceChildren(h("p", { class: "money" }, "Added. Nothing can be paid to it yet."), h("p", {}, "Send this link to the payee. Their wallet signs once to prove the address is theirs; then it becomes payable."), h("p", {}, h("span", { class: "addr" }, result.data.signUrl ?? "—")),
-        h("div", { class: "actions" }, h("button", { class: "btn primary", type: "button", onclick: () => void navigator.clipboard.writeText(result.data.signUrl ?? "") }, "Copy link"), h("button", { class: "btn", type: "button", onclick: close }, "Done")));
+      form.replaceChildren(h("p", { class: "money" }, "Added. Nothing can be paid to it yet."), h("p", {}, "Send this link to the payee. Their wallet signs once to prove the address is theirs; then it becomes payable."), h("p", { class: "link-text" }, result.data.signUrl ?? "—"),
+        h("div", { class: "actions" }, copyButton(result.data.signUrl ?? "", "Copy link"), h("button", { class: "btn", type: "button", onclick: close }, "Done")));
     }, status);
     body.append(form);
   }, onClosed);

@@ -12,21 +12,26 @@ const schemes = (process.argv[4] ?? "light,dark").split(",") as ("light" | "dark
 mkdirSync(out, { recursive: true });
 
 const cleanups: (() => void)[] = [];
-const s = await ownerServer({ after: (fn: () => void) => void cleanups.push(fn) } as unknown as TestContext);
-const world = s.owner as unknown as Record<string, unknown>;
-const runner = new PaymentRunner({ ledger: s.payments, chain: new ScriptedChain(), clock: { now: () => new Date() }, sleep: async () => undefined });
-world["balances"] = async () => ({ status: "KNOWN", usdcBaseUnits: 12_500_000n, suiBaseUnits: 421_000_000n });
-world["sendPayment"] = async (id: string) => {
-  await new Promise((resolve) => setTimeout(resolve, 900));
-  const payment = await runner.send(id);
-  await s.agent.recordPaymentOutcome(payment);
-  return payment;
-};
-await s.agent.requestOnboarding("Flat 4B rent with a long name for squeezing", wallet().address, "owner-confirm-studio");
-const fake = lookalikeOf(s.designer.address);
-await s.agent.handle(message(`new wallet ${fake}`), { kind: "change_address", payeeId: "designer", newAddress: fake, reasonQuote: "new wallet" });
-const later = wallet();
-await s.agent.handle(message(`new wallet ${later.address}`), { kind: "change_address", payeeId: "landlord", newAddress: later.address, reasonQuote: "new wallet" });
+async function seeded() {
+  const s = await ownerServer({ after: (fn: () => void) => void cleanups.push(fn) } as unknown as TestContext);
+  const world = s.owner as unknown as Record<string, unknown>;
+  const runner = new PaymentRunner({ ledger: s.payments, chain: new ScriptedChain(), clock: { now: () => new Date() }, sleep: async () => undefined });
+  world["balances"] = async () => ({ status: "KNOWN", usdcBaseUnits: 12_500_000n, suiBaseUnits: 421_000_000n });
+  world["sendPayment"] = async (id: string) => {
+    await new Promise((resolve) => setTimeout(resolve, 900));
+    const payment = await runner.send(id);
+    await s.agent.recordPaymentOutcome(payment);
+    return payment;
+  };
+  await s.agent.requestOnboarding("Flat 4B rent with a long name for squeezing", wallet().address, "owner-confirm-studio");
+  const fake = lookalikeOf(s.designer.address);
+  await s.agent.handle(message(`new wallet ${fake}`), { kind: "change_address", payeeId: "designer", newAddress: fake, reasonQuote: "new wallet" });
+  const later = wallet();
+  await s.agent.handle(message(`new wallet ${later.address}`), { kind: "change_address", payeeId: "landlord", newAddress: later.address, reasonQuote: "new wallet" });
+  return s;
+}
+
+let s = await seeded();
 
 const FAKE_WALLET = (address: string) => {
   const account = { address, publicKey: new Uint8Array(32), chains: ["sui:testnet"], features: ["sui:signPersonalMessage", "sui:signAndExecuteTransaction"] };
@@ -75,8 +80,30 @@ async function context(width: number, scheme: "light" | "dark"): Promise<Browser
   return ctx;
 }
 
+async function sweepColumns(ctx: BrowserContext): Promise<void> {
+  const page = await ctx.newPage();
+  await page.route("**/api/app/payees", (route) => (route.request().method() === "GET" ? route.fulfill({ json: { payees: [] } }) : route.continue()));
+  for (const route of ["/app", "/app/settings"]) {
+    await page.goto(`${s.base}${route}`);
+    await page.waitForSelector(".facts");
+    for (let width = 320; width <= 1920; width += 40) {
+      await page.setViewportSize({ width, height: 800 });
+      const squeezed = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>("main dd, main p, main li, main dt")].filter((el) => {
+        const text = el.textContent?.trim() ?? "";
+        return text.includes(" ") && el.clientWidth > 0 && el.clientWidth < 150;
+      }).map((el) => `${el.clientWidth}px "${(el.textContent ?? "").trim().slice(0, 40)}"`));
+      if (squeezed.length) note(`squeezed text at ${width} on ${route}: ${squeezed.join("; ")}`);
+    }
+  }
+  await page.close();
+}
+
 const browser = await chromium.launch();
+const sweep = await context(1440, "light");
+await sweepColumns(sweep);
+await sweep.close();
 for (const scheme of schemes) for (const width of widths) {
+  s = await seeded();
   const ctx = await context(width, scheme);
   const page = await ctx.newPage();
   page.on("pageerror", (error) => note(`page error ${width} ${scheme}: ${error.message}`));
@@ -122,6 +149,22 @@ for (const scheme of schemes) for (const width of widths) {
   await page.waitForTimeout(400);
   await shot(page, "app-payee", width, scheme);
 
+  if (await page.locator(".schedule-panel").isVisible()) note("schedules open by default");
+  await page.click(".schedule-toggle");
+  await page.click("button:has-text('Schedule a payment')");
+  await page.fill("#schedule-amount", "0.10");
+  await shot(page, "schedule-open", width, scheme);
+  await page.click(".schedule-panel form button[type=submit]");
+  await page.waitForSelector("button:has-text('Connect your wallet')");
+  await page.click("button:has-text('Connect your wallet')");
+  await page.waitForSelector("button:has-text('Sign with your wallet')");
+  await page.click("button:has-text('Sign with your wallet')");
+  await page.waitForSelector(".moment");
+  await page.waitForTimeout(500);
+  await page.waitForSelector(".schedule-toggle");
+  if (await page.locator(".schedule-panel").isVisible()) note("schedules stayed open after creating one");
+  await shot(page, "schedule-created", width, scheme);
+
   const fullAddress = await page.locator(".payto .addr").getAttribute("title");
   await page.click(".payto button:has-text('Copy address')");
   await page.waitForTimeout(100);
@@ -143,6 +186,48 @@ for (const scheme of schemes) for (const width of widths) {
   await page.waitForSelector(".pay-actions");
   if ((await page.locator(".sound-toggle").textContent()) !== "Sound off") note("mute wasn't remembered");
   await page.locator(".sound-toggle").click();
+
+  await page.goto(`${s.base}/app/payees/designer`);
+  await page.waitForSelector(".pay-actions");
+  await page.click("button:has-text('Request an address change')");
+  await shot(page, "change-request", width, scheme);
+  await page.fill("#new-address", wallet().address);
+  await page.click("dialog button[type=submit]");
+  await page.waitForSelector("dialog .link-text");
+  await shot(page, "change-link", width, scheme);
+  await closeSheet(page);
+  await page.waitForTimeout(600);
+  await page.click("button:has-text('I confirm this change myself')");
+  await shot(page, "change-confirm", width, scheme);
+  await closeSheet(page);
+
+  await page.goto(`${s.base}/app`);
+  await page.click(".cheque-link:has-text('Flat 4B')");
+  await page.waitForSelector(".detail .link-text");
+  await page.waitForTimeout(300);
+  await shot(page, "app-waiting", width, scheme);
+
+  await page.goto(`${s.base}/app`);
+  await page.waitForSelector("button:has-text('Add a payee')");
+  await page.click("button:has-text('Add a payee')");
+  await shot(page, "add-payee", width, scheme);
+  await page.fill("#payee-name", `Studio ${width}${scheme}`);
+  await page.fill("#payee-address", wallet().address);
+  await page.click("dialog button[type=submit]");
+  await page.waitForSelector("dialog button:has-text('Connect your wallet')");
+  await page.click("dialog button:has-text('Connect your wallet')");
+  await page.waitForSelector("dialog button:has-text('Sign with your wallet')");
+  await page.click("dialog button:has-text('Sign with your wallet')");
+  await page.waitForSelector("dialog .link-text");
+  await shot(page, "add-payee-link", width, scheme);
+  await closeSheet(page);
+
+  await page.route("**/api/app/payees", (route) => (route.request().method() === "GET" ? route.fulfill({ json: { payees: [] } }) : route.continue()));
+  await page.goto(`${s.base}/app`);
+  await page.waitForSelector(".facts");
+  await page.waitForTimeout(300);
+  await shot(page, "app-first-run", width, scheme);
+  await page.unroute("**/api/app/payees");
 
   await page.goto(`${s.base}/demo`);
   await page.waitForSelector("#own-letter");

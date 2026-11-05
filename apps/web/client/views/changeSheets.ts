@@ -1,6 +1,6 @@
 import { api } from "../api.ts";
 import { withApprovals } from "../approvals.ts";
-import { addressEl, h, liveRegion, when, listen } from "../dom.ts";
+import { addressEl, copyButton, h, liveRegion, when, listen } from "../dom.ts";
 import { ADDRESS_PROBLEM, attachAddressCleaning, cleanAddress, isSuiAddress } from "../addressInput.ts";
 import type { PayeeDetail, Refusal } from "../types.ts";
 import { openSheet } from "./sheets.ts";
@@ -29,8 +29,8 @@ export function requestChangeSheet(detail: PayeeDetail, onClosed: () => void): v
       submit.disabled = false;
       if (!result.ok) return void (status.textContent = refusalLine(result.error.body, result.error.message));
       form.replaceChildren(h("p", { class: "money" }, "Requested. Nothing will be paid to the new address yet."), addressEl(cleanAddress(address.value), detail.payTo ? { against: detail.payTo.address } : {}),
-        h("p", {}, "Send this link to the payee:"), h("p", {}, h("span", { class: "addr" }, result.data.signUrl ?? "—")),
-        h("div", { class: "actions" }, h("button", { class: "btn primary", type: "button", onclick: () => void navigator.clipboard.writeText(result.data.signUrl ?? "") }, "Copy link"), h("button", { class: "btn", type: "button", onclick: close }, "Done")));
+        h("p", {}, "Send this link to the payee:"), h("p", { class: "link-text" }, result.data.signUrl ?? "—"),
+        h("div", { class: "actions" }, copyButton(result.data.signUrl ?? "", "Copy link"), h("button", { class: "btn", type: "button", onclick: close }, "Done")));
     }, status);
     body.append(form);
   }, onClosed);
