@@ -1,15 +1,7 @@
-import { addressEl, h, listen, liveRegion, scrawlEl, signatureFigure, statusPill, usdc, when } from "../dom.ts";
+import { addressEl, copyButton, h, listen, liveRegion, scrawlEl, signatureFigure, statusPill, usdc, when } from "../dom.ts";
 import type { PayeeDetail } from "../types.ts";
 
 const REFUSAL_FRESH_MS = 7 * 24 * 3600 * 1000;
-
-function copyButton(text: string, label: string): HTMLButtonElement {
-  const button = h("button", { class: "btn", type: "button" }, label);
-  button.addEventListener("click", () => {
-    void navigator.clipboard.writeText(text).then(() => { button.textContent = "Copied"; }, () => { button.textContent = "Select and copy the link above"; });
-  });
-  return button;
-}
 
 function verifiedLine(detail: PayeeDetail): HTMLElement | null {
   if (!detail.payTo) return null;

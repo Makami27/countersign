@@ -7,6 +7,7 @@ import type { OwnerWallets } from "./ownerWallet.ts";
 import type { Schedules } from "./schedules.ts";
 import type { QuotaMeter } from "./quota.ts";
 import type { Reading } from "./screen.ts";
+import type { DepositAmounts, DepositSighting, PreparedDeposit } from "@countersign/adapters/tatum";
 
 export type BalancesView =
   | { readonly status: "KNOWN"; readonly suiBaseUnits: bigint; readonly usdcBaseUnits: bigint }
@@ -22,6 +23,11 @@ export type MemoryView = {
 
 export type MemoryCounts = { readonly realUseMemories: number; readonly namespaces: number; readonly byNamespace: readonly { readonly suffix: string; readonly count: number }[] } | null;
 
+export type DepositPort = {
+  readonly prepare: (sender: SuiAddress, amounts: DepositAmounts) => Promise<PreparedDeposit>;
+  readonly sight: (digest: string) => Promise<DepositSighting>;
+};
+
 export type OwnerContext = {
   readonly ownerId: string;
   readonly network: "mainnet" | "testnet";
@@ -31,7 +37,8 @@ export type OwnerContext = {
   readonly index: IndexStore;
   readonly ledger: PaymentLedger & { reservedFor(period: string): Promise<bigint> };
   readonly settings: OwnerSettings;
-  readonly balances: () => Promise<BalancesView>;
+  readonly balances: (fresh?: boolean) => Promise<BalancesView>;
+  readonly deposits: DepositPort;
   readonly memory: () => MemoryView;
   readonly memoryCounts: () => Promise<MemoryCounts>;
   readonly sendPayment: (paymentId: string) => Promise<PaymentIntent>;

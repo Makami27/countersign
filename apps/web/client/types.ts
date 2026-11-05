@@ -1,3 +1,5 @@
+import type { NextScheduled } from "./walletFacts.ts";
+
 export type PayeeStatus = "verified" | "change_pending" | "attempt_refused" | "waiting_wallet" | "conflict" | "not_payable";
 
 export type PayeeSummary = {
@@ -32,6 +34,7 @@ export type Overview = {
   readonly memoryCounts: { readonly realUseMemories: number; readonly namespaces: number } | null;
   readonly memoryCountsWhy: string | null;
   readonly caps: { readonly perPaymentBaseUnits: string; readonly perDayBaseUnits: string; readonly usedTodayBaseUnits: string };
+  readonly nextScheduled: NextScheduled | null;
   readonly cooldownSeconds: number;
   readonly payeeCount: number;
   readonly ownerWallet:

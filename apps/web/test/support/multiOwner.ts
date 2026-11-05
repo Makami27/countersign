@@ -37,6 +37,7 @@ export async function multiOwnerServer(t: TestContext, maxOwners = 3, limits: Qu
       storage: { index, ledger, rows: new SqliteRows(join(dir, `${ownerId}.sqlite`)) }, signer: recordSignerFromSeed(randomBytes(32).toString("base64")), verifier,
       roundTrips: { check: async () => "NOT_PROVEN" }, runner: new PaymentRunner({ ledger, chain: new ScriptedChain(), clock: { now: () => new Date() }, sleep: async () => undefined }),
       balances: async () => ({ status: "UNKNOWN", detail: "test" }), memoryCounts: async () => null,
+      deposits: { prepare: async () => ({ ok: false, kind: "UNKNOWN", detail: "test" }), sight: async () => ({ kind: "UNKNOWN", detail: "test" }) },
       notify: async (text) => void notices.set(ownerId, [...(notices.get(ownerId) ?? []), text]),
       reader, quota: new QuotaMeter(ownerId === "admin1" ? null : limits), isAdmin: ownerId === "admin1",
       telegram: { link: async () => { const issued = await links.issue(ownerId); return { url: `https://t.me/countersign_test_bot?start=${issued.token}`, expires: issued.expires }; }, linked: async () => (await links.chatOf(ownerId)) !== null },

@@ -10,7 +10,7 @@ import { OwnerSettings } from "./ownerSettings.ts";
 import { OwnerWallets } from "./ownerWallet.ts";
 import { ScheduleRunner } from "./scheduleRuns.ts";
 import { Schedules } from "./schedules.ts";
-import type { BalancesView, MemoryCounts, OwnerContext } from "./ownerContext.ts";
+import type { BalancesView, DepositPort, MemoryCounts, OwnerContext } from "./ownerContext.ts";
 import type { OwnerRuntime } from "./ownerDirectory.ts";
 import type { ModelReader } from "@countersign/adapters/model";
 import type { QuotaMeter } from "./quota.ts";
@@ -30,7 +30,8 @@ export type RuntimeInput = {
   readonly verifier: SignatureVerifier;
   readonly roundTrips: RoundTripChecker;
   readonly runner: PaymentRunner;
-  readonly balances: () => Promise<BalancesView>;
+  readonly balances: (fresh?: boolean) => Promise<BalancesView>;
+  readonly deposits: DepositPort;
   readonly memoryCounts: () => Promise<MemoryCounts>;
   readonly notify: (text: string) => Promise<void>;
   readonly telegram: OwnerContext["telegram"];
@@ -89,7 +90,16 @@ export async function buildOwnerRuntime(i: RuntimeInput): Promise<BuiltRuntime> 
     return i.runner.send(paymentId);
   };
   const ctx: OwnerContext = {
-    ownerId: i.ownerId, network: i.network, agentAddress: i.agentAddress, publicUrl: i.publicUrl, engine, index, ledger, settings, balances: i.balances,
+    ownerId: i.ownerId, network: i.network, agentAddress: i.agentAddress, publicUrl: i.publicUrl, engine, index, ledger, settings, balances: i.balances, deposits: {
+      prepare: (sender, amounts) => {
+        i.quota.record("tatum");
+        return i.deposits.prepare(sender, amounts);
+      },
+      sight: (digest) => {
+        i.quota.record("tatum");
+        return i.deposits.sight(digest);
+      },
+    },
     memory: () => memoryView, memoryCounts: i.memoryCounts, steps, cooldownMs: () => settings.values().cooldownSeconds * 1000,
     verifySignature: (message, signature, address) => verifier.verifyPersonalMessage(message, signature, address),
     wallets, approvals, notify: i.notify, schedules, shared, telegram: i.telegram, quota: i.quota, isAdmin: i.isAdmin,

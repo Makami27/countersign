@@ -87,6 +87,21 @@ export function signatureFigure(address: string, options: { readonly drawWhenNew
   return h("div", { class: "sigcard-sig" }, scrawlEl(address, options), h("span", { class: "sigline" }, "Drawn from the address"));
 }
 
+export function copyButton(text: string, label: string): HTMLButtonElement {
+  const button = h("button", { class: "btn", type: "button" }, label);
+  button.addEventListener("click", () => {
+    void navigator.clipboard.writeText(text).then(() => {
+      button.textContent = "Copied";
+      window.setTimeout(() => {
+        button.textContent = label;
+      }, 2_000);
+    }, () => {
+      button.textContent = "Couldn't copy: select it above";
+    });
+  });
+  return button;
+}
+
 export function liveRegion(): HTMLElement {
   return h("p", { role: "status", "aria-live": "polite", class: "note" });
 }

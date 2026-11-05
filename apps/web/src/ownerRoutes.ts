@@ -14,6 +14,7 @@ import { ownerWalletRoute } from "./ownerWalletRoutes.ts";
 import { scheduleList, scheduleRoute } from "./scheduleRoutes.ts";
 import { adminRoute } from "./adminRoutes.ts";
 import { pasteRoute } from "./pasteRoute.ts";
+import { depositRoute } from "./depositRoutes.ts";
 import { BUSY } from "./quota.ts";
 import { retractSharedReport } from "./sharedReportRoutes.ts";
 
@@ -77,6 +78,7 @@ async function ownerRequest(ctx: OwnerContext, req: IncomingMessage, res: Server
     return link ? send(res, 200, link) : problem(res, 503, "The Telegram bot isn't running right now. Nothing was changed. Try again shortly.");
   }
   if (req.method === "POST" && parts[0] === "paste") return pasteRoute(ctx, res, input);
+  if (req.method === "POST" && parts[0] === "deposits") return depositRoute(ctx, res, parts[1], input);
   if (parts[0] === "schedules") return scheduleRoute(ctx, res, req.method ?? "", parts, input);
   if (req.method === "POST" && parts[0] === "receipts" && parts[1] && parts[2] === "retract") return retractSharedReport(ctx, res, decodeURIComponent(parts[1]), input);
   if (req.method === "POST" && parts[0] === "owner" && parts[1] === "wallet") return ownerWalletRoute(ctx, res, parts, input);
