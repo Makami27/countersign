@@ -1,4 +1,4 @@
-type Live = { readonly memories: number | null; readonly sharedAgents: number | null; readonly sharedReports: number | null };
+import { countText, sharedSentence, type Live } from "./liveCounts.ts";
 
 const STEP_MS = 380;
 
@@ -7,10 +7,10 @@ async function fillLive(): Promise<void> {
   if (fields.length === 0) return;
   const response = await fetch("/api/proof", { credentials: "same-origin" });
   const live = response.ok ? ((await response.json()) as { live?: Live }).live : undefined;
-  for (const field of fields) {
-    const value = live?.[field.dataset["live"] as keyof Live];
-    field.textContent = typeof value === "number" ? String(value) : "—";
-  }
+  for (const field of fields) field.textContent = countText(live?.[field.dataset["live"] as keyof Live]);
+  const shared = document.querySelector<HTMLElement>("[data-shared-line]");
+  const sentence = sharedSentence(live);
+  if (shared && sentence) shared.textContent = sentence;
 }
 
 function replayOnce(): void {

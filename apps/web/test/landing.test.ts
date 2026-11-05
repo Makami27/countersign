@@ -5,6 +5,7 @@ import type { AddressInfo } from "node:net";
 import { startWebServer } from "../src/server.ts";
 import { readActs, readTrial } from "../src/landingData.ts";
 import { COMPARED_TRIAL } from "../src/landingPage.ts";
+import { countText, sharedSentence } from "../client/liveCounts.ts";
 
 const LINKS = ["https://www.ic3.gov/AnnualReport/Reports/2025_IC3Report.pdf", "https://cointelegraph.com/news/address-poisoning-copy-paste-mistake-50m-usdt-loss", "/proof", "/status", "/demo"];
 
@@ -66,4 +67,12 @@ test("V27 the landing cites its sources, keeps live counters honest and leaves t
   assert.doesNotMatch(page, /data-claim=|Every claim with its evidence|Status of everything the agent depends on/);
   const proof = (await (await fetch(`${base}/api/proof`)).json()) as { live: Record<string, unknown> };
   assert.deepEqual(proof.live, { memories: null, sharedAgents: null, sharedReports: null });
+});
+
+test("V27 the shared counter says \"No shared reports yet\" at zero, counts agents in plain words, and stays \"—\" when unknown", () => {
+  assert.equal(sharedSentence({ memories: 12, sharedAgents: 0, sharedReports: 0 }), "No shared reports yet.");
+  assert.equal(sharedSentence({ memories: 12, sharedAgents: 1, sharedReports: 2 }), "Shared scam reports right now: 2, from 1 agent.");
+  assert.equal(sharedSentence({ memories: 12, sharedAgents: 3, sharedReports: 4 }), "Shared scam reports right now: 4, from 3 agents.");
+  assert.equal(sharedSentence({ memories: null, sharedAgents: null, sharedReports: null }), null);
+  assert.equal(countText(null), "—");
 });
