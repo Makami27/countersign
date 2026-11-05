@@ -42,11 +42,12 @@ Every text/background pair was checked ≥ 4.5:1 (tightest: stamp red on light `
 - Landing (v2, 2 Nov): one job per section, in full-width bands alternating paper and inset paper. Sticky header: wordmark, in-page links (Demo, How it works, Memory, Proof, FAQ), Status, GitHub, "Sign in with your wallet", "Try the demo"; on phones the links sit in a `<details>` menu. Sections: hero (unchanged) → the problem (IC3 2025 and the Dec 2025 look-alike loss, both cited) → watch it decide (Acts 2–3 replayed from `evidence/acts`) → how it works → a month with Countersign (the loud moment: rubber date stamps, Acts 1–4 receipts, dates marked illustrative) → memory → shared scam memory → measured → same message, two agents (measurement trial K4 #1 from the raw rows) → what it does → built on Sui and Walrus through Tatum → FAQ → final call to action → footer. Every figure, transcript and comparison is read from evidence files or `/api/proof` at request time; a missing file is said plainly, never filled in. Only the hero card, the date stamps and the two-agent comparison are loud. The claims ledger lives on /proof.
 - Landing script: one module, `build/landing.js` (under 1 KB), for the replay and the live counters (`/api/proof` `live`, cached 5 min on the server; "—" when unknown). Without it the page is complete.
 
-## Motion (only these four)
+## Motion (only these five)
 1. The wordmark drawing on the landing.
 2. A signature drawing itself the first time a payee is seen verified in this browser (`.scrawl.draw`; remembered in localStorage, which only decides the animation).
 3. The VOID stamp landing. Under reduced motion it fades (Q04) and the drawings appear complete.
 4. The landing replay of Acts 2–3: each step appears once, in order, when it first scrolls into view. Under reduced motion it is shown complete.
+5. The SIGNED slip (`client/moment.ts`): the green counterpart of VOID, one consistent moment after sign-in, payee verified, payment settled, deposit confirmed, schedule created and address change completed. It lands once, draws the signature of the address involved, plays a short stamp sound made with Web Audio (only after a user action; "Sound on/off" in the header, remembered per browser), and leaves after about 3 seconds. Under reduced motion it fades.
 
 ## Principles kept
 1. Every outcome starts with what happened to money ("Nothing was sent and nothing was changed.").

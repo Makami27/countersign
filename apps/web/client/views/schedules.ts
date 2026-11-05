@@ -2,6 +2,7 @@ import { WEEKDAYS, usdcToBaseUnits } from "@countersign/core";
 import { withApprovals } from "../approvals.ts";
 import { h, liveRegion, listen, when } from "../dom.ts";
 import type { ScheduleItem } from "../types.ts";
+import { showMoment } from "../moment.ts";
 
 const LAST_DAY = 28;
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -44,7 +45,10 @@ export function schedulesPanel(payeeId: string, items: readonly ScheduleItem[], 
     const body = { payeeId, amount: amount.value.trim(), every: every.value, day: Number(weekly ? weekday.value : day.value), month: every.value === "year" ? Number(month.value) : null };
     const result = await withApprovals("POST", "/api/app/schedules", body, network, status);
     status.textContent = result.ok ? "Scheduled. Each run re-checks the verified address, your caps and Walrus Memory." : result.error.message;
-    if (result.ok) onChanged();
+    if (result.ok) {
+      showMoment({ title: "Payment scheduled", detail: "Each run re-checks the verified address, your caps and Walrus Memory." });
+      onChanged();
+    }
   }, status);
   return h("section", { "aria-labelledby": "schedules-title" }, h("h3", { id: "schedules-title" }, "Scheduled payments"),
     h("p", { class: "hint" }, "Each runs once per period on the day you pick. Creating, changing or deleting one needs your wallet's signature."),

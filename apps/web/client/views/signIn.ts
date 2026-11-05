@@ -5,7 +5,7 @@ import { walletStep } from "../walletSteps.ts";
 
 type Challenge = { readonly nonce: string; readonly message: string; readonly expires: string; readonly network: "mainnet" | "testnet" };
 
-export function signInPage(onSignedIn: () => void, why: string | null): HTMLElement {
+export function signInPage(onSignedIn: (address: string) => void, why: string | null): HTMLElement {
   const status = liveRegion();
   const box = h("div", {});
   const wallets = signingWallets();
@@ -28,7 +28,7 @@ export function signInPage(onSignedIn: () => void, why: string | null): HTMLElem
           status.textContent = "Checking your signature through Tatum…";
           const session = await api("POST", "/api/session", { address, nonce: challenge.data.nonce, signature });
           if (!session.ok) return void (status.textContent = session.error.message);
-          onSignedIn();
+          onSignedIn(address);
         } }));
     }, status);
     return button;
