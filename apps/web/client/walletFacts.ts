@@ -1,3 +1,5 @@
+import { formatUsdc, usdcToBaseUnits } from "@countersign/core";
+
 const SUI_DECIMALS = 9;
 const SUI_AMOUNT = /^(\d+)(?:\.(\d{1,9}))?$/;
 const SHOWN_SUI_DIGITS = 4;
@@ -12,6 +14,13 @@ export const FAUCETS = [
   { label: "test SUI (faucet.sui.io)", href: "https://faucet.sui.io/?network=testnet" },
   { label: "test USDC (faucet.circle.com, choose Sui testnet)", href: "https://faucet.circle.com/" },
 ] as const;
+
+const QUICK_AMOUNTS = ["0.10", "1", "5", "10"] as const;
+
+export function quickAmounts(limitBaseUnits: bigint): readonly string[] {
+  const allowed = QUICK_AMOUNTS.filter((amount) => BigInt(usdcToBaseUnits(amount) ?? "0") <= limitBaseUnits);
+  return allowed.length > 0 ? allowed : [formatUsdc(limitBaseUnits)];
+}
 
 export function suiToBaseUnits(amountText: string): string | null {
   const match = SUI_AMOUNT.exec(amountText);

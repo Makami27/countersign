@@ -43,9 +43,23 @@
 .app .back { font-size: var(--step--1); min-height: var(--tap); display: inline-flex; align-items: center; justify-self: start; }
 @media (min-width: 960px) { .app .back { display: none; } }
 
-.app .cheque { gap: var(--space-2); }
+.app .cheque { gap: 0; padding: 0; }
 .app .cheque:hover { border-color: var(--line-strong); }
-.app .cheque[aria-current="page"] { border-color: var(--ballpoint); box-shadow: inset 0 0 0 1px var(--ballpoint); }
+.app .cheque.current { border-color: var(--ballpoint); box-shadow: inset 0 0 0 1px var(--ballpoint); }
+.app .cheque-link { display: grid; gap: var(--space-2); padding: var(--space-4) var(--space-4) var(--space-3); color: inherit; text-decoration: none; border-radius: var(--radius-card); min-width: 0; }
+.app .cheque-pay { margin: 0 var(--space-4) var(--space-4); }
+.app .pay-actions .btn.primary { min-width: 10rem; }
+.app .pay-headline { font-size: var(--step-1); }
+.app .caps-left > div { padding: var(--space-2) 0; }
+.app .pay-steps li { grid-template-columns: 1.9rem minmax(0, 1fr); align-items: start; }
+.app .stage-words { display: grid; gap: 2px; }
+.app .stage-words strong { font-weight: 700; }
+.app .stage.waiting { color: var(--ink-soft); }
+.app .stage.active .n { border-color: var(--ballpoint); color: var(--ballpoint); }
+.app .stage.done .n { background: var(--seal); border-color: var(--seal); color: var(--paper); }
+.app .stage.failed .n { background: var(--stamp); border-color: var(--stamp); color: var(--paper); }
+.app .stage.unsure .n { background: var(--highlight); border-color: var(--on-highlight); color: var(--on-highlight); }
+.app .digest { overflow-wrap: anywhere; }
 .app .cheque .sigcard-name { font-size: var(--step-0); font-weight: 600; }
 .app .sigcard-sig.small .scrawl { height: 3.4rem; }
 @media (min-width: 960px) { .app .owner.single .list { max-width: 880px; border-right: 0; background: none; } }
@@ -64,11 +78,6 @@
 .app .attempt-head h3 { color: var(--stamp); }
 .app .stamp.inline { position: static; flex: none; }
 .app .links { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); font-size: var(--step--1); }
-
-@media (max-width: 959px) {
-  .app .actions.sticky { position: sticky; bottom: 0; padding: var(--space-3) var(--gutter); margin: 0 calc(-1 * var(--gutter)); background: var(--paper); border-top: 1px solid var(--line); }
-  .app .actions.sticky .btn { flex: 1; }
-}
 
 .app form { display: grid; gap: var(--space-4); max-width: 34rem; }
 .app label { display: grid; gap: var(--space-1); font-weight: 600; }

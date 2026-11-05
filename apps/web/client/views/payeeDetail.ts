@@ -107,12 +107,12 @@ export function payeeDetailView(detail: PayeeDetail, actions: DetailActions): HT
     detail.payTo ? h("article", { class: `sigcard payto ${verified ? "verified" : "refused"}`, "aria-label": `Signature card for ${detail.summary.name}` },
       h("div", { class: "sigcard-head" }, h("span", { class: "label" }, "Pays to"), statusPill(verified ? "verified" : "conflict")),
       signatureFigure(detail.payTo.address, { drawWhenNew: verified }),
-      addressEl(detail.payTo.address), verifiedLine(detail)) : null,
+      addressEl(detail.payTo.address), h("div", { class: "actions" }, copyButton(detail.payTo.address, "Copy address")), verifiedLine(detail)) : null,
+    verified ? h("div", { class: "actions pay-actions" }, h("button", { class: "btn primary", type: "button", onclick: actions.onPay }, `Pay ${detail.summary.name}`), detail.pendingChanges.length === 0 ? h("button", { class: "btn", type: "button", onclick: actions.onRequestChange }, "Request an address change") : null) : null,
     waitingCard(detail),
     ...detail.pendingChanges.map((c) => pendingChangeCard(c, detail.payTo?.address ?? null, actions)),
     refusalCard(detail, now),
     detail.latestRefusal ? null : h("p", { class: "empty" }, "Nothing refused for this payee."),
     historyList(detail),
-    paymentsList(detail),
-    verified ? h("div", { class: "actions sticky" }, h("button", { class: "btn primary", type: "button", onclick: actions.onPay }, `Pay ${detail.summary.name}`), detail.pendingChanges.length === 0 ? h("button", { class: "btn", type: "button", onclick: actions.onRequestChange }, "Request an address change") : null) : null);
+    paymentsList(detail));
 }

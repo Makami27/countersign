@@ -100,6 +100,25 @@ for (const scheme of schemes) for (const width of widths) {
   await shot(page, "deposit-done", width, scheme);
   await closeSheet(page);
 
+  await page.click(".cheque-pay >> nth=0");
+  await shot(page, "pay-amount", width, scheme);
+  await page.fill("#amount", "99");
+  await page.click("dialog button[type=submit]");
+  await shot(page, "pay-amount-error", width, scheme);
+  await page.click("dialog .amounts .btn >> nth=1");
+  await shot(page, "pay-confirm", width, scheme);
+  await page.click("dialog .btn.primary");
+  await page.waitForSelector("dialog .pay-steps");
+  await shot(page, "pay-progress", width, scheme);
+  await page.waitForFunction(() => document.querySelector("dialog")?.textContent?.includes("View the receipt"), undefined, { timeout: 30_000 });
+  await shot(page, "pay-settled", width, scheme);
+  await closeSheet(page);
+
+  await page.goto(`${s.base}/app/payees/landlord`);
+  await page.waitForSelector(".pay-actions");
+  await page.waitForTimeout(400);
+  await shot(page, "app-payee", width, scheme);
+
   await page.goto(`${s.base}/demo`);
   await page.waitForSelector("#own-letter");
   await page.waitForTimeout(400);

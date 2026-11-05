@@ -116,7 +116,7 @@ async function ownerRequest(ctx: OwnerContext, req: IncomingMessage, res: Server
     const text = `Pay ${head.version.name} ${amountText} USDC (owner app)`;
     const outcome = await ctx.engine.handle({ id: `web:${randomBytes(8).toString("hex")}`, channel: "web", from: "owner", text, receivedAt: new Date(now).toISOString() }, { kind: "pay", payeeId, amountBaseUnits, reasonQuote: text });
     if (outcome.verdict !== "PAY_RESERVED") return send(res, 422, refusalBody(outcome));
-    void ctx.sendPayment(outcome.paymentId);
+    void ctx.sendPayment(outcome.paymentId).then(() => ctx.balances(true)).catch((error: unknown) => console.error(`Payment ${outcome.paymentId} stays open for the next check: ${error instanceof Error ? error.message.slice(0, 200) : "unexpected error"}`));
     return send(res, 202, { paymentId: outcome.paymentId, message: `Nothing has been sent yet. Sending ${formatUsdc(outcome.amountBaseUnits)} USDC now.` });
   }
   if (req.method === "POST" && parts[0] === "payees" && parts[1] && parts[2] === "changes") {

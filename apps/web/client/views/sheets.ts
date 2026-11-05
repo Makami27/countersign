@@ -1,12 +1,7 @@
-import { usdcToBaseUnits } from "@countersign/core";
-import { api } from "../api.ts";
 import { withApprovals } from "../approvals.ts";
-import { addressEl, h, liveRegion, networkWords, usdc, listen } from "../dom.ts";
+import { h, liveRegion, listen } from "../dom.ts";
 import { ADDRESS_PROBLEM, attachAddressCleaning, cleanAddress, isSuiAddress } from "../addressInput.ts";
-import type { Overview, PayeeDetail, PaymentStatus, Refusal } from "../types.ts";
-
-const POLL_MS = 1_500;
-const RECEIPT_WAIT_MS = 90_000;
+import type { Refusal } from "../types.ts";
 
 export function openSheet(title: string, build: (close: () => void, body: HTMLElement) => void, onClosed: () => void): void {
   const body = h("div", { class: "narrow", style: undefined });
@@ -19,69 +14,6 @@ export function openSheet(title: string, build: (close: () => void, body: HTMLEl
   document.querySelector(".app")?.append(dialog);
   build(close, body);
   dialog.showModal();
-}
-
-function refusalText(refusal: Refusal, overview: Overview, amount: string): string {
-  if (refusal.reason !== "CAP_EXCEEDED") return [refusal.message, refusal.nextAction].filter(Boolean).join(" ");
-  const perPayment = BigInt(overview.caps.perPaymentBaseUnits);
-  return BigInt(amount) > perPayment
-    ? `Nothing was sent. ${usdc(amount)} is above the per-payment cap of ${usdc(overview.caps.perPaymentBaseUnits)}. Change it in Settings if you mean it.`
-    : `Nothing was sent. This would pass today's cap of ${usdc(overview.caps.perDayBaseUnits)}; ${usdc(overview.caps.usedTodayBaseUnits)} is already used today.`;
-}
-
-function storedWhere(overview: Overview): string {
-  return overview.memory.relayer.startsWith("sandbox") ? "in sandbox memory (not Walrus Memory)" : "on Walrus Memory";
-}
-
-async function follow(paymentId: string, status: HTMLElement, overview: Overview): Promise<void> {
-  const started = Date.now();
-  for (;;) {
-    const result = await api<PaymentStatus>("GET", `/api/app/payments/${paymentId}`);
-    if (!result.ok) return void (status.textContent = result.error.message);
-    const { payment, receipt } = result.data;
-    const amount = usdc(payment.amountBaseUnits);
-    if (payment.state === "SETTLED") status.textContent = receipt ? `Sent ${amount} on ${networkWords(overview.network)}. Transaction ${payment.digest}. Receipt ${receipt.receipt} is stored ${storedWhere(overview)}.` : `Sent ${amount}. Transaction ${payment.digest}. Writing the receipt ${storedWhere(overview)} (about 20 seconds)…`;
-    else if (payment.state === "FAILED") status.textContent = receipt ? `No USDC moved. ${payment.detail ?? ""} Receipt ${receipt.receipt}.` : `No USDC moved. ${payment.detail ?? ""} Writing the receipt…`;
-    else if (payment.state === "UNKNOWN") return void (status.textContent = `Not sure yet whether ${amount} arrived. It will not be sent again; the agent checks the transaction ${payment.digest ?? ""} and updates Activity.`);
-    else status.textContent = `Sending ${amount}… nothing is confirmed yet.`;
-    if ((payment.state === "SETTLED" || payment.state === "FAILED") && (receipt || Date.now() - started > RECEIPT_WAIT_MS)) return;
-    await new Promise((resolve) => setTimeout(resolve, POLL_MS));
-  }
-}
-
-export function paySheet(detail: PayeeDetail, overview: Overview, onClosed: () => void, prefilled: string | null = null): void {
-  const payTo = detail.payTo;
-  if (!payTo) return;
-  openSheet(`Pay ${detail.summary.name}`, (close, body) => {
-    const amount = h("input", { id: "amount", name: "amount", inputmode: "decimal", autocomplete: "off", required: true, placeholder: "0.10", value: prefilled ?? undefined });
-    const error = h("p", { class: "error", role: "alert" });
-    const step = h("div", {});
-    const form = h("form", {}, h("label", { for: "amount" }, "Amount in USDC", h("span", { class: "hint" }, `Up to ${usdc(overview.caps.perPaymentBaseUnits)} per payment; ${usdc((BigInt(overview.caps.perDayBaseUnits) - BigInt(overview.caps.usedTodayBaseUnits)).toString())} left today.`), amount), error,
-      h("div", { class: "actions" }, h("button", { class: "btn primary", type: "submit" }, "Continue"), h("button", { class: "btn", type: "button", onclick: close }, "Cancel")));
-    form.addEventListener("submit", (event) => {
-      event.preventDefault();
-      const baseUnits = usdcToBaseUnits(amount.value.trim());
-      if (!baseUnits) return void (error.textContent = "Give the amount in USDC, for example 0.10. Nothing was sent.");
-      form.remove();
-      const status = liveRegion();
-      const confirm = h("button", { class: "btn primary", type: "button" }, `Pay ${usdc(baseUnits)}`);
-      const notYet = h("p", { class: "money" }, "Nothing has been sent yet.");
-      step.append(h("p", {}, `Pay ${usdc(baseUnits)} to ${detail.summary.name} on ${networkWords(overview.network)}. It goes to this verified address and nowhere else:`), addressEl(payTo.address), notYet, status,
-        h("div", { class: "actions" }, confirm, h("button", { class: "btn", type: "button", onclick: close }, "Close")));
-      listen(confirm, "click", async () => {
-        confirm.remove();
-        notYet.remove();
-        status.textContent = `Checking the payee record ${storedWhere(overview)}… nothing has been sent yet.`;
-        const result = await api<{ paymentId: string }>("POST", "/api/app/payments", { payeeId: detail.summary.id, amount: amount.value.trim(), expectedAddress: payTo.address });
-        if (!result.ok) {
-          const refusal = result.error.body?.["refusal"] as Refusal | undefined;
-          return void (status.textContent = refusal ? refusalText(refusal, overview, baseUnits) : result.error.message);
-        }
-        await follow(result.data.paymentId, status, overview);
-      }, status);
-    });
-    body.append(form, step);
-  }, onClosed);
 }
 
 export function addPayeeSheet(network: "mainnet" | "testnet", onClosed: () => void): void {

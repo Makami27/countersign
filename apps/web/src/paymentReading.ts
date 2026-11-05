@@ -1,4 +1,4 @@
-import { addressesIn, formatUsdc, usdcToBaseUnits, type SuiAddress } from "@countersign/core";
+import { addressesIn, usdcToBaseUnits, type SuiAddress } from "@countersign/core";
 
 export type KnownPayee = { readonly id: string; readonly name: string; readonly verified: SuiAddress | null };
 
@@ -17,7 +17,6 @@ const ANY_ADDRESS = /0x[0-9a-f]{64}/gi;
 const NUMBER = String.raw`(\d+(?:\.\d{1,6})?)`;
 const WITH_CURRENCY = new RegExp(String.raw`\$\s*${NUMBER}(?![\d.])|(?<![\d.])${NUMBER}\s*(?:usdc|usd|dollars?)\b`, "gi");
 const AFTER_VERB = new RegExp(String.raw`\b(?:pay|send|transfer|wire|remit)\s+${NUMBER}(?![\d.])`, "i");
-const QUICK_AMOUNTS = ["0.10", "1", "5", "10"] as const;
 
 export function looksLikePayment(text: string): boolean {
   return PAYMENT_WORDS.test(text) && !NOT_A_REQUEST.test(text);
@@ -59,10 +58,7 @@ export function readPayment(text: string, payees: readonly KnownPayee[], default
   return amountBaseUnits ? { kind: "pay", payee, verified: payee.verified, amountBaseUnits } : { kind: "ask_amount", payee, verified: payee.verified };
 }
 
-export function quickAmounts(perPaymentBaseUnits: bigint): readonly string[] {
-  const allowed = QUICK_AMOUNTS.filter((amount) => BigInt(usdcToBaseUnits(amount) ?? "0") <= perPaymentBaseUnits);
-  return allowed.length > 0 ? allowed : [formatUsdc(perPaymentBaseUnits)];
-}
+export { quickAmounts } from "../client/walletFacts.ts";
 
 export function amountQuestion(name: string): string {
   return `How much should I pay ${name}?`;

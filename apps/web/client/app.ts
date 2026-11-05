@@ -6,7 +6,8 @@ import { payeeDetailView } from "./views/payeeDetail.ts";
 import { schedulesPanel } from "./views/schedules.ts";
 import { checklistCard, checklistDone, pasteCard } from "./views/dashboard.ts";
 import { adminPage } from "./views/admin.ts";
-import { addPayeeSheet, paySheet } from "./views/sheets.ts";
+import { addPayeeSheet } from "./views/sheets.ts";
+import { paySheet } from "./views/paySheet.ts";
 import { cancelChange, confirmChangeSheet, requestChangeSheet } from "./views/changeSheets.ts";
 import { activityPage, settingsPage } from "./views/pages.ts";
 import { signInPage } from "./views/signIn.ts";
@@ -118,11 +119,14 @@ async function renderPage(): Promise<void> {
   if (!payees.ok) return show(failure(payees.error.message));
   const match = /^\/app\/payees\/([^/]+)$/.exec(path);
   const selected = match?.[1] ? decodeURIComponent(match[1]) : (payees.data.payees[0]?.id ?? null);
-  const payFromMessage = (payeeId: string, amount: string | null) => void api<PayeeDetail>("GET", `/api/app/payees/${encodeURIComponent(payeeId)}`).then((found) => {
-    if (found.ok) paySheet(found.data, overview.data, () => void render(), amount);
-  });
-  const list = payeeList(payees.data.payees, overview.data, selected, () => addPayeeSheet(overview.data.network, () => void render()), () => void render());
   const openDeposit = () => depositSheet(overview.data, () => void render());
+  const openPay = (id: string, name: string, address: string, amount: string | null = null) => paySheet({ id, name, address }, overview.data, () => void render(), openDeposit, amount);
+  const payFromMessage = (payeeId: string, amount: string | null) => void api<PayeeDetail>("GET", `/api/app/payees/${encodeURIComponent(payeeId)}`).then((found) => {
+    if (found.ok && found.data.payTo) openPay(found.data.summary.id, found.data.summary.name, found.data.payTo.address, amount);
+  });
+  const list = payeeList(payees.data.payees, overview.data, selected, () => addPayeeSheet(overview.data.network, () => void render()), () => void render(), (payee) => {
+    if (payee.address) openPay(payee.id, payee.name, payee.address);
+  });
   if (checklistDone(overview.data)) list.append(pasteCard(() => void render(), payFromMessage), checklistCard(overview.data, openDeposit));
   else {
     list.prepend(checklistCard(overview.data, openDeposit));
@@ -132,9 +136,11 @@ async function renderPage(): Promise<void> {
   if (!selected) return show(h("div", { class: "owner single at-list" }, wallet, list));
   const detail = await api<PayeeDetail>("GET", `/api/app/payees/${encodeURIComponent(selected)}`);
   const rerender = () => void render();
-  const detailView = detail.ok ? payeeDetailView(detail.data, { onPay: () => paySheet(detail.data, overview.data, rerender), onRequestChange: () => requestChangeSheet(detail.data, rerender), onConfirm: (nonce) => confirmChangeSheet(nonce, overview.data.cooldownSeconds, overview.data.network, rerender), onCancel: (nonce, status) => cancelChange(nonce, overview.data.network, status, rerender) }) : failure(detail.error.message);
+  const detailView = detail.ok ? payeeDetailView(detail.data, { onPay: () => {
+    if (detail.data.payTo) openPay(detail.data.summary.id, detail.data.summary.name, detail.data.payTo.address);
+  }, onRequestChange: () => requestChangeSheet(detail.data, rerender), onConfirm: (nonce) => confirmChangeSheet(nonce, overview.data.cooldownSeconds, overview.data.network, rerender), onCancel: (nonce, status) => cancelChange(nonce, overview.data.network, status, rerender) }) : failure(detail.error.message);
   const schedules = detail.ok && detail.data.payTo ? await api<{ schedules: ScheduleItem[] }>("GET", "/api/app/schedules") : null;
-  if (detail.ok && schedules?.ok) detailView.insertBefore(schedulesPanel(selected, schedules.data.schedules, overview.data.network, rerender), detailView.querySelector(".actions.sticky"));
+  if (detail.ok && schedules?.ok) detailView.append(schedulesPanel(selected, schedules.data.schedules, overview.data.network, rerender));
   if (detail.ok && (detail.data.pendingChanges.length > 0 || detail.data.waiting)) schedulePoll(path);
   show(h("div", { class: `owner ${match ? "at-detail" : "at-list"}` }, wallet, list, detailView));
 }
