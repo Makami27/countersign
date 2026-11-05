@@ -94,6 +94,7 @@
 .app .steps li { display: grid; grid-template-columns: 1.9rem minmax(0, 1fr) auto; gap: var(--space-3); align-items: center; padding: var(--space-3) 0; border-top: 1px solid var(--line); }
 .app .steps .n { width: 1.7rem; height: 1.7rem; border-radius: 50%; display: grid; place-items: center; font-size: var(--step--1); font-weight: 700; border: 1.5px solid var(--line-strong); color: var(--ink-soft); }
 .app .steps .done .n { background: var(--seal); border-color: var(--seal); color: var(--paper); }
+.app .steps .step-more { grid-column: 2 / -1; display: grid; gap: var(--space-2); min-width: 0; }
 .app .steps .when { font-size: var(--step--1); color: var(--ink-soft); text-align: right; }
 .app .message { font-family: var(--mono); font-stretch: 87.5%; font-size: var(--step--1); white-space: pre-wrap; word-break: break-all; padding: var(--space-4); background: var(--paper-deep); border-radius: var(--radius); border: 1px solid var(--line); margin: 0; }
 .app details summary { min-height: var(--tap); display: flex; align-items: center; cursor: pointer; }

@@ -10,7 +10,7 @@ function short(address: string): string {
 
 function approve(challenge: Challenge, role: WalletRole, network: "mainnet" | "testnet", status: HTMLElement): Promise<Approval> {
   return new Promise((resolve) => {
-    status.textContent = `This needs your ${role} ${short(challenge.signer)}: connect it, then sign. Signing moves no money; nothing changes until every signature checks out.`;
+    status.textContent = `This needs ${role === "owner wallet" ? "your wallet" : `your ${role}`} ${short(challenge.signer)}: connect it, then sign. Signing moves no money; nothing changes until every signature checks out.`;
     const box = walletStep({ role, expected: challenge.signer, message: challenge.message, network, status, onSigned: async (signature) => {
       box.remove();
       resolve({ nonce: challenge.nonce, signature });

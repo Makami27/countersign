@@ -28,6 +28,7 @@
     "./telegramLinks": "./src/telegramLinks.ts",
     "./screen": "./src/screen.ts",
     "./paymentReading": "./src/paymentReading.ts",
+    "./walletFacts": "./client/walletFacts.ts",
     "./quota": "./src/quota.ts",
     "./ownerViews": "./src/ownerViews.ts",
     "./scheduleRoutes": "./src/scheduleRoutes.ts"

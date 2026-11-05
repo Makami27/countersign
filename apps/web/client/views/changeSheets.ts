@@ -43,7 +43,7 @@ export function confirmChangeSheet(nonce: string, cooldownSeconds: number, netwo
     const form = h("form", {},
       h("p", {}, `Use this when the payee can't sign with their old wallet. After you confirm, the change waits ${hours >= 1 ? `${Math.round(hours)} hours` : `${Math.round(cooldownSeconds / 60)} minutes (demo value)`} before it can take effect, and the new wallet still has to sign.`),
       h("div", { class: "outcome stated warning", role: "note" }, h("p", { class: "money" }, "Only continue if you confirmed this with the payee another way, for example a phone number you already had. Never use contact details from the message asking for the change.")),
-      h("p", { class: "note" }, "Your owner wallet signs this confirmation. A Telegram code alone is not enough. The address is checked again against known attacks, look-alikes and addresses other agents refused, now and when the waiting period ends."), status,
+      h("p", { class: "note" }, "Your wallet signs this confirmation. A Telegram code alone is not enough. The address is checked again against known attacks, look-alikes and addresses other agents refused, now and when the waiting period ends."), status,
       h("div", { class: "actions" }, h("button", { class: "btn primary", type: "submit" }, "Confirm"), h("button", { class: "btn", type: "button", onclick: close }, "Cancel")));
     listen(form, "submit", async (event) => {
       event.preventDefault();
@@ -58,7 +58,7 @@ export function confirmChangeSheet(nonce: string, cooldownSeconds: number, netwo
 }
 
 export async function cancelChange(nonce: string, network: "mainnet" | "testnet", status: HTMLElement, onDone: () => void): Promise<void> {
-  status.textContent = "Your owner wallet signs the cancellation. Nothing has changed yet.";
+  status.textContent = "Your wallet signs the cancellation. Nothing has changed yet.";
   const result = await withApprovals<{ refusal?: Refusal }>("POST", `/api/app/changes/${nonce}/cancel`, {}, network, status);
   if (!result.ok) return void (status.textContent = refusalLine(result.error.body, result.error.message));
   status.textContent = "Cancelled. Nothing was changed; payments keep going to the verified address.";

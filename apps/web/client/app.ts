@@ -122,12 +122,13 @@ async function renderPage(): Promise<void> {
     if (found.ok) paySheet(found.data, overview.data, () => void render(), amount);
   });
   const list = payeeList(payees.data.payees, overview.data, selected, () => addPayeeSheet(overview.data.network, () => void render()), () => void render());
-  if (checklistDone(overview.data)) list.append(pasteCard(() => void render(), payFromMessage), checklistCard(overview.data));
+  const openDeposit = () => depositSheet(overview.data, () => void render());
+  if (checklistDone(overview.data)) list.append(pasteCard(() => void render(), payFromMessage), checklistCard(overview.data, openDeposit));
   else {
-    list.prepend(checklistCard(overview.data));
+    list.prepend(checklistCard(overview.data, openDeposit));
     list.append(pasteCard(() => void render(), payFromMessage));
   }
-  const wallet = agentWalletPanel(overview.data, () => depositSheet(overview.data, () => void render()));
+  const wallet = agentWalletPanel(overview.data, openDeposit);
   if (!selected) return show(h("div", { class: "owner single at-list" }, wallet, list));
   const detail = await api<PayeeDetail>("GET", `/api/app/payees/${encodeURIComponent(selected)}`);
   const rerender = () => void render();

@@ -54,7 +54,7 @@ export async function ownerSigned(ctx: OwnerContext, res: ServerResponse, input:
     return null;
   }
   if (!state.current) {
-    send(res, 409, { error: "Register your owner wallet first (Settings). Sensitive changes need its signature. Nothing was changed.", ownerWallet: null });
+    send(res, 409, { error: "Register your wallet first (Settings). Sensitive changes need its signature. Nothing was changed.", ownerWallet: null });
     return null;
   }
   return requireApprovals(ctx, res, input, [{ field: "owner", kind, payload, signer: state.current.address, role: "continuity" }]);

@@ -91,7 +91,7 @@ async function ownerRequest(ctx: OwnerContext, req: IncomingMessage, res: Server
     if (looser && !(await ownerSigned(ctx, res, input, "raise_limits", wanted))) return;
     const updated = await ctx.settings.update(wanted);
     if (!updated.ok) return problem(res, 400, `${updated.problem} Nothing was changed.`);
-    await ctx.notify(`Limits changed${looser ? " with your owner wallet's signature" : ""}: ${formatUsdc(updated.values.perPaymentBaseUnits)} USDC per payment, ${formatUsdc(updated.values.perDayBaseUnits)} USDC per day, ${Math.round(updated.values.cooldownSeconds / 3600)} h waiting period.`);
+    await ctx.notify(`Limits changed${looser ? " with your wallet's signature" : ""}: ${formatUsdc(updated.values.perPaymentBaseUnits)} USDC per payment, ${formatUsdc(updated.values.perDayBaseUnits)} USDC per day, ${Math.round(updated.values.cooldownSeconds / 3600)} h waiting period.`);
     return send(res, 200, updated.values);
   }
   if (req.method === "POST" && parts[0] === "payees" && parts.length === 1) {
@@ -101,7 +101,7 @@ async function ownerRequest(ctx: OwnerContext, req: IncomingMessage, res: Server
     if (!payeeIdFor(name) || !parseSuiAddress(address)) return problem(res, 400, "Give a short name with letters or digits and a full Sui address (0x and 64 hex characters). Nothing was added, and nothing needs signing.");
     if (!(await ownerSigned(ctx, res, input, "add_payee", { name: name.trim(), address: address.trim().toLowerCase() }))) return;
     const outcome = await ctx.engine.requestOnboarding(name, address, `web:${randomBytes(6).toString("hex")}`);
-    if (outcome.verdict === "ONBOARDING_STARTED") await ctx.notify(`Payee "${name.trim()}" was added with your owner wallet's signature. Nothing can be paid to them until their own wallet signs.`);
+    if (outcome.verdict === "ONBOARDING_STARTED") await ctx.notify(`Payee "${name.trim()}" was added with your wallet's signature. Nothing can be paid to them until their own wallet signs.`);
     const signUrl = outcome.verdict === "ONBOARDING_STARTED" ? `${ctx.publicUrl ?? ""}/sign/${outcome.nonce}` : null;
     return send(res, outcome.verdict === "REFUSED" ? 422 : 200, { ...refusalBody(outcome), signUrl });
   }
@@ -139,7 +139,7 @@ async function ownerRequest(ctx: OwnerContext, req: IncomingMessage, res: Server
     if (!(await ownerSigned(ctx, res, input, "confirm_owner_change", { nonce, payee: change.payeeId, to: change.toAddress }))) return;
     await ctx.steps.confirmByOwner(nonce, `owner:${randomBytes(6).toString("hex")}`, new Date(now).toISOString());
     const readyAt = new Date(now + ctx.cooldownMs()).toISOString();
-    await ctx.notify(`You confirmed the address change for ${change.payeeId} to ${change.toAddress} with your owner wallet. Nothing has changed yet: it can take effect after ${readyAt.slice(0, 16).replace("T", " ")} UTC, once the new wallet signs. If this wasn't you, or the request didn't come from the payee, cancel it now: ${ctx.publicUrl ?? ""}/app/payees/${encodeURIComponent(change.payeeId)}`);
+    await ctx.notify(`You confirmed the address change for ${change.payeeId} to ${change.toAddress} with your wallet. Nothing has changed yet: it can take effect after ${readyAt.slice(0, 16).replace("T", " ")} UTC, once the new wallet signs. If this wasn't you, or the request didn't come from the payee, cancel it now: ${ctx.publicUrl ?? ""}/app/payees/${encodeURIComponent(change.payeeId)}`);
     return send(res, 200, { completion: await tryCompleteChange(ctx, nonce, now) });
   }
   if (req.method === "POST" && parts[0] === "changes" && parts[1] && parts[2] === "cancel") {
@@ -149,7 +149,7 @@ async function ownerRequest(ctx: OwnerContext, req: IncomingMessage, res: Server
     if (!(await ownerSigned(ctx, res, input, "cancel_owner_change", { nonce, payee: change.payeeId, to: change.toAddress }))) return;
     const cancelled = await ctx.engine.cancelChange(nonce);
     if (!cancelled) return problem(res, 409, "This change already finished or expired. Nothing was changed.");
-    await ctx.notify(`Address change for ${change.payeeId} to ${change.toAddress} cancelled with your owner wallet's signature. Payments keep going to ${change.fromAddress}. Receipt ${cancelled.receipt}.`);
+    await ctx.notify(`Address change for ${change.payeeId} to ${change.toAddress} cancelled with your wallet's signature. Payments keep going to ${change.fromAddress}. Receipt ${cancelled.receipt}.`);
     return send(res, 200, refusalBody(cancelled));
   }
   return problem(res, 404, "Not found.");

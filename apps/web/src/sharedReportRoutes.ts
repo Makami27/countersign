@@ -11,6 +11,6 @@ export async function retractSharedReport(ctx: OwnerContext, res: ServerResponse
   if (!(await ownerSigned(ctx, res, input, "retract_shared_report", { receipt: receipt.receipt, address }))) return;
   const written = await ctx.shared.retract({ address, receipt: receipt.receipt });
   if (written.status !== "WRITTEN") return problem(res, 503, REASONS.MEMORY_WRITE_UNCONFIRMED.message);
-  await ctx.notify(`Shared scam report retracted with your owner wallet's signature: ${address} (receipt ${receipt.receipt}). Other agents stop counting it when they next read shared memory.`);
+  await ctx.notify(`Shared scam report retracted with your wallet's signature: ${address} (receipt ${receipt.receipt}). Other agents stop counting it when they next read shared memory.`);
   return send(res, 200, { retracted: receipt.receipt });
 }

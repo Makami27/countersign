@@ -38,7 +38,7 @@ test("V12 after you confirm, Telegram gets the waiting period and a cancel link,
   assert.equal(cancelled.status, 200);
   assert.equal((cancelled.body["refusal"] as { reason: string }).reason, "CANCELLED_BY_OWNER");
   assert.equal(await s.index.pendingChange(nonce), null);
-  assert.ok(s.extras.notices.some((n) => n.startsWith("Address change for landlord") && n.includes("cancelled with your owner wallet's signature")));
+  assert.ok(s.extras.notices.some((n) => n.startsWith("Address change for landlord") && n.includes("cancelled with your wallet's signature")));
   const head = await s.agent.payeeHead("landlord");
   assert.equal(head.kind === "verified" && head.version.address, s.landlord.address);
   assert.equal((await s.signedBy("POST", `/api/app/changes/${nonce}/cancel`, {}, [s.me])).status, 409);

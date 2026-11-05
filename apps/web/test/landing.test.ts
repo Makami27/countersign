@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
@@ -64,7 +65,7 @@ test("V27 the landing cites its sources, keeps live counters honest and leaves t
   const { base, page } = await landing(t);
   for (const href of LINKS) assert.ok(page.includes(`href="${href}"`), href);
   for (const live of ["memories", "sharedReports", "sharedAgents"]) assert.match(page, new RegExp(`data-live="${live}">—<`));
-  assert.equal((page.match(/<details>/g) ?? []).length, 8);
+  assert.equal((page.match(/<details>/g) ?? []).length, 9);
   assert.doesNotMatch(page, /data-claim=|Every claim with its evidence|Status of everything the agent depends on/);
   const proof = (await (await fetch(`${base}/api/proof`)).json()) as { live: Record<string, unknown> };
   assert.deepEqual(proof.live, { memories: null, sharedAgents: null, sharedReports: null });
@@ -86,4 +87,10 @@ test("V27 the month shows the two-owner step only when Act 5 holds a real SEEN_B
   assert.doesNotMatch(monthHtml({ ...acts, sharedFirst: recorded("LOOKALIKE_ADDRESS", "rcpt_a"), sharedSecond: recorded("LOOKALIKE_ADDRESS", "rcpt_b") }), /Another owner gets the same scam/);
   const shown = monthHtml({ ...acts, sharedFirst: recorded("LOOKALIKE_ADDRESS", "rcpt_a"), sharedSecond: recorded("SEEN_BY_OTHER_AGENT", "rcpt_b") });
   assert.ok(shown.includes("Another owner gets the same scam") && shown.includes(`href="/r/rcpt_a"`) && shown.includes(`href="/r/rcpt_b"`));
+});
+
+test("U05 the landing FAQ names the two wallets the same way as the app, and no copy says owner wallet", () => {
+  const page = readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
+  for (const name of ["Agent wallet: pays your bills (fund this one)", "Your wallet: signs approvals (never pays)"]) assert.ok(page.includes(name), name);
+  assert.equal(/owner wallet/i.test(page), false);
 });

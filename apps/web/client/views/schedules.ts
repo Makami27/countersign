@@ -47,6 +47,6 @@ export function schedulesPanel(payeeId: string, items: readonly ScheduleItem[], 
     if (result.ok) onChanged();
   }, status);
   return h("section", { "aria-labelledby": "schedules-title" }, h("h3", { id: "schedules-title" }, "Scheduled payments"),
-    h("p", { class: "hint" }, "Each runs once per period on the day you pick. Creating, changing or deleting one needs your owner wallet's signature."),
+    h("p", { class: "hint" }, "Each runs once per period on the day you pick. Creating, changing or deleting one needs your wallet's signature."),
     rows.length ? h("ol", { class: "rows" }, ...rows) : h("p", { class: "empty" }, "No scheduled payments."), form);
 }

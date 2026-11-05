@@ -1,10 +1,11 @@
 import { api } from "../api.ts";
-import { h, listen, liveRegion } from "../dom.ts";
+import { addressEl, copyButton, h, listen, liveRegion } from "../dom.ts";
 import type { Overview } from "../types.ts";
+import { AGENT_WALLET, DEPOSIT_ACTION, FAUCETS } from "../walletFacts.ts";
 
 const STEPS: readonly (readonly [keyof Overview["checklist"] | "signedIn", string])[] = [
   ["signedIn", "Sign in with your wallet"],
-  ["funded", "Fund your agent with test SUI and test USDC (faucet links under Settings)"],
+  ["funded", "Fund your agent wallet (it pays your bills)"],
   ["payeeAdded", "Add a payee (it can be your own second wallet)"],
   ["linkSigned", "Send the signing link; the payee's wallet signs it"],
   ["paid", "Pay the payee"],
@@ -18,10 +19,19 @@ export function checklistDone(overview: Overview): boolean {
   return STEPS.every(([key]) => key === "signedIn" || OPTIONAL.has(key) || overview.checklist[key]);
 }
 
-export function checklistCard(overview: Overview): HTMLElement {
+function fundingHelp(overview: Overview, onDeposit: () => void): HTMLElement {
+  return h("div", { class: "step-more" },
+    h("div", { class: "actions" }, h("button", { class: "btn primary", type: "button", onclick: onDeposit }, DEPOSIT_ACTION)),
+    overview.network === "testnet" ? h("p", { class: "note" }, "Or use a faucet, and paste this address, the ", h("strong", {}, AGENT_WALLET), ", not your own: ") : null,
+    overview.network === "testnet" ? addressEl(overview.agentAddress) : null,
+    overview.network === "testnet" ? h("div", { class: "actions" }, copyButton(overview.agentAddress, "Copy this address")) : null,
+    overview.network === "testnet" ? h("p", { class: "note" }, h("a", { href: FAUCETS[0].href, target: "_blank", rel: "noreferrer" }, FAUCETS[0].label), " and ", h("a", { href: FAUCETS[1].href, target: "_blank", rel: "noreferrer" }, FAUCETS[1].label), ".") : null);
+}
+
+export function checklistCard(overview: Overview, onDeposit: () => void): HTMLElement {
   const items = STEPS.map(([key, label]) => {
     const done = key === "signedIn" || overview.checklist[key];
-    return h("li", { class: done ? "done" : "" }, h("span", { class: "n", "aria-hidden": "true" }, done ? "✓" : "·"), h("span", {}, label), h("span", { class: "when" }, done ? "Done" : "To do"));
+    return h("li", { class: done ? "done" : "" }, h("span", { class: "n", "aria-hidden": "true" }, done ? "✓" : "·"), h("span", {}, label), h("span", { class: "when" }, done ? "Done" : "To do"), key === "funded" && !done ? fundingHelp(overview, onDeposit) : null);
   });
   const steps = h("ol", { class: "steps" }, ...items);
   if (checklistDone(overview)) return h("details", { class: "card checklist done" }, h("summary", {}, "Getting started: every step done"), steps);

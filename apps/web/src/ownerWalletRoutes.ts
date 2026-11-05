@@ -4,7 +4,7 @@ import { problem, send } from "./http.ts";
 import type { OwnerContext } from "./ownerContext.ts";
 import { proofsOf, requireApprovals, verificationsOf } from "./ownerGate.ts";
 
-const WRITE_FAILED = "Walrus Memory didn't confirm the owner wallet record. Nothing was changed. Try again in a few minutes.";
+const WRITE_FAILED = "Walrus Memory didn't confirm your wallet's record. Nothing was changed. Try again in a few minutes.";
 
 function short(address: string): string {
   return `${address.slice(0, 6)}…${address.slice(-4)}`;
@@ -14,16 +14,16 @@ export async function ownerWalletRoute(ctx: OwnerContext, res: ServerResponse, p
   const state = ctx.wallets.state();
   if (!state.known) return problem(res, 503, `${state.why} Nothing was changed. Try again shortly.`);
   if (parts[2] === "cancel") {
-    if (!state.current || !state.waiting) return problem(res, 409, "There is no waiting owner-wallet change. Nothing was changed.");
+    if (!state.current || !state.waiting) return problem(res, 409, "There is no waiting change of wallet. Nothing was changed.");
     const granted = await requireApprovals(ctx, res, input, [{ field: "owner", kind: "cancel_owner_wallet_change", payload: { to: state.waiting.address }, signer: state.current.address, role: "continuity" }]);
     if (!granted) return;
     await ctx.wallets.cancelWaiting();
-    await ctx.notify(`Owner wallet change to ${short(state.waiting.address)} cancelled with your owner wallet's signature. Your owner wallet is still ${short(state.current.address)}.`);
+    await ctx.notify(`Owner wallet change to ${short(state.waiting.address)} cancelled with your wallet's signature. Your wallet is still ${short(state.current.address)}.`);
     return send(res, 200, { ownerWallet: ctx.wallets.state() });
   }
   const address = parseSuiAddress(String(input["address"] ?? ""));
   if (!address) return problem(res, 400, "Give a full Sui address (0x and 64 hex characters). Nothing was changed.");
-  if (state.current?.address === address) return problem(res, 409, "That is already your owner wallet. Nothing was changed.");
+  if (state.current?.address === address) return problem(res, 409, "That is already your wallet. Nothing was changed.");
   const proof = { field: "proof", kind: "register_owner_wallet" as const, payload: { wallet: address }, signer: address, role: "control" as const };
   if (!state.current) {
     const granted = await requireApprovals(ctx, res, input, [proof]);
@@ -36,7 +36,7 @@ export async function ownerWalletRoute(ctx: OwnerContext, res: ServerResponse, p
     const granted = await requireApprovals(ctx, res, input, [proof]);
     if (!granted) return;
     const readyAt = await ctx.wallets.wait(address, proofsOf(granted), verificationsOf(granted));
-    await ctx.notify(`Warning: someone signed in to your owner app asked to replace your owner wallet ${short(state.current.address)} with ${short(address)} without the current wallet's signature. It takes effect at ${readyAt} unless you cancel it in Settings with your current owner wallet.`);
+    await ctx.notify(`Warning: someone signed in to your owner app asked to replace your wallet ${short(state.current.address)} with ${short(address)} without the current wallet's signature. It takes effect at ${readyAt} unless you cancel it in Settings with your current wallet.`);
     return send(res, 202, { ownerWallet: ctx.wallets.state() });
   }
   const granted = await requireApprovals(ctx, res, input, [proof, { field: "owner", kind: "change_owner_wallet", payload: { from: state.current.address, to: address }, signer: state.current.address, role: "continuity" }]);

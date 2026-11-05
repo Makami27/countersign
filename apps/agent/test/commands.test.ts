@@ -11,7 +11,7 @@ const ADDRESS = `0x${"ab".repeat(32)}`;
 test("X10 /help lists every command in plain words, explains paying, forwarding and pasting, links the app and names the network", () => {
   const help = helpText(URL, "testnet");
   for (const c of COMMANDS) assert.ok(help.includes(`/${c.command}: `), c.command);
-  for (const words of ["pay rent 0.10", "forward an email or chat", "paste its text", `${URL}/app`, "Sui testnet: test USDC, no real money"]) assert.ok(help.includes(words), words);
+  for (const words of ["pay rent 0.10", "forward an email or chat", "paste its text", `${URL}/app`, "Sui testnet: test USDC, no real money", "Agent wallet: pays your bills (fund this one)", "Your wallet: signs approvals (never pays)"]) assert.ok(help.includes(words), words);
   assert.ok(helpText(URL, "mainnet").includes("Sui mainnet"));
 });
 
@@ -48,7 +48,7 @@ test("X10 /schedules and /cancel say what happened, including when there was not
   assert.ok(schedulesText([{ says: "0.10 USDC to Rent every month on day 1", nextDue: "2026-12-01T09:00:00.000Z" }], URL).includes("next run 2026-12-01 09:00 UTC"));
   assert.ok(cancelText(0, URL).startsWith("There's no payment waiting for your confirmation. Nothing was changed."));
   assert.ok(cancelText(1, URL).startsWith("Cancelled the payment waiting for your confirmation. Nothing was sent."));
-  assert.ok(cancelText(0, URL).includes("owner wallet's signature"));
+  assert.ok(cancelText(0, URL).includes("your wallet's signature"));
 });
 
 test("X10 the landing names only Telegram commands the bot really has", async () => {

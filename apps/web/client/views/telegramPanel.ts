@@ -18,5 +18,5 @@ export function telegramPanel(): HTMLElement {
     status.textContent = `The link works once and expires ${when(made.data.expires)}. Connecting a new chat replaces the old one.`;
   }, status);
   return h("section", { class: "card", "aria-labelledby": "telegram-title" }, h("h2", { id: "telegram-title" }, "Telegram (optional)"),
-    h("p", {}, "Connect a chat to get notices and to pay or forward messages from your phone. Signing in and sensitive changes still need your owner wallet."), state, status, link, h("div", { class: "actions" }, button));
+    h("p", {}, "Connect a chat to get notices and to pay or forward messages from your phone. Signing in and sensitive changes still need your wallet."), state, status, link, h("div", { class: "actions" }, button));
 }

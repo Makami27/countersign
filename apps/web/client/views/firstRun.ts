@@ -1,6 +1,7 @@
 import { addressEl, h, networkWords, usdc } from "../dom.ts";
 import { ownerWalletPanel } from "./ownerWallet.ts";
 import type { Overview } from "../types.ts";
+import { AGENT_WALLET_FULL, FAUCETS } from "../walletFacts.ts";
 
 export function agentFacts(overview: Overview): HTMLElement {
   const balances = overview.balances.status === "KNOWN"
@@ -12,10 +13,10 @@ export function agentFacts(overview: Overview): HTMLElement {
     ? `Read completely from Walrus Memory (${overview.memory.relayer}). ${overview.memoryCounts ? `${overview.memoryCounts.realUseMemories} memories from real use.` : `Memory count — (${overview.memoryCountsWhy ?? "not available"}).`}`
     : "Not read completely. Payments are blocked until it is.";
   return h("dl", { class: "facts" },
-    h("div", {}, h("dt", {}, "Agent wallet"), h("dd", {}, addressEl(overview.agentAddress))),
+    h("div", {}, h("dt", {}, AGENT_WALLET_FULL), h("dd", {}, addressEl(overview.agentAddress))),
     h("div", {}, h("dt", {}, "Network"), h("dd", {}, networkWords(overview.network))),
     h("div", {}, h("dt", {}, "Balance"), h("dd", {}, balances)),
-    overview.network === "testnet" ? h("div", {}, h("dt", {}, "Fund it"), h("dd", {}, "Send test funds to the agent wallet above: ", h("a", { href: "https://faucet.sui.io/?network=testnet", target: "_blank", rel: "noreferrer" }, "test SUI (faucet.sui.io)"), " · ", h("a", { href: "https://faucet.circle.com/", target: "_blank", rel: "noreferrer" }, "test USDC (faucet.circle.com, Sui testnet)"), ". Nothing is granted automatically.")) : "",
+    overview.network === "testnet" ? h("div", {}, h("dt", {}, "Fund it"), h("dd", {}, "Paste the agent wallet's address above into a faucet: ", h("a", { href: FAUCETS[0].href, target: "_blank", rel: "noreferrer" }, FAUCETS[0].label), " and ", h("a", { href: FAUCETS[1].href, target: "_blank", rel: "noreferrer" }, FAUCETS[1].label), ". Nothing is granted automatically.")) : "",
     h("div", {}, h("dt", {}, "Payee memory"), h("dd", {}, memory)),
     h("div", {}, h("dt", {}, "Caps"), h("dd", {}, `${usdc(overview.caps.perPaymentBaseUnits)} per payment, ${usdc(overview.caps.perDayBaseUnits)} per day (${usdc(overview.caps.usedTodayBaseUnits)} used today)`)));
 }
@@ -24,6 +25,6 @@ export function firstRun(overview: Overview, onChanged: () => void): HTMLElement
   if (overview.ownerWallet.known && !overview.ownerWallet.current) return h("div", {}, ownerWalletPanel(overview, onChanged), h("div", { class: "card" }, agentFacts(overview)));
   return h("div", { class: "card" },
     h("h2", {}, "Your agent is ready"),
-    h("p", {}, "Add your first payee. They get a link to prove the address is theirs, and only then can the agent pay it."),
+    h("p", {}, "Add your first payee. They get a link to prove the address is theirs, and only then can your agent wallet pay it."),
     agentFacts(overview));
 }

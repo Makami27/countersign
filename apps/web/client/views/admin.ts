@@ -25,5 +25,5 @@ export async function adminPage(network: "mainnet" | "testnet"): Promise<HTMLEle
     return h("li", {}, h("span", { class: "v" }, o.admin ? "Admin" : "Owner"),
       h("span", { class: "what" }, h("span", {}, `${o.ownerId} · ${o.address ?? "no wallet yet"}`), h("span", { class: "meta" }, `${o.joinedAt ? `Joined ${when(o.joinedAt)}. ` : ""}${o.payees} payees. ${o.lastActive ? `Last active ${when(o.lastActive)}.` : "Not active since the last restart."} ${usageLine(o.usage)}.`)), remove);
   });
-  return h("section", { class: "narrow", "aria-labelledby": "admin-title" }, h("h1", { id: "admin-title", tabindex: "-1" }, "Admin"), h("p", { class: "lede" }, "Owners of this agent. Removing one needs your owner wallet's signature."), status, h("ol", { class: "rows" }, ...rows));
+  return h("section", { class: "narrow", "aria-labelledby": "admin-title" }, h("h1", { id: "admin-title", tabindex: "-1" }, "Admin"), h("p", { class: "lede" }, "Owners of this agent. Removing one needs your wallet's signature."), status, h("ol", { class: "rows" }, ...rows));
 }

@@ -78,7 +78,7 @@ function cooldownCard(c: Pending, name: string, current: string | null, onCancel
     h("div", { class: "compare" },
       h("div", { class: "row" }, h("span", { class: "label" }, "New address"), addressEl(c.toAddress, current ? { against: current } : {})),
       current ? h("div", { class: "row on-file" }, h("span", { class: "label" }, "Address on file"), addressEl(current, { against: c.toAddress })) : null),
-    h("p", {}, "If you didn't confirm this, or the request didn't reach you through a channel you already trusted, cancel it now. Your owner wallet signs the cancellation."),
+    h("p", {}, "If you didn't confirm this, or the request didn't reach you through a channel you already trusted, cancel it now. Your wallet signs the cancellation."),
     h("div", { class: "actions" }, button), status);
 }
 

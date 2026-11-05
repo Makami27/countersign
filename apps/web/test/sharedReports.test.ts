@@ -19,7 +19,7 @@ test("V22 retracting a shared scam report needs the owner wallet's signature and
   assert.equal((await s.signedBy("POST", path, {}, [me])).status, 200);
   await watcher.refresh();
   assert.equal(watcher.flag(fake).status, "CLEAR");
-  assert.ok(s.extras.notices.some((n) => n.startsWith("Shared scam report retracted with your owner wallet's signature")));
+  assert.ok(s.extras.notices.some((n) => n.startsWith("Shared scam report retracted with your wallet's signature")));
   const paid = await s.agent.handle(message("pay designer 1"), { kind: "pay", payeeId: "designer", amountBaseUnits: "1000000", reasonQuote: "x" });
   assert.equal(paid.verdict, "PAY_RESERVED");
   assert.equal((await s.call("POST", "/api/app/receipts/rcpt_nothere01/retract", {})).status, 404);
