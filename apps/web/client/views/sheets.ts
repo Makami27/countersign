@@ -98,7 +98,7 @@ export function addPayeeSheet(network: "mainnet" | "testnet", onClosed: () => vo
       if (!name.value.trim()) return void (status.textContent = "Give the payee a name, for example Flat 4B rent. Nothing was added.");
       if (!isSuiAddress(address.value)) return void (status.textContent = ADDRESS_PROBLEM);
       submit.disabled = true;
-      status.textContent = "Asking your owner wallet to approve this payee…";
+      status.textContent = "Asking your wallet to approve this payee…";
       const result = await withApprovals<{ signUrl: string | null }>("POST", "/api/app/payees", { name: name.value.trim(), address: cleanAddress(address.value) }, network, status);
       submit.disabled = false;
       if (!result.ok) {

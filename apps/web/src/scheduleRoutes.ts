@@ -52,7 +52,7 @@ function nextDue(schedule: ScheduleRecord, now: number): string | null {
 
 async function save(ctx: OwnerContext, res: ServerResponse, draft: Omit<ScheduleRecord, "type" | "ownerId" | "version" | "createdAt" | "approval" | "verifications">, granted: readonly Granted[], notice: string): Promise<void> {
   const [approval] = proofsOf(granted);
-  if (!approval) return problem(res, 403, "This needs a signature from your owner wallet. Nothing was changed.");
+  if (!approval) return problem(res, 403, "This needs a signature from your wallet. Nothing was changed.");
   const written = await ctx.schedules.write({ ...draft, approval, verifications: verificationsOf(granted) });
   if (written.status !== "WRITTEN") return problem(res, 503, REASONS.MEMORY_WRITE_UNCONFIRMED.message);
   await ctx.notify(notice);
@@ -67,7 +67,7 @@ export async function scheduleRoute(ctx: OwnerContext, res: ServerResponse, meth
     if (!DeleteInput.safeParse(input).success) return problem(res, 400, "Nothing was changed.");
     const granted = await ownerSigned(ctx, res, input, "delete_schedule", { schedule: existing.scheduleId });
     if (!granted) return;
-    return save(ctx, res, { ...existing, status: "DELETED" }, granted, `Scheduled payment deleted with your owner wallet's signature: ${describeSchedule(existing)}.`);
+    return save(ctx, res, { ...existing, status: "DELETED" }, granted, `Scheduled payment deleted with your wallet's signature: ${describeSchedule(existing)}.`);
   }
   if (method !== (existing ? "PUT" : "POST")) return problem(res, 404, "Not found.");
   const checked = await checkTerms(ctx, input);
@@ -76,7 +76,7 @@ export async function scheduleRoute(ctx: OwnerContext, res: ServerResponse, meth
   const granted = await ownerSigned(ctx, res, input, kind, payloadOf(checked.terms, existing?.scheduleId ?? null));
   if (!granted) return;
   const id = existing?.scheduleId ?? randomBytes(6).toString("hex");
-  return save(ctx, res, { ...checked.terms, scheduleId: id, status: "ACTIVE" }, granted, `Scheduled payment ${existing ? "changed" : "created"} with your owner wallet's signature: ${describeSchedule(checked.terms)}. Each run re-checks the verified address, your caps and Walrus Memory.`);
+  return save(ctx, res, { ...checked.terms, scheduleId: id, status: "ACTIVE" }, granted, `Scheduled payment ${existing ? "changed" : "created"} with your wallet's signature: ${describeSchedule(checked.terms)}. Each run re-checks the verified address, your caps and Walrus Memory.`);
 }
 
 export function scheduleList(ctx: OwnerContext, now: number) {

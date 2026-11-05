@@ -42,7 +42,7 @@ export async function connectWallet(wallet: Wallet, expected: string | null, rol
   const account = expected === null ? accounts[0] : accounts.find((a) => a.address.toLowerCase() === expected.toLowerCase());
   if (!account) {
     const shown = accounts.map((a) => a.address).join(", ") || "no account";
-    return { ok: false, message: expected === null ? `${wallet.name} shared no account. Nothing was changed.` : `This step needs your ${role} ${expected}. ${wallet.name} offered ${shown}. Switch to that account in your wallet, then connect again. Nothing was signed.` };
+    return { ok: false, message: expected === null ? `${wallet.name} shared no account. Nothing was changed.` : `This step needs ${role.startsWith("your") ? role : `your ${role}`} ${expected}. ${wallet.name} offered ${shown}. Switch to that account in your wallet, then connect again. Nothing was signed.` };
   }
   const result = { wallet, account };
   connected.set(account.address.toLowerCase(), result);

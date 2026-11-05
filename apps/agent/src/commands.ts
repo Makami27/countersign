@@ -1,5 +1,6 @@
 import { formatUsdc } from "@countersign/core";
 import type { BalancesView } from "@countersign/web/ownerContext";
+import { AGENT_WALLET_FULL, YOUR_WALLET } from "@countersign/web/walletFacts";
 import { escapeHtml, groupedHtml } from "./telegramText.ts";
 
 export type PayeeLine = { readonly name: string; readonly status: "verified" | "change_pending" | "attempt_refused" | "waiting_wallet" | "conflict" | "not_payable"; readonly address: string | null };
@@ -18,7 +19,7 @@ const STATUS_WORDS: Record<PayeeLine["status"], string> = {
 export const COMMANDS = [
   { command: "help", description: "What this bot can do" },
   { command: "payees", description: "Your payees and where each one is paid" },
-  { command: "balance", description: "Your agent wallet's balance" },
+  { command: "balance", description: "The agent wallet's balance" },
   { command: "schedules", description: "Your scheduled payments" },
   { command: "cancel", description: "Cancel a payment you haven't confirmed" },
   { command: "login", description: "Sign-in link for the owner app" },
@@ -38,6 +39,10 @@ export function helpText(publicUrl: string | null, network: Network): string {
     "",
     "Pay someone: send \"pay rent 0.10\" (the payee's name, then the amount). You confirm with a button before anything is sent.",
     "Check a message: forward an email or chat about a payee here, or paste its text. A new address in it is never paid until the payee's own wallet proves it.",
+    "",
+    "Two wallets:",
+    AGENT_WALLET_FULL,
+    YOUR_WALLET,
     "",
     ...COMMANDS.map((c) => `/${c.command}: ${c.description.charAt(0).toLowerCase()}${c.description.slice(1)}`),
     "",
@@ -62,7 +67,7 @@ export function balanceHtml(agentAddress: string, balances: BalancesView, networ
   const amounts = balances.status === "KNOWN"
     ? `<b>${formatUsdc(balances.usdcBaseUnits)} ${test}USDC</b> and ${sui(balances.suiBaseUnits)} ${test}SUI for gas.`
     : `Balance not known right now: ${escapeHtml(balances.detail)}. Nothing is paid while the chain doesn't answer.`;
-  return [`Your agent wallet on ${networkWords(network)}:`, groupedHtml(agentAddress), "", amounts].join("\n");
+  return [`${AGENT_WALLET_FULL}, on ${networkWords(network)}:`, groupedHtml(agentAddress), "", amounts].join("\n");
 }
 
 export function schedulesText(schedules: readonly ScheduleLine[], publicUrl: string | null): string {
@@ -72,7 +77,7 @@ export function schedulesText(schedules: readonly ScheduleLine[], publicUrl: str
 }
 
 export function cancelText(cancelled: number, publicUrl: string | null): string {
-  const changes = `Waiting address changes are cancelled in the owner app with your owner wallet's signature: ${appLink(publicUrl)}`;
+  const changes = `Waiting address changes are cancelled in the owner app with your wallet's signature: ${appLink(publicUrl)}`;
   if (cancelled === 0) return `There's no payment waiting for your confirmation. Nothing was changed.\n\n${changes}`;
   return `Cancelled ${cancelled === 1 ? "the payment" : `${cancelled} payments`} waiting for your confirmation. Nothing was sent.\n\n${changes}`;
 }

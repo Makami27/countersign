@@ -27,7 +27,7 @@ test("V21 creating, changing and deleting a scheduled payment each need a fresh 
   assert.equal(created.status, 200);
   const id = (created.body["schedule"] as { scheduleId: string }).scheduleId;
   assert.match(String(created.body["nextDue"]), /-05T00:00:00.000Z$/);
-  assert.ok(s.extras.notices.some((n) => n.startsWith("Scheduled payment created with your owner wallet's signature: 2.50 USDC to landlord on day 5 of every month (UTC)")));
+  assert.ok(s.extras.notices.some((n) => n.startsWith("Scheduled payment created with your wallet's signature: 2.50 USDC to landlord on day 5 of every month (UTC)")));
 
   assert.equal((await s.call("PUT", `/api/app/schedules/${id}`, { ...rent, amount: "3" })).status, 428);
   assert.equal(s.owner.schedules.get(id)?.amountBaseUnits, "2500000");

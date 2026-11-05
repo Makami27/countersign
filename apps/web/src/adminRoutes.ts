@@ -19,7 +19,7 @@ export async function adminRoute(owners: OwnerDirectory, ctx: OwnerContext, res:
     if (!owners.get(target) || target === owners.adminOwnerId) return problem(res, 404, "No owner with that id that can be removed.");
     if (!(await ownerSigned(ctx, res, input, "remove_owner", { owner: target }))) return;
     if (!(await owners.remove(target))) return problem(res, 404, "No owner with that id that can be removed.");
-    await ctx.notify(`Owner ${target} was removed with your owner wallet's signature. Their sessions, keys and database records are deleted; their Walrus Memory records can't be erased.`);
+    await ctx.notify(`Owner ${target} was removed with your wallet's signature. Their sessions, keys and database records are deleted; their Walrus Memory records can't be erased.`);
     return send(res, 200, { removed: target });
   }
   return problem(res, 404, "Not found.");

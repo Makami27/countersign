@@ -91,7 +91,7 @@ export class OwnerDirectory {
   async signIn(address: SuiAddress, message: string, signature: string, check: Extract<SignatureCheck, { result: "VALID" }>): Promise<SignInOwner> {
     for (const { ctx } of this.#owners.values()) if (ctx.wallets.current() === address) return { ok: true, ownerId: ctx.ownerId, created: false };
     const unknown = [...this.#owners.values()].find(({ ctx }) => !ctx.wallets.state().known);
-    if (unknown) return { ok: false, status: 503, message: "An owner wallet record couldn't be read from Walrus Memory, so we can't tell whose wallet this is. You're not signed in. Try again shortly." };
+    if (unknown) return { ok: false, status: 503, message: "Your wallet's record couldn't be read from Walrus Memory, so we can't tell whose wallet this is. You're not signed in. Try again shortly." };
     const admin = this.#owners.get(this.#d.adminOwnerId)?.ctx;
     if (admin && !admin.wallets.current() && (this.#d.adminAddress === null || address === this.#d.adminAddress)) return this.#register(admin, address, message, signature, check, false);
     this.#creating ??= this.#createOwner(address, message, signature, check).finally(() => {
@@ -121,7 +121,7 @@ export class OwnerDirectory {
 
   async #register(ctx: OwnerContext, address: SuiAddress, message: string, signature: string, check: Extract<SignatureCheck, { result: "VALID" }>, created: boolean): Promise<SignInOwner> {
     const verification = { role: "control" as const, signer: address, scheme: check.scheme, maxEpoch: check.maxEpoch, checkedAtEpoch: check.checkedAtEpoch };
-    if ((await ctx.wallets.record(address, "first_registration", [{ signer: address, message, signature }], [verification])) !== "WRITTEN") return { ok: false, status: 503, message: "Walrus Memory didn't confirm your owner wallet record, so you're not signed in. Try again in a few minutes." };
+    if ((await ctx.wallets.record(address, "first_registration", [{ signer: address, message, signature }], [verification])) !== "WRITTEN") return { ok: false, status: 503, message: "Walrus Memory didn't confirm your wallet record, so you're not signed in. Try again in a few minutes." };
     await ctx.notify(`Owner wallet registered by signing in: ${short(address)}. From now on, signing in, adding payees, confirming address changes yourself and loosening limits need this wallet. If this wasn't you, act now.`);
     return { ok: true, ownerId: ctx.ownerId, created };
   }

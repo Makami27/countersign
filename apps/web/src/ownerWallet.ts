@@ -54,7 +54,7 @@ export class OwnerWallets {
   }
 
   state(): OwnerWalletState {
-    if (!this.#known) return { known: false, why: "The owner wallet record couldn't be read completely from Walrus Memory." };
+    if (!this.#known) return { known: false, why: "Your wallet's record couldn't be read completely from Walrus Memory." };
     const head = this.#versions.at(-1);
     return {
       known: true,

@@ -12,10 +12,14 @@ export type StepOptions = {
   readonly onSigned: (signature: string) => Promise<void>;
 };
 
+function roleWords(role: WalletRole): string {
+  return role === "wallet" || role === "owner wallet" ? "your wallet" : `the ${role}`;
+}
+
 export function walletStep(o: StepOptions): HTMLElement {
   const box = h("div", { class: "actions" });
   const signButton = (by: Connected) => {
-    const button = h("button", { class: "btn primary", type: "button" }, `Sign with ${o.role === "wallet" ? "your wallet" : `the ${o.role}`}`);
+    const button = h("button", { class: "btn primary", type: "button" }, `Sign with ${roleWords(o.role)}`);
     listen(button, "click", async () => {
       const signing = signMessage(by, o.message, o.network);
       button.disabled = true;
@@ -32,15 +36,15 @@ export function walletStep(o: StepOptions): HTMLElement {
     if (known) return signButton(known);
     const wallets = signingWallets();
     box.replaceChildren(...(wallets.length ? wallets.map((wallet) => {
-      const button = h("button", { class: "btn primary", type: "button" }, `Connect ${o.role === "wallet" ? "your wallet" : `the ${o.role}`} (${wallet.name})`);
+      const button = h("button", { class: "btn primary", type: "button" }, `Connect ${roleWords(o.role)} (${wallet.name})`);
       listen(button, "click", async () => {
-        const connecting = connectWallet(wallet, o.expected, o.role);
+        const connecting = connectWallet(wallet, o.expected, roleWords(o.role));
         button.disabled = true;
         o.status.textContent = `Waiting for ${wallet.name} to connect.`;
         const result = await connecting;
         button.disabled = false;
         if (!result.ok) return void (o.status.textContent = result.message);
-        o.status.textContent = `Connected. Now sign with the ${o.role}.`;
+        o.status.textContent = `Connected. Now sign with ${roleWords(o.role)}.`;
         signButton(result.value);
       }, o.status);
       return button;
