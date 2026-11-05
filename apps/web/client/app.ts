@@ -13,11 +13,31 @@ import { activityPage, settingsPage } from "./views/pages.ts";
 import { signInPage } from "./views/signIn.ts";
 import { agentWalletPanel } from "./views/walletPanel.ts";
 import { depositSheet } from "./views/depositSheet.ts";
+import { showMoment, startMoments } from "./moment.ts";
+import { notePayees } from "./momentFacts.ts";
 
 const root = document.querySelector<HTMLElement>("#app");
 const nav = document.querySelector<HTMLElement>("#nav");
 const banner = document.querySelector<HTMLElement>("#banner");
 const netlabel = document.querySelector<HTMLElement>("#netlabel");
+
+const PAYABLE: ReadonlySet<PayeeSummary["status"]> = new Set(["verified", "attempt_refused", "change_pending"]);
+
+function storage(): Storage | null {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function payeeMoments(payees: readonly PayeeSummary[]): void {
+  for (const event of notePayees(storage(), payees.map((p) => ({ id: p.id, name: p.name, payable: PAYABLE.has(p.status), address: p.address })))) {
+    showMoment(event.kind === "verified"
+      ? { title: `${event.name} is verified`, detail: "Their wallet signed. They can be paid now.", address: event.address }
+      : { title: `${event.name}'s address changed`, detail: "Both proofs checked out. Payments now go to the new address.", address: event.address });
+  }
+}
 
 function go(path: string): void {
   history.pushState(null, "", path);
@@ -82,9 +102,10 @@ async function renderPage(): Promise<void> {
   const path = location.pathname;
   if (path === "/app/login") {
     setCurrent(null);
-    return show(signInPage(() => {
+    return show(signInPage((address) => {
       signInWhy = null;
       go("/app");
+      showMoment({ title: "Signed in", detail: "This wallet opens your agent. It signs approvals and never pays your bills.", address });
     }, signInWhy));
   }
   if (!root?.querySelector(".owner")) show(loading());
@@ -117,6 +138,7 @@ async function renderPage(): Promise<void> {
   setCurrent("payees");
   const payees = await api<{ payees: PayeeSummary[] }>("GET", "/api/app/payees");
   if (!payees.ok) return show(failure(payees.error.message));
+  payeeMoments(payees.data.payees);
   const match = /^\/app\/payees\/([^/]+)$/.exec(path);
   const selected = match?.[1] ? decodeURIComponent(match[1]) : (payees.data.payees[0]?.id ?? null);
   const openDeposit = () => depositSheet(overview.data, () => void render());
@@ -152,4 +174,5 @@ document.addEventListener("click", (event) => {
   go(link.getAttribute("href") ?? "/app");
 });
 window.addEventListener("popstate", () => void render());
+startMoments(document.querySelector(".bar"));
 void render();

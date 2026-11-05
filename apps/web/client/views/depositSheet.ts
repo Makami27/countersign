@@ -5,6 +5,7 @@ import { EXTENSION_TIP, connectWallet, depositWallets, executeTransaction, remem
 import type { Overview } from "../types.ts";
 import { AGENT_WALLET, DEPOSIT_ACTION, FAUCETS, formatSui, suiToBaseUnits } from "../walletFacts.ts";
 import { openSheet } from "./sheets.ts";
+import { showMoment } from "../moment.ts";
 
 type Prepared = { readonly transaction: string; readonly to: string; readonly sender: string; readonly usdcBaseUnits: string; readonly suiBaseUnits: string };
 type Confirmation = { readonly state: "CONFIRMED" | "FAILED" | "NOT_FOUND" | "UNKNOWN"; readonly usdcBaseUnits?: string; readonly suiBaseUnits?: string };
@@ -68,7 +69,9 @@ export function depositSheet(overview: Overview, onClosed: () => void): void {
       void confirmDeposit(digest).then((confirmed) => {
         if (!confirmed) return void (line.textContent = `Your wallet sent it, but Tatum hasn't confirmed it yet. Don't send it again: the balance updates when it lands.`);
         if (confirmed.state === "FAILED") return void (line.textContent = "The transfer failed on chain. No funds moved; only the network fee was spent. You can try again.");
-        line.textContent = `Deposit confirmed: the agent wallet received ${moneyWords(confirmed.usdcBaseUnits ?? "0", confirmed.suiBaseUnits ?? "0", test)}.`;
+        const received = moneyWords(confirmed.usdcBaseUnits ?? "0", confirmed.suiBaseUnits ?? "0", test);
+        line.textContent = `Deposit confirmed: the agent wallet received ${received}.`;
+        showMoment({ title: "Deposit confirmed", detail: `The agent wallet received ${received}.`, address: prepared.to });
       });
     };
 

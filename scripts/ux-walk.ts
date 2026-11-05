@@ -97,6 +97,7 @@ for (const scheme of schemes) for (const width of widths) {
   await shot(page, "deposit-review", width, scheme);
   await page.click("dialog button:has-text('Sign in Test wallet')");
   await page.waitForFunction(() => document.querySelector("dialog")?.textContent?.includes("Deposit confirmed"));
+  if (!(await page.locator(".moment").count())) note(`no moment after a deposit ${width} ${scheme}`);
   await shot(page, "deposit-done", width, scheme);
   await closeSheet(page);
 
@@ -110,6 +111,8 @@ for (const scheme of schemes) for (const width of widths) {
   await page.click("dialog .btn.primary");
   await page.waitForSelector("dialog .pay-steps");
   await shot(page, "pay-progress", width, scheme);
+  await page.waitForSelector(".moment");
+  await shot(page, "moment", width, scheme);
   await page.waitForFunction(() => document.querySelector("dialog")?.textContent?.includes("View the receipt"), undefined, { timeout: 30_000 });
   await shot(page, "pay-settled", width, scheme);
   await closeSheet(page);
@@ -118,6 +121,28 @@ for (const scheme of schemes) for (const width of widths) {
   await page.waitForSelector(".pay-actions");
   await page.waitForTimeout(400);
   await shot(page, "app-payee", width, scheme);
+
+  const fullAddress = await page.locator(".payto .addr").getAttribute("title");
+  await page.click(".payto button:has-text('Copy address')");
+  await page.waitForTimeout(100);
+  if ((await page.evaluate(() => navigator.clipboard.readText())) !== fullAddress) note(`copy button pasted something else ${width} ${scheme}`);
+  await page.evaluate(() => {
+    const range = document.createRange();
+    range.selectNodeContents(document.querySelector(".payto .addr") as Node);
+    const selection = document.getSelection();
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+    document.execCommand("copy");
+  });
+  await page.waitForTimeout(100);
+  if ((await page.evaluate(() => navigator.clipboard.readText())) !== fullAddress) note(`selecting and copying pasted something else ${width} ${scheme}`);
+  const toggle = page.locator(".sound-toggle");
+  await toggle.click();
+  if ((await toggle.textContent()) !== "Sound off") note("sound toggle didn't switch");
+  await page.reload();
+  await page.waitForSelector(".pay-actions");
+  if ((await page.locator(".sound-toggle").textContent()) !== "Sound off") note("mute wasn't remembered");
+  await page.locator(".sound-toggle").click();
 
   await page.goto(`${s.base}/demo`);
   await page.waitForSelector("#own-letter");

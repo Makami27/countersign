@@ -1,6 +1,7 @@
 import { api } from "./api.ts";
 import { addressEl, h, liveRegion, networkWords, scrawlEl, signatureFigure, statusPill, when } from "./dom.ts";
 import { walletStep, type WalletRole } from "./walletSteps.ts";
+import { showMoment, startMoments } from "./moment.ts";
 
 type Step = { readonly signedAt: string } | null;
 type Base = { readonly network: "mainnet" | "testnet"; readonly memory: string; readonly payeeName: string; readonly message: string; readonly expires: string; readonly expired: boolean };
@@ -41,7 +42,8 @@ function signStep(view: OnboardingView | ChangeView, role: "current" | "new" | "
     status.textContent = "Signed. Checking the signature through Tatum and writing the record to Walrus Memory (about 20 seconds)…";
     const result = await api("POST", `/api/sign/${nonce}`, { signature, role });
     if (!result.ok) return void (status.textContent = namedText(result.error.body, result.error.message));
-    await render();
+    const finished = await render();
+    if (finished) showMoment({ title: `${finished.payeeName} is verified`, detail: "Your wallet proved the address. Nothing was sent.", address: finished.address });
   } });
 }
 
@@ -93,13 +95,13 @@ function body(view: OnboardingView | ChangeView): HTMLElement[] {
   ];
 }
 
-async function render(): Promise<void> {
+async function render(): Promise<CompletedView | null> {
   const result = await api<SignView>("GET", `/api/sign/${nonce}`);
   if (!result.ok) {
     const unknown = (result.error.body as Named | null)?.unknown === true;
     root?.replaceChildren(h("h1", { tabindex: "-1" }, unknown ? "This link doesn't match any request" : "This link can't be used"), h("p", { class: "money" }, "Nothing was changed."),
       h("p", {}, unknown ? "Check that you opened the whole link, or ask the person who sent it for a new one." : namedText(result.error.body, result.error.message)));
-    return;
+    return null;
   }
   const view = result.data;
   if (banner) {
@@ -112,6 +114,8 @@ async function render(): Promise<void> {
   else if (view.expired) root?.replaceChildren(h("h1", { tabindex: "-1" }, "This request expired"), h("p", { class: "money" }, "Nothing was changed."), h("p", {}, "Ask the person who sent the link to start a new request."));
   else root?.replaceChildren(...body(view));
   root?.querySelector<HTMLElement>("h1")?.focus({ preventScroll: true });
+  return view.kind === "completed" ? view : null;
 }
 
+startMoments(document.querySelector(".bar"));
 void render();

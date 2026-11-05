@@ -85,7 +85,7 @@ function letters(view: View, result: HTMLElement, status: HTMLElement): HTMLElem
     const b = h("button", { type: "button", role: "radio", "aria-checked": p.id === payeeId ? "true" : "false" }, p.name);
     b.addEventListener("click", () => {
       payeeId = p.id;
-      void draw();
+void draw();
     });
     return b;
   }));

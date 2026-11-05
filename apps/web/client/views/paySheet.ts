@@ -4,6 +4,7 @@ import { addressEl, h, listen, networkWords, signatureFigure, usdc } from "../do
 import { isFinished, payStages, remainingToday, type PayPhase } from "../payStages.ts";
 import type { Overview, PaymentStatus, Refusal } from "../types.ts";
 import { quickAmounts } from "../walletFacts.ts";
+import { showMoment } from "../moment.ts";
 import { openSheet } from "./sheets.ts";
 
 export type PayTarget = { readonly id: string; readonly name: string; readonly address: string };
@@ -138,7 +139,10 @@ export function paySheet(target: PayTarget, overview: Overview, onClosed: () => 
       }
     };
 
+    let celebrated = false;
     const settledStep = (baseUnits: string, digest: string | null, receipt: string | null, gaveUp: boolean) => {
+      if (!celebrated) showMoment({ title: `Paid ${target.name}`, detail: `${usdc(baseUnits)} reached their verified address.`, address: target.address });
+      celebrated = true;
       const receiptLine = receipt
         ? h("div", { class: "actions" }, h("a", { class: "btn primary", href: `/r/${receipt}` }, "View the receipt"), done())
         : h("div", {}, h("p", { class: "note", role: "status" }, gaveUp ? `The payment is final. The receipt hasn't been confirmed ${storedWhere(overview)} yet; it will appear in Activity.` : `The payment is final. Writing the receipt ${storedWhere(overview)} (about 20 seconds)…`), h("div", { class: "actions" }, done()));
