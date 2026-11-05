@@ -10,6 +10,8 @@ import { addPayeeSheet, paySheet } from "./views/sheets.ts";
 import { cancelChange, confirmChangeSheet, requestChangeSheet } from "./views/changeSheets.ts";
 import { activityPage, settingsPage } from "./views/pages.ts";
 import { signInPage } from "./views/signIn.ts";
+import { agentWalletPanel } from "./views/walletPanel.ts";
+import { depositSheet } from "./views/depositSheet.ts";
 
 const root = document.querySelector<HTMLElement>("#app");
 const nav = document.querySelector<HTMLElement>("#nav");
@@ -125,14 +127,15 @@ async function renderPage(): Promise<void> {
     list.prepend(checklistCard(overview.data));
     list.append(pasteCard(() => void render(), payFromMessage));
   }
-  if (!selected) return show(h("div", { class: "owner single at-list" }, list));
+  const wallet = agentWalletPanel(overview.data, () => depositSheet(overview.data, () => void render()));
+  if (!selected) return show(h("div", { class: "owner single at-list" }, wallet, list));
   const detail = await api<PayeeDetail>("GET", `/api/app/payees/${encodeURIComponent(selected)}`);
   const rerender = () => void render();
   const detailView = detail.ok ? payeeDetailView(detail.data, { onPay: () => paySheet(detail.data, overview.data, rerender), onRequestChange: () => requestChangeSheet(detail.data, rerender), onConfirm: (nonce) => confirmChangeSheet(nonce, overview.data.cooldownSeconds, overview.data.network, rerender), onCancel: (nonce, status) => cancelChange(nonce, overview.data.network, status, rerender) }) : failure(detail.error.message);
   const schedules = detail.ok && detail.data.payTo ? await api<{ schedules: ScheduleItem[] }>("GET", "/api/app/schedules") : null;
   if (detail.ok && schedules?.ok) detailView.insertBefore(schedulesPanel(selected, schedules.data.schedules, overview.data.network, rerender), detailView.querySelector(".actions.sticky"));
   if (detail.ok && (detail.data.pendingChanges.length > 0 || detail.data.waiting)) schedulePoll(path);
-  show(h("div", { class: `owner ${match ? "at-detail" : "at-list"}` }, list, detailView));
+  show(h("div", { class: `owner ${match ? "at-detail" : "at-list"}` }, wallet, list, detailView));
 }
 
 document.addEventListener("click", (event) => {

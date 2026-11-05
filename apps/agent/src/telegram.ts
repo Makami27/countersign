@@ -15,7 +15,7 @@ const HTML = { parse_mode: "HTML" as const };
 
 const POLL_RETRY_MS = 15_000;
 
-export type BotOwner = { readonly ownerId: string; readonly engine: Countersign; readonly index: IndexStore; readonly sendPayment: (paymentId: string) => Promise<PaymentIntent>; readonly busy: () => boolean; readonly countModel: () => void; readonly agentAddress: string; readonly balances: () => Promise<BalancesView>; readonly payees: () => Promise<readonly PayeeLine[]>; readonly schedules: () => readonly ScheduleLine[]; readonly perPaymentCap: () => bigint };
+export type BotOwner = { readonly ownerId: string; readonly engine: Countersign; readonly index: IndexStore; readonly sendPayment: (paymentId: string) => Promise<PaymentIntent>; readonly busy: () => boolean; readonly countModel: () => void; readonly agentAddress: string; readonly balances: (fresh?: boolean) => Promise<BalancesView>; readonly payees: () => Promise<readonly PayeeLine[]>; readonly schedules: () => readonly ScheduleLine[]; readonly perPaymentCap: () => bigint };
 
 export type BotDeps = {
   readonly token: string;

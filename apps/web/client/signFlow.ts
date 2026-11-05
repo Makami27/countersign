@@ -49,6 +49,30 @@ export async function connectWallet(wallet: Wallet, expected: string | null, rol
   return { ok: true, value: result };
 }
 
+type ExecuteFeature = { signAndExecuteTransaction(input: { transaction: { toJSON(): Promise<string> }; account: WalletAccount; chain: `${string}:${string}` }): Promise<{ digest: string }> };
+
+export function depositWallets(): readonly Wallet[] {
+  return getWallets().get().filter((w) => "standard:connect" in w.features && "sui:signAndExecuteTransaction" in w.features);
+}
+
+export function rememberedAccount(wallet: Wallet, preferred: string | null): Connected | null {
+  const known = preferred ? connected.get(preferred.toLowerCase()) : undefined;
+  if (known?.wallet === wallet) return known;
+  const accounts = wallet.accounts;
+  const account = accounts.find((a) => a.address.toLowerCase() === preferred?.toLowerCase()) ?? [...connected.values()].find((c) => c.wallet === wallet)?.account;
+  return account ? { wallet, account } : null;
+}
+
+export async function executeTransaction(by: Connected, transaction: string, network: "mainnet" | "testnet"): Promise<WalletStep<string>> {
+  const execute = by.wallet.features["sui:signAndExecuteTransaction"] as ExecuteFeature | undefined;
+  if (!execute) return { ok: false, message: `${by.wallet.name} can't send transactions. Nothing was sent.` };
+  try {
+    return { ok: true, value: (await execute.signAndExecuteTransaction({ transaction: { toJSON: async () => transaction }, account: by.account, chain: `sui:${network}` })).digest };
+  } catch (error) {
+    return { ok: false, message: blockedOr(error, "Your wallet didn't send it. Nothing was sent.") };
+  }
+}
+
 export async function signMessage(by: Connected, message: string, network: "mainnet" | "testnet"): Promise<WalletStep<string>> {
   const sign = by.wallet.features["sui:signPersonalMessage"] as SignFeature | undefined;
   if (!sign) return { ok: false, message: `${by.wallet.name} can't sign messages. Nothing was signed.` };

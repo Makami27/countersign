@@ -3,7 +3,7 @@ import { decodeSuiPrivateKey } from "@mysten/sui/cryptography";
 import { InMemoryMemory, isRealUseNamespace, type SuiAddress } from "@countersign/core";
 import { MemWalMemory } from "@countersign/adapters/memwal";
 import { PaymentRunner } from "@countersign/adapters/payments";
-import { SharedRateGate, TATUM_FREE_TIER_INTERVAL_MS, TATUM_GRAPHQL_URL, TatumGraphql, TatumRoundTripChecker, TatumSignatureVerifier, USDC_COIN_TYPE, readAgentBalances, tatumGrpcClient, tatumPaymentChain, tatumRateGateName } from "@countersign/adapters/tatum";
+import { SharedRateGate, TATUM_FREE_TIER_INTERVAL_MS, TATUM_GRAPHQL_URL, TatumGraphql, TatumRoundTripChecker, TatumSignatureVerifier, USDC_COIN_TYPE, prepareDeposit, readAgentBalances, sightDeposit, tatumGrpcClient, tatumPaymentChain, tatumRateGateName } from "@countersign/adapters/tatum";
 import { extractProposal } from "@countersign/adapters/gemini";
 import { extractWithGroq } from "@countersign/adapters/groq";
 import { withFallback, type ModelReader } from "@countersign/adapters/model";
@@ -69,10 +69,10 @@ function telegramFor(ownerId: string) {
 }
 
 const balanceCache = new Map<string, { at: number; view: BalancesView }>();
-function balancesFor(address: SuiAddress): () => Promise<BalancesView> {
-  return async () => {
+function balancesFor(address: SuiAddress): (fresh?: boolean) => Promise<BalancesView> {
+  return async (fresh = false) => {
     const cached = balanceCache.get(address);
-    if (cached && Date.now() - cached.at < BALANCE_CACHE_MS) return cached.view;
+    if (!fresh && cached && Date.now() - cached.at < BALANCE_CACHE_MS) return cached.view;
     const read = await readAgentBalances(grpc, config.network, address);
     const view: BalancesView = read.status === "KNOWN" ? { status: "KNOWN", suiBaseUnits: read.sui.totalBaseUnits, usdcBaseUnits: read.usdc.totalBaseUnits } : { status: "UNKNOWN", detail: read.detail };
     balanceCache.set(address, { at: Date.now(), view });
@@ -110,6 +110,7 @@ async function runtimeFor(ownerId: string, ownerStorage: Storage, walletKey: str
     roundTrips: new TatumRoundTripChecker(graphql, agentAddress, USDC_COIN_TYPE[config.network]),
     runner: new PaymentRunner({ ledger: ownerStorage.ledger, chain: tatumPaymentChain(grpc, wallet, config.network), clock }),
     balances: balancesFor(agentAddress), memoryCounts: memoryCountsFor(ownerId), notify: notifyFor(ownerId), telegram: telegramFor(ownerId),
+    deposits: { prepare: (sender, amounts) => prepareDeposit(grpc, config.network, sender, agentAddress, amounts), sight: (digest) => sightDeposit(grpc, config.network, digest, agentAddress) },
     reader: trackedReader, quota: new QuotaMeter(ownerId === config.ownerId ? null : DEFAULT_HOURLY_LIMITS), isAdmin: ownerId === config.ownerId,
     defaults: { perPaymentBaseUnits: config.caps.perPaymentBaseUnits, perDayBaseUnits: config.caps.perDayBaseUnits, cooldownSeconds: config.cooldownMs / 1000 },
     now: Date.now,

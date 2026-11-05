@@ -11,6 +11,26 @@
 }
 @media (max-width: 959px) { .app .owner.at-detail .list, .app .owner.at-list .detail { display: none; } }
 
+.app .wallet-panel { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4) var(--space-6); padding: var(--space-5) var(--gutter); background: var(--paper-deep); border-bottom: 1px solid var(--line-strong); }
+.app .wallet-panel h2 { font-size: var(--step-1); }
+.app .wallet-panel .fund { font-weight: 400; color: var(--ink-soft); }
+.app .wallet-main, .app .wallet-side, .app .wallet-figures, .app .wallet-address { display: grid; gap: var(--space-2); align-content: start; min-width: 0; }
+.app .wallet-side { gap: var(--space-3); }
+.app .wallet-figure { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space-2); max-width: none; }
+.app .wallet-figure .amount { font-size: var(--step-3); font-weight: 600; line-height: 1.05; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.app .wallet-figure .unit { font-weight: 600; }
+.app .wallet-figure.small .amount { font-size: var(--step-1); letter-spacing: -0.01em; }
+.app .wallet-figure.small .unit { font-weight: 400; color: var(--ink-soft); }
+.app .wallet-low, .app .wallet-yours { grid-column: 1 / -1; }
+.app .wallet-low { background: var(--paper); }
+.app .wallet-yours { padding-top: var(--space-3); border-top: 1px dashed var(--line-strong); max-width: none; }
+@media (min-width: 960px) {
+  .app .wallet-panel { grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); }
+  .app .owner { grid-template-rows: auto 1fr; }
+}
+@media (max-width: 959px) { .app .owner.at-detail .wallet-panel { display: none; } }
+.app .sheet-stage { display: grid; gap: var(--space-4); grid-template-columns: minmax(0, 1fr); }
+
 .app .list { padding: var(--space-5) var(--gutter); display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); align-content: start; }
 @media (min-width: 960px) { .app .list { border-right: 1px solid var(--line); background: var(--paper-deep); } }
 .app .list h1 { font-size: var(--step-2); }

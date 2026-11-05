@@ -1,6 +1,7 @@
 import { REASONS, headOf, isRefusal, remembersAttack, type PayeeVersionRecord, type ReceiptRecord, type SignatureVerification, type SuiAddress } from "@countersign/core";
 import type { BalancesView, OwnerContext } from "./ownerContext.ts";
 import { TookTooLong, within } from "./deadline.ts";
+import { scheduleList } from "./scheduleRoutes.ts";
 
 const DAY_MS = 24 * 3600 * 1000;
 const PART_DEADLINE_MS = 8_000;
@@ -82,6 +83,11 @@ export async function payeeDetail(ctx: OwnerContext, id: string, now: number) {
   };
 }
 
+function nextScheduled(ctx: OwnerContext, now: number) {
+  const due = scheduleList(ctx, now).schedules.flatMap((s) => (s.nextDue ? [{ amountBaseUnits: s.schedule.amountBaseUnits, nextDue: s.nextDue, payeeId: s.schedule.payeeId }] : []));
+  return due.sort((a, b) => a.nextDue.localeCompare(b.nextDue))[0] ?? null;
+}
+
 export async function overview(ctx: OwnerContext, now: number) {
   const settings = ctx.settings.values();
   const today = new Date(now).toISOString().slice(0, 10);
@@ -104,7 +110,7 @@ export async function overview(ctx: OwnerContext, now: number) {
     isAdmin: ctx.isAdmin, checklist,
     network: ctx.network, agentAddress: ctx.agentAddress, balances, memory: ctx.memory(), memoryCounts: memoryCounts.counts, memoryCountsWhy: memoryCounts.why,
     caps: { perPaymentBaseUnits: settings.perPaymentBaseUnits, perDayBaseUnits: settings.perDayBaseUnits, usedTodayBaseUnits: await ctx.ledger.reservedFor(today) },
-    cooldownSeconds: settings.cooldownSeconds, payeeCount: (await ctx.index.payeeIds()).length, ownerWallet: ctx.wallets.state(),
+    nextScheduled: nextScheduled(ctx, now), cooldownSeconds: settings.cooldownSeconds, payeeCount: (await ctx.index.payeeIds()).length, ownerWallet: ctx.wallets.state(),
   };
 }
 
