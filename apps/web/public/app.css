@@ -105,6 +105,9 @@
 .app .demo-letter:hover { background: var(--paper-deep); border-left-color: var(--ballpoint); }
 .app .demo-letter span { font-weight: 400; font-size: var(--step--1); color: var(--ink-soft); }
 .app .compare-block { display: grid; gap: var(--space-3); }
+.app .outcome { display: grid; gap: var(--space-2); }
+.app .actions.amounts .btn { min-width: 5.5rem; }
+.app .pay-preview .sigcard-sig .scrawl { height: 4.5rem; }
 .app .demo-card { gap: var(--space-2); }
 .app .demo-card .sigcard-sig .scrawl { height: 4.5rem; }
 .app .stated-list li { grid-template-columns: 2.5rem minmax(0, 1fr); padding: var(--space-2) 0; }

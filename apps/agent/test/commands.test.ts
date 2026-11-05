@@ -1,7 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import type { SuiAddress } from "@countersign/core";
 import { COMMANDS, balanceHtml, cancelText, helpText, payeesHtml, schedulesText } from "../src/commands.ts";
+import { changeStartedHtml, questionHtml } from "../src/telegramText.ts";
 
 const URL = "https://countersign.example";
 const ADDRESS = `0x${"ab".repeat(32)}`;
@@ -11,6 +13,20 @@ test("X10 /help lists every command in plain words, explains paying, forwarding 
   for (const c of COMMANDS) assert.ok(help.includes(`/${c.command}: `), c.command);
   for (const words of ["pay rent 0.10", "forward an email or chat", "paste its text", `${URL}/app`, "Sui testnet: test USDC, no real money"]) assert.ok(help.includes(words), words);
   assert.ok(helpText(URL, "mainnet").includes("Sui mainnet"));
+});
+
+test("U04 Telegram asks how much with the verified address, and names the payee problem otherwise", () => {
+  const payee = { id: "rent", name: "Rent", verified: ADDRESS as SuiAddress };
+  const asked = questionHtml({ kind: "ask_amount", payee, verified: ADDRESS as SuiAddress }, [], URL);
+  assert.ok(asked.startsWith("<b>How much should I pay Rent?</b>"));
+  assert.ok(asked.includes("Nothing was sent") && asked.includes("0x abab"));
+  assert.ok(questionHtml({ kind: "no_payee", address: null }, ["Rent"], URL).includes("Your payees: Rent."));
+  assert.ok(questionHtml({ kind: "not_payable", payee: { ...payee, verified: null } }, [], URL).includes(`the owner app (${URL}/app)`));
+});
+
+test("U04 a new address over Telegram is reported as saved as said, not proven", () => {
+  const html = changeStartedHtml({ verdict: "CHANGE_STARTED", nonce: "n", expires: "2026-11-06T00:00:00Z", fromAddress: ADDRESS as SuiAddress, toAddress: `0x${"cd".repeat(32)}` as SuiAddress }, `${URL}/sign/n`);
+  assert.ok(html.includes("Saved as said, not proven") && html.includes("Nothing was sent") && html.includes(`${URL}/sign/n`));
 });
 
 test("X10 /payees says which payees can be paid and shows the grouped address only where it will pay", () => {

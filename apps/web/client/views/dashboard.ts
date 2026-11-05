@@ -28,9 +28,29 @@ export function checklistCard(overview: Overview): HTMLElement {
   return h("section", { class: "card checklist", "aria-labelledby": "checklist-title" }, h("h2", { id: "checklist-title" }, "Getting started"), steps);
 }
 
-type PasteAnswer = { readonly says?: string; readonly signUrl?: string | null; readonly refusal?: { readonly message: string; readonly nextAction: string; readonly receipt: string } };
+type PasteAnswer = {
+  readonly says?: string;
+  readonly signUrl?: string | null;
+  readonly ask?: { readonly payeeId: string; readonly name: string; readonly question: string; readonly amounts: readonly string[] };
+  readonly preview?: { readonly payeeId: string; readonly name: string; readonly amount: string };
+  readonly refusal?: { readonly reason?: string; readonly message: string; readonly nextAction: string; readonly receipt: string };
+};
 
-export function pasteCard(onChanged: () => void): HTMLElement {
+export type PayFromMessage = (payeeId: string, amount: string | null) => void;
+
+function refusalHeadline(reason: string | undefined): string {
+  return `${reason === "LOOKALIKE_ADDRESS" ? "Look-alike refused." : "Refused."} Nothing was sent and nothing was changed.`;
+}
+
+function answerNodes(r: PasteAnswer, onPay: PayFromMessage): (HTMLElement | string)[] {
+  if (r.refusal) return [h("p", { class: "money" }, refusalHeadline(r.refusal.reason)), h("p", {}, [r.refusal.message, r.refusal.nextAction].filter(Boolean).join(" ")), h("p", { class: "links" }, h("a", { href: `/r/${r.refusal.receipt}` }, `Receipt ${r.refusal.receipt}`))];
+  const { ask, preview } = r;
+  if (ask) return [h("p", { class: "money" }, ask.question), h("p", {}, r.says ?? ""), h("div", { class: "actions amounts" }, ...ask.amounts.map((amount) => h("button", { class: "btn", type: "button", onclick: () => onPay(ask.payeeId, amount) }, `${amount} USDC`)))];
+  if (preview) return [h("p", {}, r.says ?? ""), h("div", { class: "actions" }, h("button", { class: "btn primary", type: "button", onclick: () => onPay(preview.payeeId, preview.amount) }, `Review paying ${preview.name}`))];
+  return [h("p", {}, r.says ?? ""), r.signUrl ? h("p", { class: "note" }, `Signing link for the payee: ${r.signUrl}`) : ""];
+}
+
+export function pasteCard(onChanged: () => void, onPay: PayFromMessage): HTMLElement {
   const text = h("textarea", { id: "paste-text", rows: "4", maxlength: "4000", placeholder: "Paste the whole message, for example an email saying a payee changed wallets." });
   const status = liveRegion();
   const answer = h("div", {});
@@ -45,10 +65,8 @@ export function pasteCard(onChanged: () => void): HTMLElement {
     status.textContent = "";
     if (!result.ok) return void (status.textContent = result.error.message);
     const r = result.data;
-    answer.replaceChildren(...(r.refusal
-      ? [h("p", { class: "money" }, "Refused. Nothing was sent and nothing was changed."), h("p", {}, [r.refusal.message, r.refusal.nextAction].filter(Boolean).join(" ")), h("p", { class: "links" }, h("a", { href: `/r/${r.refusal.receipt}` }, `Receipt ${r.refusal.receipt}`))]
-      : [h("p", {}, r.says ?? ""), r.signUrl ? h("p", { class: "note" }, `Signing link for the payee: ${r.signUrl}`) : ""]));
-    onChanged();
+    answer.replaceChildren(...answerNodes(r, onPay));
+    if (r.refusal || r.signUrl) onChanged();
   }, status);
   return h("section", { class: "card", "aria-labelledby": "paste-title" }, h("h2", { id: "paste-title" }, "Check a message"), form);
 }

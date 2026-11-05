@@ -1,20 +1,21 @@
 import { randomBytes } from "node:crypto";
 import { Bot, InlineKeyboard, type Context } from "grammy";
-import { headOf, type Countersign, type InboundMessage, type IndexStore, type PaymentIntent, type Proposal } from "@countersign/core";
+import { headOf, usdcToBaseUnits, type Countersign, type InboundMessage, type IndexStore, type PaymentIntent, type Proposal } from "@countersign/core";
 import type { Extraction } from "@countersign/adapters/gemini";
 import { MODEL_UNREADABLE_REPLY, RECEIPT_PENDING_REPLY, STORE_UNANSWERED_REPLY, paymentPendingReply, paymentReply, receiptReply, replyFor } from "./replies.ts";
 import { readMessage } from "@countersign/web/screen";
 import { BUSY } from "@countersign/web/quota";
 import { COMMANDS, balanceHtml, cancelText, helpText, payeesHtml, schedulesText, type PayeeLine, type ScheduleLine } from "./commands.ts";
 import type { BalancesView } from "@countersign/web/ownerContext";
-import { READING_REPLY, changeStartedHtml, confirmPaymentHtml, signInLinkText, refusalHtml, unlinkedText } from "./telegramText.ts";
+import { READING_REPLY, changeStartedHtml, confirmPaymentHtml, questionHtml, signInLinkText, refusalHtml, unlinkedText } from "./telegramText.ts";
+import { quickAmounts } from "@countersign/web/paymentReading";
 
 const CONFIRMATION_LIFETIME_MS = 5 * 60 * 1000;
 const HTML = { parse_mode: "HTML" as const };
 
 const POLL_RETRY_MS = 15_000;
 
-export type BotOwner = { readonly ownerId: string; readonly engine: Countersign; readonly index: IndexStore; readonly sendPayment: (paymentId: string) => Promise<PaymentIntent>; readonly busy: () => boolean; readonly countModel: () => void; readonly agentAddress: string; readonly balances: () => Promise<BalancesView>; readonly payees: () => Promise<readonly PayeeLine[]>; readonly schedules: () => readonly ScheduleLine[] };
+export type BotOwner = { readonly ownerId: string; readonly engine: Countersign; readonly index: IndexStore; readonly sendPayment: (paymentId: string) => Promise<PaymentIntent>; readonly busy: () => boolean; readonly countModel: () => void; readonly agentAddress: string; readonly balances: () => Promise<BalancesView>; readonly payees: () => Promise<readonly PayeeLine[]>; readonly schedules: () => readonly ScheduleLine[]; readonly perPaymentCap: () => bigint };
 
 export type BotDeps = {
   readonly token: string;
@@ -27,10 +28,27 @@ export type BotDeps = {
 };
 
 type PendingPay = { readonly ownerId: string; readonly inbound: InboundMessage; readonly proposal: Extract<Proposal, { kind: "pay" }>; readonly expires: number };
+type PendingAmount = { readonly id: string; readonly inbound: InboundMessage; readonly payeeId: string; readonly expires: number };
+const AMOUNT_ONLY = /^\s*\$?\s*(\d+(?:\.\d{1,6})?)\s*(?:usdc)?\s*$/i;
 
 export function startBot(deps: BotDeps): Bot {
   const bot = new Bot(deps.token);
   const confirmations = new Map<string, PendingPay>();
+  const askedAmounts = new Map<string, PendingAmount>();
+  const previewPay = async (ctx: Context, owner: BotOwner, inbound: InboundMessage, proposal: Extract<Proposal, { kind: "pay" }>) => {
+    const preview = await owner.engine.previewPayment(inbound, proposal);
+    if (preview.verdict === "REFUSED") return void (await ctx.reply(refusalHtml(preview, await owner.engine.receiptRecord(preview.receipt), null, deps.publicUrl), HTML));
+    const id = randomBytes(9).toString("base64url");
+    confirmations.set(id, { ownerId: owner.ownerId, inbound, proposal, expires: Date.now() + CONFIRMATION_LIFETIME_MS });
+    const keyboard = new InlineKeyboard().text("Pay", `pay:${id}`).text("Cancel", `cancel:${id}`);
+    await ctx.reply(confirmPaymentHtml(preview.name, preview.address, preview.amountBaseUnits, deps.network), { ...HTML, reply_markup: keyboard });
+  };
+  const previewAmount = async (ctx: Context, owner: BotOwner, asked: PendingAmount, amountText: string) => {
+    askedAmounts.delete(owner.ownerId);
+    const amountBaseUnits = usdcToBaseUnits(amountText);
+    if (!amountBaseUnits) return void (await ctx.reply("Give the amount in USDC, for example 0.10. Nothing was sent."));
+    await previewPay(ctx, owner, asked.inbound, { kind: "pay", payeeId: asked.payeeId, amountBaseUnits, reasonQuote: asked.inbound.text });
+  };
   const ownerOf = async (ctx: Context) => (ctx.from ? deps.ownerFor(ctx.from.id) : null);
   const signUrl = (nonce: string) => `${deps.publicUrl ?? ""}/sign/${nonce}`;
 
@@ -83,6 +101,9 @@ ${unlinkedText(deps.publicUrl)}`);
     const owner = await ownerOf(ctx);
     if (!owner) return void (await ctx.reply(unlinkedText(deps.publicUrl)));
     if (owner.busy()) return void (await ctx.reply(BUSY));
+    const waitingAmount = askedAmounts.get(owner.ownerId);
+    const typedAmount = AMOUNT_ONLY.exec(ctx.message.text)?.[1];
+    if (waitingAmount && waitingAmount.expires >= Date.now() && typedAmount) return previewAmount(ctx, owner, waitingAmount, typedAmount);
     const forwarded = ctx.message.forward_origin !== undefined;
     const inbound: InboundMessage = { id: `tg:${ctx.message.message_id}`, channel: "telegram", from: forwarded ? "forwarded" : String(ctx.from.id), text: ctx.message.text, receivedAt: new Date(ctx.message.date * 1000).toISOString() };
     const reading = await readMessage(owner.index, async (text, payeeIds) => {
@@ -91,16 +112,19 @@ ${unlinkedText(deps.publicUrl)}`);
       return deps.extract(text, payeeIds);
     }, inbound.text);
     if (reading.status === "UNKNOWN") return void (await ctx.reply(MODEL_UNREADABLE_REPLY));
+    if (reading.status === "QUESTION") {
+      deps.answeredByCode();
+      const { question, payeeNames } = reading;
+      if (question.kind !== "ask_amount") return void (await ctx.reply(questionHtml(question, payeeNames, deps.publicUrl), HTML));
+      const asked = { id: randomBytes(9).toString("base64url"), inbound, payeeId: question.payee.id, expires: Date.now() + CONFIRMATION_LIFETIME_MS };
+      askedAmounts.set(owner.ownerId, asked);
+      const keyboard = new InlineKeyboard();
+      for (const amount of quickAmounts(owner.perPaymentCap())) keyboard.text(`${amount} USDC`, `amount:${asked.id}:${amount}`);
+      return void (await ctx.reply(questionHtml(question, payeeNames, deps.publicUrl), { ...HTML, reply_markup: keyboard.row().text("Cancel", `cancel:${asked.id}`) }));
+    }
     if (reading.by === "code") deps.answeredByCode();
     const proposal = reading.proposal;
-    if (proposal.kind === "pay") {
-      const preview = await owner.engine.previewPayment(inbound, proposal);
-      if (preview.verdict === "REFUSED") return void (await ctx.reply(refusalHtml(preview, await owner.engine.receiptRecord(preview.receipt), null, deps.publicUrl), HTML));
-      const id = randomBytes(9).toString("base64url");
-      confirmations.set(id, { ownerId: owner.ownerId, inbound, proposal, expires: Date.now() + CONFIRMATION_LIFETIME_MS });
-      const keyboard = new InlineKeyboard().text("Pay", `pay:${id}`).text("Cancel", `cancel:${id}`);
-      return void (await ctx.reply(confirmPaymentHtml(preview.name, preview.address, preview.amountBaseUnits, deps.network), { ...HTML, reply_markup: keyboard }));
-    }
+    if (proposal.kind === "pay") return previewPay(ctx, owner, inbound, proposal);
     const outcome = await owner.engine.handle(inbound, proposal);
     const head = proposal.kind === "change_address" ? headOf(await owner.index.payeeVersions(proposal.payeeId)) : null;
     if (outcome.verdict === "REFUSED") return void (await ctx.reply(refusalHtml(outcome, await owner.engine.receiptRecord(outcome.receipt), head?.kind === "verified" ? head.version.address : null, deps.publicUrl), HTML));
@@ -111,12 +135,20 @@ ${unlinkedText(deps.publicUrl)}`);
   bot.on("callback_query:data", async (ctx) => {
     const owner = await ownerOf(ctx);
     if (!owner) return void (await ctx.answerCallbackQuery());
-    const [action, id] = ctx.callbackQuery.data.split(":");
+    const [action, id, amountText] = ctx.callbackQuery.data.split(":");
     const pending = id ? confirmations.get(id) : undefined;
     if (id) confirmations.delete(id);
     await ctx.answerCallbackQuery();
     await ctx.editMessageReplyMarkup({ reply_markup: new InlineKeyboard() });
-    if (action === "cancel") return void (await ctx.reply("Cancelled. Nothing was sent."));
+    if (action === "cancel") {
+      if (askedAmounts.get(owner.ownerId)?.id === id) askedAmounts.delete(owner.ownerId);
+      return void (await ctx.reply("Cancelled. Nothing was sent."));
+    }
+    if (action === "amount") {
+      const asked = askedAmounts.get(owner.ownerId);
+      if (!asked || asked.id !== id || asked.expires < Date.now()) return void (await ctx.reply("This question expired. Nothing was sent. Ask again."));
+      return previewAmount(ctx, owner, asked, amountText ?? "");
+    }
     if (!pending || pending.expires < Date.now() || pending.ownerId !== owner.ownerId) return void (await ctx.reply("This confirmation expired. Nothing was sent. Ask again."));
     const outcome = await owner.engine.handle(pending.inbound, pending.proposal);
     if (outcome.verdict !== "PAY_RESERVED") return void (await ctx.reply(outcome.verdict === "REFUSED" ? refusalHtml(outcome, await owner.engine.receiptRecord(outcome.receipt), null, deps.publicUrl) : replyFor(outcome), HTML));

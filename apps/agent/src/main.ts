@@ -159,7 +159,7 @@ bot = startBot({
     const ctx = ownerId ? owners.get(ownerId) : null;
     return ctx ? {
       ownerId: ctx.ownerId, engine: ctx.engine, index: ctx.index, sendPayment: ctx.sendPayment, busy: () => ctx.quota.busy(), countModel: () => ctx.quota.record("model"),
-      agentAddress: ctx.agentAddress, balances: ctx.balances, schedules: () => scheduleList(ctx, Date.now()).schedules,
+      agentAddress: ctx.agentAddress, balances: ctx.balances, perPaymentCap: () => ctx.settings.values().perPaymentBaseUnits, schedules: () => scheduleList(ctx, Date.now()).schedules,
       payees: async () => Promise.all((await ctx.index.payeeIds()).map((id) => payeeSummary(ctx, id, Date.now()))),
     } : null;
   },

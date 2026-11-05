@@ -1,5 +1,6 @@
 import { REASONS, formatUsdc, type Outcome, type ReceiptRecord, type SeenElsewhere, type SuiAddress } from "@countersign/core";
 import { groupAddress } from "@countersign/web/addressGroups";
+import { amountQuestion, questionWords, type PaymentQuestion } from "@countersign/web/paymentReading";
 
 export function escapeHtml(text: string): string {
   return text.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c] ?? c);
@@ -42,10 +43,15 @@ export function refusalHtml(outcome: Extract<Outcome, { verdict: "REFUSED" }>, r
   return lines.join("\n");
 }
 
+export function questionHtml(question: PaymentQuestion, payeeNames: readonly string[], publicUrl: string | null): string {
+  if (question.kind !== "ask_amount") return escapeHtml(questionWords(question, payeeNames).replace("the owner app", publicUrl ? `the owner app (${publicUrl}/app)` : "the owner app"));
+  return [`<b>${escapeHtml(amountQuestion(question.payee.name))}</b>`, "Nothing was sent. Tap an amount or reply with a number. It goes to this verified address, and nowhere else:", groupedHtml(question.verified)].join("\n");
+}
+
 export function changeStartedHtml(outcome: Extract<Outcome, { verdict: "CHANGE_STARTED" }>, signUrl: string): string {
   return [
-    "Nothing was sent and nothing was changed yet.",
-    "The new address is kept as <b>stated</b>: it can't be paid until the payee's current wallet signs the change (or you confirm it in the owner app and the waiting period ends), and the new wallet proves control.",
+    "<b>Saved as said, not proven.</b> Nothing was sent, and payments still go to the verified address.",
+    "The new address can't be paid until the payee's current wallet signs the change (or you confirm it in the owner app and the waiting period ends), and the new wallet proves control.",
     "",
     "Requested address:",
     groupedHtml(outcome.toAddress, outcome.fromAddress),
