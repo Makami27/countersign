@@ -112,9 +112,9 @@ code { font-family: var(--mono); font-size: 0.86em; font-stretch: 87.5%; overflo
 .rows .what { display: grid; gap: var(--space-1); min-width: 0; overflow-wrap: anywhere; }
 .empty { padding: var(--space-3) 0; color: var(--ink-soft); border-top: 1px solid var(--line); }
 
-.facts { display: grid; margin: 0; }
+.facts { display: grid; margin: 0; container-type: inline-size; }
 .facts > div { display: grid; gap: var(--space-1); padding: var(--space-3) 0; border-top: 1px solid var(--line); }
-@media (min-width: 640px) { .facts > div { grid-template-columns: 12rem minmax(0, 1fr); gap: var(--space-4); } }
+@container (min-width: 28rem) { .facts > div { grid-template-columns: minmax(8rem, 12rem) minmax(0, 1fr); gap: var(--space-4); } }
 .facts dt { color: var(--ink-soft); font-size: var(--step--1); }
 .facts dd { margin: 0; min-width: 0; overflow-wrap: anywhere; }
 
