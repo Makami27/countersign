@@ -57,7 +57,7 @@ function answerNodes(r: PasteAnswer, onPay: PayFromMessage): (HTMLElement | stri
   const { ask, preview } = r;
   if (ask) return [h("p", { class: "money" }, ask.question), h("p", {}, r.says ?? ""), h("div", { class: "actions amounts" }, ...ask.amounts.map((amount) => h("button", { class: "btn", type: "button", onclick: () => onPay(ask.payeeId, amount) }, `${amount} USDC`)))];
   if (preview) return [h("p", {}, r.says ?? ""), h("div", { class: "actions" }, h("button", { class: "btn primary", type: "button", onclick: () => onPay(preview.payeeId, preview.amount) }, `Review paying ${preview.name}`))];
-  return [h("p", {}, r.says ?? ""), r.signUrl ? h("p", { class: "note" }, `Signing link for the payee: ${r.signUrl}`) : ""];
+  return [h("p", {}, r.says ?? ""), r.signUrl ? h("p", { class: "note" }, "Signing link for the payee:") : "", r.signUrl ? h("p", { class: "link-text" }, r.signUrl) : "", r.signUrl ? h("div", { class: "actions" }, copyButton(r.signUrl, "Copy link")) : ""];
 }
 
 export function pasteCard(onChanged: () => void, onPay: PayFromMessage): HTMLElement {

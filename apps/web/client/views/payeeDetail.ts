@@ -33,7 +33,7 @@ function waitingCard(detail: PayeeDetail): HTMLElement | null {
     h("p", { class: "money" }, "Nothing can be paid to this address yet."),
     h("span", { class: "label" }, "Address you entered"), addressEl(waiting.address),
     waiting.expired ? h("p", {}, "Add the payee again to get a new link.") : h("p", {}, `Send this link to the payee. Their wallet signs once to prove the address is theirs. It expires ${when(waiting.expires)}.`),
-    waiting.expired ? null : h("p", { class: "note", style: undefined }, h("span", { class: "addr" }, waiting.signUrl)),
+    waiting.expired ? null : h("p", { class: "link-text" }, waiting.signUrl),
     waiting.expired ? null : h("div", { class: "actions" }, copyButton(waiting.signUrl, "Copy signing link")));
 }
 
@@ -92,7 +92,7 @@ function pendingChangeCard(c: Pending, current: string | null, actions: DetailAc
     h("ol", { class: "steps" },
       h("li", { class: c.currentSignedAt || c.ownerConfirmedAt ? "done" : "" }, h("span", { class: "n", "aria-hidden": "true" }, "1"), h("span", {}, "Current wallet signs, or you confirm"), h("span", { class: "when" }, first)),
       h("li", { class: c.newSignedAt ? "done" : "" }, h("span", { class: "n", "aria-hidden": "true" }, "2"), h("span", {}, "New wallet proves control"), h("span", { class: "when" }, c.newSignedAt ? `Signed ${when(c.newSignedAt)}` : "Waiting"))),
-    h("p", { class: "note" }, `Signing link for the payee (expires ${when(c.expires)}): ${c.signUrl}`),
+    h("p", { class: "note" }, `Signing link for the payee (expires ${when(c.expires)}):`), h("p", { class: "link-text" }, c.signUrl),
     h("div", { class: "actions" }, copyButton(c.signUrl, "Copy signing link"), c.ownerConfirmedAt || c.currentSignedAt ? null : h("button", { class: "btn", type: "button", onclick: () => actions.onConfirm(c.nonce) }, "I confirm this change myself"), cancel), cancelStatus);
 }
 
