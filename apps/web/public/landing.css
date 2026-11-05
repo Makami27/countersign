@@ -104,6 +104,7 @@ html { scroll-behavior: smooth; scroll-padding-top: 5rem; }
 .month-entry:nth-child(3) .date-stamp { transform: rotate(-3deg) translateX(2px); }
 .month-entry:nth-child(4) .date-stamp { transform: rotate(8deg); }
 .month-entry:nth-child(5) .date-stamp { transform: rotate(-5deg) translateY(2px); }
+.month-entry:nth-child(6) .date-stamp { transform: rotate(4deg); }
 @media (min-width: 768px) {
   .month::before { left: 4.5rem; }
   .month-entry { grid-template-columns: 9rem minmax(0, 1fr); gap: var(--space-6); }

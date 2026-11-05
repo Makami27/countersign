@@ -4,12 +4,13 @@ import { fileURLToPath } from "node:url";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const ACT1 = "evidence/acts/act1-2026-10-30T21-53-37-449Z.json";
+const ACT5 = "evidence/acts/act5/records.json";
 
 export type Check = { readonly check: string; readonly result: "PASS" | "FAIL" };
 export type ActReceipt = { readonly receipt: string; readonly verdict: string; readonly reason: string | null; readonly ref: string; readonly address: string | null; readonly amountBaseUnits: string | null; readonly checks: readonly Check[]; readonly createdAt: string; readonly suiDigest: string | null };
 export type RecordedAct = { readonly source: string; readonly receipt: ActReceipt; readonly blobId: string | null };
 export type Trial = { readonly attack: string; readonly name: string; readonly trial: number; readonly message: string; readonly attacker: string; readonly verified: string; readonly countersign: { readonly verdict: string; readonly reason: string | null }; readonly baselinePaidAttacker: boolean; readonly at: string; readonly model: string };
-export type Acts = { readonly paid: RecordedAct | null; readonly refused: RecordedAct | null; readonly repeated: RecordedAct | null; readonly changed: RecordedAct | null; readonly paidAfter: RecordedAct | null };
+export type Acts = { readonly sharedFirst: RecordedAct | null; readonly sharedSecond: RecordedAct | null; readonly paid: RecordedAct | null; readonly refused: RecordedAct | null; readonly repeated: RecordedAct | null; readonly changed: RecordedAct | null; readonly paidAfter: RecordedAct | null };
 
 async function json(path: string): Promise<Record<string, unknown> | null> {
   try {
@@ -26,10 +27,13 @@ function act(source: string, receipt: unknown, blob: unknown): RecordedAct | nul
 }
 
 export async function readActs(): Promise<Acts> {
-  const [one, two, three, four] = await Promise.all([json(ACT1), json("evidence/acts/act2/records.json"), json("evidence/acts/act3/records.json"), json("evidence/acts/act4/records.json")]);
+  const [one, two, three, four, five] = await Promise.all([json(ACT1), json("evidence/acts/act2/records.json"), json("evidence/acts/act3/records.json"), json("evidence/acts/act4/records.json"), json(ACT5)]);
+  const fiveReceipts = (five?.["receipts"] as { receipt: unknown; receiptBlob: unknown }[] | undefined) ?? [];
   const fourReceipts = (four?.["receipts"] as { receipt: unknown; receiptBlob: unknown }[] | undefined) ?? [];
   const pick = (verdict: string) => fourReceipts.find((r) => (r.receipt as ActReceipt | undefined)?.verdict === verdict);
   return {
+    sharedFirst: act(ACT5, fiveReceipts[0]?.receipt, fiveReceipts[0]?.receiptBlob),
+    sharedSecond: act(ACT5, fiveReceipts[1]?.receipt, fiveReceipts[1]?.receiptBlob),
     paid: act(ACT1, one?.["receiptRecord"], null),
     refused: act("evidence/acts/act2/records.json", two?.["receipt"], two?.["receiptBlob"]),
     repeated: act("evidence/acts/act3/records.json", three?.["receipt"], three?.["receiptBlob"]),
