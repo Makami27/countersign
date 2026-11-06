@@ -102,7 +102,7 @@ export async function overview(ctx: OwnerContext, now: number) {
     funded: balances.status === "KNOWN" && balances.usdcBaseUnits > 0n && balances.suiBaseUnits > 0n,
     payeeAdded: payeeIds.length > 0,
     linkSigned: heads.some((h) => h.kind === "verified"),
-    paid: receipts.some((r) => r.verdict === "PAID"),
+    paid: receipts.some((r) => r.verdict === "PAID") || ctx.schedules.active().length > 0,
     scamTried: receipts.some((r) => remembersAttack(r)),
     telegram: await ctx.telegram.linked(),
   };

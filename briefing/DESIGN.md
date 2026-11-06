@@ -16,7 +16,7 @@ A bank keeps a signature card on file and compares every cheque with it. Counter
 - Tests (`apps/web/test/signatures.test.ts`, V26): same address → same scrawl; Rent `0x68f2…023b` vs the look-alike `0x68f215db…663b023b` differ in path and in loop count or tail angle; 300 addresses all distinct, each with 1–3 loops and 1–2 dots.
 
 ## Wordmark
-"counter" as a single hand-drawn SVG stroke (authored in `apps/web/client/wordmark.ts`; no handwriting photo was provided) plus "sign" in Familjen Grotesk. On the landing the stroke draws itself once on load (stroke-dashoffset, 1.2 s); under reduced motion it is shown complete. Static everywhere else. Favicon: the "co" of the stroke on paper.
+"counter" as a single hand-drawn SVG stroke (authored in `apps/web/client/wordmark.ts`; no handwriting photo was provided) plus "sign" in Familjen Grotesk. On the landing the stroke draws itself once on load (stroke-dashoffset, 1.2 s); under reduced motion it is shown complete. Static everywhere else. Favicon and app icons (`scripts/build-icons.ts`: favicon.ico, square 192 and 512 PNGs, apple-touch-icon): the whole "co" of the stroke, centred on paper.
 
 ## Tokens (`apps/web/public/tokens.css`, linked by every page; no hard-coded colours elsewhere)
 | Token | Light | Dark | Role |
@@ -38,7 +38,7 @@ Every text/background pair was checked ≥ 4.5:1 (tightest: stamp red on light `
 ## Layout
 - Phone first, left-aligned, 16 px gutter on phones.
 - **Only payees are cards** (signature card: name, status, scrawl on a signature line, address). Everything else is lists and lines: refusals are a section under a stamp-red rule, pending changes a highlighter-ruled block, proof/status/receipt sections are separated by hairlines, not boxes.
-- `/app` and `/demo`: tabs on phones, columns from 960 px (`/app`: payees | detail; `/demo`: letters | cards | activity).
+- `/app` and `/demo`: tabs on phones, columns from 960 px (`/app`: payees | detail; `/demo`: letters | cards | activity). Above the `/app` columns, a passbook line on inset paper: "Agent wallet: pays your bills (fund this one)", the balances, its address and Deposit, then "Your wallet: signs approvals (never pays)". It is a band, not a card; only payees are cards.
 - Landing (v2, 2 Nov): one job per section, in full-width bands alternating paper and inset paper. Sticky header: wordmark, in-page links (Demo, How it works, Memory, Proof, FAQ), Status, GitHub, "Sign in with your wallet", "Try the demo"; on phones the links sit in a `<details>` menu. Sections: hero (unchanged) → the problem (IC3 2025 and the Dec 2025 look-alike loss, both cited) → watch it decide (Acts 2–3 replayed from `evidence/acts`) → how it works → a month with Countersign (the loud moment: rubber date stamps, Acts 1–4 receipts, dates marked illustrative) → memory → shared scam memory → measured → same message, two agents (measurement trial K4 #1 from the raw rows) → what it does → built on Sui and Walrus through Tatum → FAQ → final call to action → footer. Every figure, transcript and comparison is read from evidence files or `/api/proof` at request time; a missing file is said plainly, never filled in. Only the hero card, the date stamps and the two-agent comparison are loud. The claims ledger lives on /proof.
 - Landing script: one module, `build/landing.js` (under 1 KB), for the replay and the live counters (`/api/proof` `live`, cached 5 min on the server; "—" when unknown). Without it the page is complete.
 

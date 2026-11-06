@@ -85,6 +85,13 @@ html { scroll-behavior: smooth; scroll-padding-top: 5rem; }
 .how-steps h3 { font-size: var(--step-1); }
 .how-steps p { color: var(--ink-soft); }
 @media (min-width: 960px) { .how-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-6); } }
+.how-to-start { display: grid; gap: var(--space-4); margin-top: var(--space-7); padding-top: var(--space-5); border-top: 1px solid var(--line-strong); }
+.start-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); counter-reset: start; }
+.start-steps li { counter-increment: start; display: grid; grid-template-columns: 2.1rem minmax(0, 1fr); gap: var(--space-3); align-items: center; font-weight: 600; }
+.start-steps li::before { content: counter(start); display: grid; place-items: center; width: 2.1rem; height: 2.1rem; border: 1.5px solid var(--ballpoint); border-radius: 50%; color: var(--ballpoint); }
+@media (min-width: 960px) { .start-steps { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-flow: row; gap: var(--space-4) var(--space-6); } }
+.two-wallets { max-width: none; display: flex; flex-wrap: wrap; gap: var(--space-1) var(--space-5); }
+.two-wallets strong { font-weight: 600; }
 
 .month { list-style: none; margin: 0; padding: 0; display: grid; position: relative; }
 .month::before { content: ""; position: absolute; left: 2.75rem; top: 1rem; bottom: 1rem; border-left: 2px dashed var(--line-strong); }
