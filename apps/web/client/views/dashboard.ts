@@ -2,14 +2,10 @@ import { api } from "../api.ts";
 import { addressEl, copyButton, h, listen, liveRegion } from "../dom.ts";
 import type { Overview } from "../types.ts";
 import { AGENT_WALLET, DEPOSIT_ACTION, FAUCETS } from "../walletFacts.ts";
+import { START_STEPS } from "../startSteps.ts";
 
 const STEPS: readonly (readonly [keyof Overview["checklist"] | "signedIn", string])[] = [
-  ["signedIn", "Sign in with your wallet"],
-  ["funded", "Fund your agent wallet (it pays your bills)"],
-  ["payeeAdded", "Add a payee (it can be your own second wallet)"],
-  ["linkSigned", "Send the signing link; the payee's wallet signs it"],
-  ["paid", "Pay the payee"],
-  ["scamTried", "Paste a scam message below and watch it get refused"],
+  ...START_STEPS.map((step) => [step.key, step.label] as const),
   ["telegram", "Connect Telegram (optional, in Settings)"],
 ];
 
@@ -34,8 +30,8 @@ export function checklistCard(overview: Overview, onDeposit: () => void): HTMLEl
     return h("li", { class: done ? "done" : "" }, h("span", { class: "n", "aria-hidden": "true" }, done ? "✓" : "·"), h("span", {}, label), h("span", { class: "when" }, done ? "Done" : "To do"), key === "funded" && !done ? fundingHelp(overview, onDeposit) : null);
   });
   const steps = h("ol", { class: "steps" }, ...items);
-  if (checklistDone(overview)) return h("details", { class: "card checklist done" }, h("summary", {}, "Getting started: every step done"), steps);
-  return h("section", { class: "card checklist", "aria-labelledby": "checklist-title" }, h("h2", { id: "checklist-title" }, "Getting started"), steps);
+  if (checklistDone(overview)) return h("details", { class: "card checklist done" }, h("summary", {}, "How to start: every step done"), steps);
+  return h("section", { class: "card checklist", "aria-labelledby": "checklist-title" }, h("h2", { id: "checklist-title" }, "How to start"), steps);
 }
 
 type PasteAnswer = {

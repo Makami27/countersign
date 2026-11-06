@@ -1,4 +1,5 @@
 import { scrawlMarkup } from "../client/scrawl.ts";
+import { START_STEPS } from "../client/startSteps.ts";
 import type { Acts, Trial } from "./landingData.ts";
 import { monthHtml, replayHtml, twoAgentsHtml } from "./landingSections.ts";
 import type { Measurement } from "./proofPage.ts";
@@ -34,6 +35,7 @@ export function landingHtml(template: string, measurement: Measurement | null, a
     "<!--replay-->": replayHtml(acts),
     "<!--month-->": monthHtml(acts),
     "<!--two-agents-->": twoAgentsHtml(trial),
+    "<!--start-steps-->": '<ol class="start-steps">' + START_STEPS.map((step) => "<li>" + step.label + "</li>").join("") + "</ol>",
   };
   return Object.entries(fill).reduce((page, [mark, html]) => page.replaceAll(mark, html), template);
 }
