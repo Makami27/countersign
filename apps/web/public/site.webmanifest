@@ -1,0 +1,14 @@
+{
+  "name": "Countersign",
+  "short_name": "Countersign",
+  "description": "An AI agent that pays your payees in USDC on Sui and can't be talked into paying a new address.",
+  "start_url": "/app",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#F6F8FD",
+  "theme_color": "#2340C8",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
