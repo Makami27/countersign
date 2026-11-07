@@ -1,5 +1,6 @@
 import { formatUsdc } from "@countersign/core";
 import { groupAddress } from "./addressGroups.ts";
+import { groupByDay } from "./dayGroups.ts";
 import { scrawlFor } from "./scrawl.ts";
 import type { PayeeStatus } from "./types.ts";
 
@@ -103,6 +104,13 @@ export function copyButton(text: string, label: string): HTMLButtonElement {
     });
   });
   return button;
+}
+
+export function dayGroupsEl<T>(items: readonly T[], atOf: (item: T) => string, level: "h2" | "h3", row: (item: T) => HTMLElement): HTMLElement {
+  return h("div", { class: "day-groups" }, ...groupByDay(items, atOf, new Date()).map((group) => {
+    const id = `day-${group.key}`;
+    return h("section", { class: "day-group", "aria-labelledby": id }, h(level, { class: "day-heading", id }, group.heading), h("ol", { class: "rows" }, ...group.items.map(row)));
+  }));
 }
 
 export function liveRegion(): HTMLElement {

@@ -1,6 +1,7 @@
 import { REASONS, type ReasonCode } from "@countersign/core";
 import { api } from "./api.ts";
-import { addressEl, h, listen, liveRegion, scrawlEl, signatureFigure, statusPill, when } from "./dom.ts";
+import { addressEl, dayGroupsEl, h, listen, liveRegion, scrawlEl, signatureFigure, statusPill } from "./dom.ts";
+import { clockTime } from "./dayGroups.ts";
 import { installPlainCopy } from "./copyHandler.ts";
 import { GOOGLE_ACTION } from "./walletFacts.ts";
 
@@ -76,10 +77,10 @@ function refusalCompare(view: View, entry: Entry | undefined): HTMLElement | nul
 }
 
 function activity(view: View): HTMLElement {
-  const rows = view.activity.map((e) => h("li", { class: e.verdict === "REFUSED" ? "refused-row" : "" }, h("span", { class: "v" }, VERDICT_WORDS[e.verdict] ?? e.verdict),
-    h("span", { class: "what" }, h("span", {}, e.label), h("span", { class: "meta" }, [reasonText(e.reason), e.note ?? "", e.receipt ? `Sandbox receipt ${e.receipt} (kept only in this sandbox).` : "", when(e.at)].filter(Boolean).join(" ")))));
+  const rowOf = (e: Entry) => h("li", { class: e.verdict === "REFUSED" ? "refused-row" : "" }, h("span", { class: "v" }, VERDICT_WORDS[e.verdict] ?? e.verdict),
+    h("span", { class: "what" }, h("span", {}, e.label), h("span", { class: "meta" }, [reasonText(e.reason), e.note ?? "", e.receipt ? `Sandbox receipt ${e.receipt} (kept only in this sandbox).` : "", clockTime(e.at)].filter(Boolean).join(" "))));
   return h("section", { class: "card demo-panel", "data-panel": "activity", "aria-labelledby": "activity-title" }, h("h2", { id: "activity-title" }, "Activity"),
-    rows.length ? h("ol", { class: "rows" }, ...rows) : h("p", { class: "empty" }, "Nothing yet. Send a letter."));
+    view.activity.length ? dayGroupsEl(view.activity, (e) => e.at, "h3", rowOf) : h("p", { class: "empty" }, "Nothing yet. Send a letter."));
 }
 
 function letters(view: View, result: HTMLElement, status: HTMLElement): HTMLElement {

@@ -2,7 +2,8 @@ import { formatUsdc, usdcToBaseUnits } from "@countersign/core";
 import { api } from "../api.ts";
 import { withApprovals } from "../approvals.ts";
 import { ownerWalletPanel } from "./ownerWallet.ts";
-import { addressEl, h, liveRegion, usdc, when, listen } from "../dom.ts";
+import { addressEl, dayGroupsEl, h, liveRegion, usdc, listen } from "../dom.ts";
+import { clockTime } from "../dayGroups.ts";
 import type { ActivityItem, Overview } from "../types.ts";
 import { agentFacts } from "./firstRun.ts";
 import { telegramPanel } from "./telegramPanel.ts";
@@ -19,14 +20,16 @@ function moneySentence(item: ActivityItem): string {
 }
 
 export function activityPage(items: readonly ActivityItem[]): HTMLElement {
-  const rows = items.map((item) => h("li", { class: item.kind === "receipt" && (item.verdict === "REFUSED" || item.verdict === "CHANGE_REJECTED") ? "refused-row" : "" },
+  const rowOf = (item: ActivityItem) => h("li", { class: item.kind === "receipt" && (item.verdict === "REFUSED" || item.verdict === "CHANGE_REJECTED") ? "refused-row" : "" },
     h("span", { class: "v" }, item.kind === "receipt" ? (VERDICT_WORDS[item.verdict] ?? item.verdict) : "Open"),
     h("span", { class: "what" }, h("span", {}, `${moneySentence(item)} ${item.payeeId ? `Payee ${item.payeeId}.` : ""}`),
       item.address ? addressEl(item.address, { short: true }) : null,
-      h("span", { class: "meta" }, `${when(item.at)}${item.kind === "receipt" ? `, receipt ${item.receipt}${item.suiDigest ? `, transaction ${item.suiDigest}` : ""}, ${item.network}` : ""}`))));
+      item.kind === "receipt"
+        ? h("span", { class: "meta" }, `${clockTime(item.at)}, receipt `, h("a", { href: `/r/${encodeURIComponent(item.receipt)}` }, item.receipt), `${item.suiDigest ? `, transaction ${item.suiDigest}` : ""}, ${item.network}`)
+        : h("span", { class: "meta" }, clockTime(item.at))));
   return h("section", { class: "narrow", "aria-labelledby": "activity-title" }, h("h1", { id: "activity-title" }, "Activity"),
     h("p", { class: "lede" }, "Every payment and every refusal, newest first. Each has a receipt signed by the agent and stored on Walrus Memory."),
-    rows.length ? h("ol", { class: "rows" }, ...rows) : h("p", { class: "empty" }, "Nothing has happened yet. Payments and refusals will appear here."));
+    items.length ? dayGroupsEl(items, (item) => item.at, "h2", rowOf) : h("p", { class: "empty" }, "Nothing has happened yet. Payments and refusals will appear here."));
 }
 
 export function settingsPage(overview: Overview, onSaved: () => void): HTMLElement {

@@ -98,6 +98,47 @@ async function sweepColumns(ctx: BrowserContext): Promise<void> {
   await page.close();
 }
 
+const ACTIVITY_NOW = "2026-11-05T23:30:00Z";
+const receiptAt = (at: string, receipt: string) => ({ kind: "receipt", at, receipt, verdict: "PAID", reason: null, payeeId: "landlord", address: `0x${"ab".repeat(32)}`, amountBaseUnits: "100000", suiDigest: "DIGEST1", network: "testnet" });
+const ACTIVITY_ITEMS = [
+  ...Array.from({ length: 14 }, (_, i) => receiptAt(`2026-11-05T23:${String(15 - i).padStart(2, "0")}:00Z`, `rcpt_late${i}`)),
+  receiptAt("2026-11-05T22:45:00Z", "rcpt_before"),
+  ...Array.from({ length: 12 }, (_, i) => receiptAt(`2026-11-04T1${i % 10}:05:00Z`, `rcpt_yday${i}`)),
+  receiptAt("2026-11-02T14:32:00Z", "rcpt_older"),
+  receiptAt("2025-12-30T08:01:00Z", "rcpt_lastyear"),
+];
+
+async function activityChecks(width: number, scheme: "light" | "dark"): Promise<void> {
+  const expected: Record<string, { readonly headings: readonly string[]; readonly firstTime: string }> = {
+    "Africa/Lagos": { headings: ["Today", "Yesterday", "Wed 4 Nov", "Mon 2 Nov", "Tue 30 Dec 2025"], firstTime: "00:15" },
+    "Pacific/Auckland": { headings: ["Today", "Yesterday", "Wed 4 Nov", "Tue 3 Nov", "Tue 30 Dec 2025"], firstTime: "12:15" },
+  };
+  for (const [timezoneId, want] of Object.entries(expected)) {
+    const ctx = await browser.newContext({ viewport: { width, height: 700 }, colorScheme: scheme, reducedMotion: "reduce", timezoneId });
+    const [name, value] = s.cookie.split("=");
+    await ctx.addCookies([{ name: name ?? "", value: value ?? "", domain: "127.0.0.1", path: "/" }]);
+    const page = await ctx.newPage();
+    await page.clock.setFixedTime(ACTIVITY_NOW);
+    await page.route("**/api/app/activity", (route) => route.fulfill({ json: { items: ACTIVITY_ITEMS } }));
+    await page.goto(`${s.base}/app/activity`);
+    await page.waitForSelector(".day-heading");
+    const headings = await page.locator(".day-heading").allTextContents();
+    if (JSON.stringify(headings) !== JSON.stringify(want.headings)) note(`activity headings ${timezoneId}: ${headings.join(", ")}`);
+    const first = (await page.locator(".day-group .meta").first().textContent()) ?? "";
+    if (!first.startsWith(want.firstTime)) note(`first time ${timezoneId}: ${first}`);
+    if (await page.locator(".day-group .meta a[href^='/r/rcpt_']").count() !== ACTIVITY_ITEMS.length) note("an entry lost its receipt link");
+    if (timezoneId === "Africa/Lagos") {
+      await shot(page, "activity", width, scheme);
+      await page.evaluate(() => document.querySelectorAll(".day-group li")[8]?.scrollIntoView({ block: "center" }));
+      await page.waitForTimeout(100);
+      const stuck = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>(".day-heading")].filter((el) => Math.abs(el.getBoundingClientRect().top) < 1).map((el) => el.textContent));
+      if (stuck.length !== 1) note(`sticky heading ${width}: ${stuck.join(", ") || "none at the top"}`);
+      await shot(page, "activity-scrolled", width, scheme);
+    }
+    await ctx.close();
+  }
+}
+
 const browser = await chromium.launch();
 const sweep = await context(1440, "light");
 await sweepColumns(sweep);
@@ -244,6 +285,8 @@ for (const scheme of schemes) for (const width of widths) {
   await shot(page, "app-first-run", width, scheme);
   await page.unroute("**/api/app/payees");
 
+  await activityChecks(width, scheme);
+
   await page.goto(`${s.base}/demo`);
   await page.waitForSelector("#own-letter");
   await page.waitForTimeout(400);
@@ -254,6 +297,11 @@ for (const scheme of schemes) for (const width of widths) {
   await shot(page, "demo-ask", width, scheme);
   await page.click(".amounts .btn >> nth=1");
   await shot(page, "demo-preview", width, scheme);
+  if (width < 960) await page.click(".demo-tabs button:has-text('Activity')");
+  await page.waitForSelector(".day-heading");
+  if ((await page.locator(".day-heading").first().textContent()) !== "Today") note("demo activity isn't under Today");
+  if (!/\d\d:\d\d$/.test((await page.locator(".day-group .meta").first().textContent()) ?? "")) note("demo activity has no 24-hour time");
+  await shot(page, "demo-activity", width, scheme);
   await ctx.close();
 }
 await browser.close();
