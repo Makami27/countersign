@@ -74,3 +74,29 @@ test("V08 settings caps are read live by the engine and refuse nonsense values",
   assert.equal(caps.perPaymentBaseUnits, 200_000n);
   assert.equal(settings.values().cooldownSeconds, 60);
 });
+
+test("G03 a session cookie that no longer works gets the session-ended notice", async (t) => {
+  const s = await ownerServer(t, { signIn: false });
+  const response = await fetch(`${s.base}/api/app/overview`, { headers: { cookie: "cs_owner=expired-or-made-up" } });
+  assert.equal(response.status, 401);
+  assert.deepEqual(await response.json(), { error: "Your session ended. Sign in again to continue.", notice: "Your session ended. Sign in again to continue." });
+});
+
+test("G03 a visitor with no session cookie gets no notice", async (t) => {
+  const s = await ownerServer(t, { signIn: false });
+  const response = await fetch(`${s.base}/api/app/overview`);
+  assert.equal(response.status, 401);
+  const body = (await response.json()) as { error: string; notice: string | null };
+  assert.equal(body.notice, null);
+  assert.equal(body.error, "You're signed out. Continue with Google to sign in.");
+  const empty = await fetch(`${s.base}/api/app/overview`, { headers: { cookie: "cs_owner=" } });
+  assert.equal(((await empty.json()) as { notice: string | null }).notice, null);
+});
+
+test("G03 a session that was ended turns into the notice on its next request", async (t) => {
+  const s = await ownerServer(t);
+  assert.equal((await fetch(`${s.base}/api/app/overview`, { headers: { cookie: s.cookie } })).status, 200);
+  await fetch(`${s.base}/api/session`, { method: "DELETE", headers: { cookie: s.cookie, "x-countersign": "1" } });
+  const after = await fetch(`${s.base}/api/app/overview`, { headers: { cookie: s.cookie } });
+  assert.equal(((await after.json()) as { notice: string | null }).notice, "Your session ended. Sign in again to continue.");
+});

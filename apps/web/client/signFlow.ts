@@ -1,4 +1,5 @@
 import { getWallets, type Wallet, type WalletAccount } from "@mysten/wallet-standard";
+import { CONNECT_CLOSED, DEPOSIT_NOT_SENT, SIGN_REFUSED } from "./walletFacts.ts";
 import { SLUSH_WALLET_ICON, SLUSH_WALLET_NAME, SlushWallet, registerSlushWallet } from "@mysten/slush-wallet";
 
 export type Connected = { readonly wallet: Wallet; readonly account: WalletAccount };
@@ -52,7 +53,7 @@ export async function connectWallet(wallet: Wallet, expected: string | null, rol
   try {
     accounts = (await connect.connect()).accounts;
   } catch (error) {
-    return { ok: false, message: blockedOr(error, `${wallet.name} didn't connect. Nothing was signed.`) };
+    return { ok: false, message: blockedOr(error, CONNECT_CLOSED) };
   }
   const account = expected === null ? accounts[0] : accounts.find((a) => a.address.toLowerCase() === expected.toLowerCase());
   if (!account) {
@@ -84,7 +85,7 @@ export async function executeTransaction(by: Connected, transaction: string, net
   try {
     return { ok: true, value: (await execute.signAndExecuteTransaction({ transaction: { toJSON: async () => transaction }, account: by.account, chain: `sui:${network}` })).digest };
   } catch (error) {
-    return { ok: false, message: blockedOr(error, "Your wallet didn't send it. Nothing was sent.") };
+    return { ok: false, message: blockedOr(error, DEPOSIT_NOT_SENT) };
   }
 }
 
@@ -94,6 +95,6 @@ export async function signMessage(by: Connected, message: string, network: "main
   try {
     return { ok: true, value: (await sign.signPersonalMessage({ message: new TextEncoder().encode(message), account: by.account, chain: `sui:${network}` })).signature };
   } catch (error) {
-    return { ok: false, message: blockedOr(error, "The wallet didn't sign. Nothing was signed or changed.") };
+    return { ok: false, message: blockedOr(error, SIGN_REFUSED) };
   }
 }

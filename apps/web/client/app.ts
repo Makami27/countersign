@@ -112,7 +112,8 @@ async function renderPage(): Promise<void> {
   if (!root?.querySelector(".owner")) show(loading());
   const overview = await api<Overview>("GET", "/api/app/overview");
   if (!overview.ok && overview.error.status === 401) {
-    signInWhy = overview.error.message;
+    const notice = overview.error.body?.["notice"];
+    signInWhy = typeof notice === "string" ? notice : null;
     return go("/app/login");
   }
   if (!overview.ok) return show(failure(overview.error.message));

@@ -48,6 +48,23 @@ for (const width of SWEEP) {
   if (Math.abs(hero.headline - hero.card) > 4) note(`headline ${Math.round(hero.headline)} and card ${Math.round(hero.card)} don't line up at ${width}`);
 }
 
+for (const width of [360, 390, 430, 768]) {
+  const phone = await (await browser.newContext({ viewport: { width, height: 844 }, reducedMotion: "reduce" })).newPage();
+  await phone.goto(s.base);
+  const hero = await phone.evaluate(() => {
+    const box = (selector: string) => document.querySelector(selector)?.getBoundingClientRect();
+    const lede = document.querySelector<HTMLElement>(".hero .lede");
+    const lines = lede ? Math.round(lede.getBoundingClientRect().height / parseFloat(getComputedStyle(lede).lineHeight)) : 0;
+    return { h1: box(".hero h1")?.top ?? 0, cta: box(".hero .hero-cta")?.top ?? 0, ctaBottom: box(".hero .hero-cta")?.bottom ?? 0, card: box(".hero-card")?.top ?? 0, lines, demo: box(".hero .hero-cta a[href='/demo']"), google: box(".hero .hero-cta .btn.primary"), overflow: document.documentElement.scrollWidth > window.innerWidth };
+  });
+  console.log(`${width}: lede ${hero.lines} line(s), buttons end at ${Math.round(hero.ctaBottom)}px, ${(hero.demo?.top ?? 0) === (hero.google?.top ?? 0) ? "side by side" : "stacked"}`);
+  if (!(hero.h1 < hero.cta && hero.cta < hero.card)) note(`hero order is wrong at ${width}`);
+  if (hero.ctaBottom > 844) note(`the buttons are below the first screen at ${width}`);
+  if (!((hero.demo?.top ?? 0) < (hero.google?.top ?? 0) || (hero.demo?.left ?? 0) < (hero.google?.left ?? 0))) note(`Try the demo isn't first at ${width}`);
+  if (hero.overflow) note(`page scrolls sideways at ${width}`);
+  await phone.context().close();
+}
+
 const retryPage = await (await browser.newContext()).newPage();
 let liveCalls = 0;
 await retryPage.route("**/api/live", (route) => {

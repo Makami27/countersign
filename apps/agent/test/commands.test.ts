@@ -3,7 +3,8 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import type { SuiAddress } from "@countersign/core";
 import { COMMANDS, balanceHtml, cancelText, helpText, payeesHtml, schedulesText } from "../src/commands.ts";
-import { changeStartedHtml, questionHtml } from "../src/telegramText.ts";
+import { GOOGLE_WORDS } from "@countersign/web/walletFacts";
+import { changeStartedHtml, questionHtml, signInLinkText } from "../src/telegramText.ts";
 
 const URL = "https://countersign.example";
 const ADDRESS = `0x${"ab".repeat(32)}`;
@@ -11,7 +12,7 @@ const ADDRESS = `0x${"ab".repeat(32)}`;
 test("X10 /help lists every command in plain words, explains paying, forwarding and pasting, links the app and names the network", () => {
   const help = helpText(URL, "testnet");
   for (const c of COMMANDS) assert.ok(help.includes(`/${c.command}: `), c.command);
-  for (const words of ["pay rent 0.10", "forward an email or chat", "paste its text", `${URL}/app`, "Sui testnet: test USDC, no real money", "Agent wallet: pays your bills (fund this one)", "Your wallet: signs approvals (never pays)", "continue with Google", "creates a free Sui wallet from your Google account"]) assert.ok(help.includes(words), words);
+  for (const words of ["pay rent 0.10", "forward an email or chat", "paste its text", `${URL}/app`, "Sui testnet: test USDC, no real money", "Agent wallet: pays your bills (fund this one)", "Your wallet: signs approvals (never pays)", "continue with Google", "Slush makes a free one from your Google account the first time"]) assert.ok(help.includes(words), words);
   assert.ok(helpText(URL, "mainnet").includes("Sui mainnet"));
 });
 
@@ -27,6 +28,13 @@ test("U04 Telegram asks how much with the verified address, and names the payee 
 test("U04 a new address over Telegram is reported as saved as said, not proven", () => {
   const html = changeStartedHtml({ verdict: "CHANGE_STARTED", nonce: "n", expires: "2026-11-06T00:00:00Z", fromAddress: ADDRESS as SuiAddress, toAddress: `0x${"cd".repeat(32)}` as SuiAddress }, `${URL}/sign/n`);
   assert.ok(html.includes("Saved as said, not proven") && html.includes("Nothing was sent") && html.includes(`${URL}/sign/n`));
+});
+
+test("G02 the bot's /login reply carries the same words as the sign-in screen", () => {
+  const reply = signInLinkText(URL);
+  assert.ok(reply.includes(`${URL}/app/login`));
+  assert.ok(reply.includes(GOOGLE_WORDS));
+  assert.ok(reply.includes("Continue with Google."));
 });
 
 test("X10 /payees says which payees can be paid and shows the grouped address only where it will pay", () => {

@@ -22,7 +22,8 @@ export const SESSION_COOKIE = "cs_owner";
 export const CSRF_HEADER = "x-countersign";
 const writeLimiter = new WindowLimiter(60, 60 * 1000);
 const READ_DEADLINE_MS = 20_000;
-export const SIGNED_OUT = "You're signed out: your session ended or this browser has none. Continue with Google to sign in again.";
+export const SIGNED_OUT = "You're signed out. Continue with Google to sign in.";
+export const SESSION_ENDED = "Your session ended. Sign in again to continue.";
 
 export function sessionCookie(token: string, maxAgeSeconds: number): Record<string, string> {
   return { "set-cookie": `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${maxAgeSeconds}` };
@@ -34,8 +35,9 @@ function refusalBody(outcome: Outcome) {
 }
 
 export async function ownerRoute(owners: OwnerDirectory, req: IncomingMessage, res: ServerResponse, path: string): Promise<void> {
-  const ctx = await owners.forSession(cookie(req, SESSION_COOKIE));
-  if (!ctx) return problem(res, 401, SIGNED_OUT);
+  const token = cookie(req, SESSION_COOKIE);
+  const ctx = await owners.forSession(token);
+  if (!ctx) return send(res, 401, token ? { error: SESSION_ENDED, notice: SESSION_ENDED } : { error: SIGNED_OUT, notice: null });
   if (req.method !== "GET" && ctx.quota.busy()) return problem(res, 429, BUSY);
   const parts = path.split("/").slice(3);
   if (parts[0] === "admin") return adminRoute(owners, ctx, res, req.method ?? "", parts, req.method === "GET" ? null : await readJson(req));

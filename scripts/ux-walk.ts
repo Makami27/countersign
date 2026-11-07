@@ -35,13 +35,19 @@ let s = await seeded();
 
 const FAKE_WALLET = (address: string) => {
   const account = { address, publicKey: new Uint8Array(32), chains: ["sui:testnet"], features: ["sui:signPersonalMessage", "sui:signAndExecuteTransaction"] };
+  const refuse = (what: string) => {
+    const flags = window as unknown as { refuseOnce?: string };
+    if (flags.refuseOnce !== what) return;
+    flags.refuseOnce = "";
+    throw new Error("User closed the wallet window");
+  };
   const wallet = {
     version: "1.0.0", name: "Test wallet", icon: "data:image/svg+xml;base64,", chains: ["sui:testnet"], accounts: [] as unknown[],
     features: {
-      "standard:connect": { version: "1.0.0", connect: async () => ({ accounts: [account] }) },
+      "standard:connect": { version: "1.0.0", connect: async () => { refuse("connect"); return { accounts: [account] }; } },
       "standard:events": { version: "1.0.0", on: () => () => undefined },
-      "sui:signPersonalMessage": { version: "1.1.0", signPersonalMessage: async ({ message }: { message: Uint8Array }) => ({ bytes: "", signature: await (window as unknown as { fakeSign: (m: string) => Promise<string> }).fakeSign(new TextDecoder().decode(message)) }) },
-      "sui:signAndExecuteTransaction": { version: "2.0.0", signAndExecuteTransaction: async () => ({ digest: "5Wg1fYqJ8sV4nK2mR7tP9xB3cD6eH1jL4oQ8uZ2aN5rT", effects: "", bytes: "", signature: "" }) },
+      "sui:signPersonalMessage": { version: "1.1.0", signPersonalMessage: async ({ message }: { message: Uint8Array }) => (refuse("sign"), { bytes: "", signature: await (window as unknown as { fakeSign: (m: string) => Promise<string> }).fakeSign(new TextDecoder().decode(message)) }) },
+      "sui:signAndExecuteTransaction": { version: "2.0.0", signAndExecuteTransaction: async () => (refuse("deposit"), { digest: "5Wg1fYqJ8sV4nK2mR7tP9xB3cD6eH1jL4oQ8uZ2aN5rT", effects: "", bytes: "", signature: "" }) },
     },
   };
   window.addEventListener("wallet-standard:app-ready", (event) => (event as unknown as { detail: { register: (w: unknown) => void } }).detail.register(wallet));
@@ -151,17 +157,40 @@ for (const scheme of schemes) for (const width of widths) {
   const visitor = await (await browser.newContext({ viewport: { width, height: 900 }, colorScheme: scheme, reducedMotion: "reduce" })).newPage();
   await visitor.context().exposeFunction("fakeSign", (text: string) => s.me.sign(text));
   await visitor.addInitScript(FAKE_WALLET, s.me.address);
-  await visitor.goto(`${s.base}/app/login`);
+  await visitor.goto(`${s.base}/app`);
   await visitor.waitForSelector("button:has-text('Continue with Google')");
+  if (await visitor.locator("text=Your session ended").count()) note("a visitor with no cookie was told their session ended");
+  if (!(await visitor.locator("h1").textContent())?.includes("Sign in or create your agent")) note("sign-in heading");
+  if (!(await visitor.locator("main").textContent())?.includes("Slush not available where you are? Use another Sui wallet.")) note("the line under the buttons");
   await shot(visitor, "sign-in", width, scheme);
   await visitor.click("button:has-text('Use another Sui wallet')");
   await shot(visitor, "sign-in-other", width, scheme);
+  if (await visitor.locator("button:has-text('Sign in with Slush')").count()) note("the chooser still offers Slush on the web");
+  await visitor.evaluate(() => { (window as unknown as { refuseOnce: string }).refuseOnce = "connect"; });
+  await visitor.click("button:has-text('Sign in with Test wallet')");
+  await visitor.waitForSelector("text=The wallet window closed before connecting. Nothing was signed. Try again.");
   await visitor.click("button:has-text('Sign in with Test wallet')");
   await visitor.waitForSelector("button:has-text('Finish signing in')");
   await shot(visitor, "sign-in-finish", width, scheme);
+  await visitor.evaluate(() => { (window as unknown as { refuseOnce: string }).refuseOnce = "sign"; });
+  await visitor.click("button:has-text('Finish signing in')");
+  await visitor.waitForSelector("text=You didn't approve the sign-in, so nothing changed. Click Finish signing in to try again.");
   await visitor.click("button:has-text('Finish signing in')");
   await visitor.waitForSelector(".moment");
   await visitor.context().close();
+
+  const stale = await (await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: "reduce" })).newPage();
+  await stale.context().addCookies([{ name: "cs_owner", value: "expired-or-made-up", domain: "127.0.0.1", path: "/" }]);
+  await stale.goto(`${s.base}/app`);
+  await stale.waitForSelector("text=Your session ended. Sign in again to continue.");
+  await shot(stale, "sign-in-session-ended", width, scheme);
+  await stale.context().close();
+
+  const lonely = await (await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: "reduce" })).newPage();
+  await lonely.goto(`${s.base}/app/login?other`);
+  await lonely.waitForSelector("text=No other Sui wallet found in this browser. Install a Sui wallet extension, or continue with Google.");
+  await shot(lonely, "sign-in-no-wallet", width, scheme);
+  await lonely.context().close();
 
   await page.goto(`${s.base}/app`);
   await page.waitForSelector(".wallet-panel");
@@ -178,6 +207,9 @@ for (const scheme of schemes) for (const width of widths) {
   await page.click("dialog button:has-text('Connect your wallet')");
   await page.waitForSelector("dialog button:has-text('Sign in Test wallet')");
   await shot(page, "deposit-review", width, scheme);
+  await page.evaluate(() => { (window as unknown as { refuseOnce: string }).refuseOnce = "deposit"; });
+  await page.click("dialog button:has-text('Sign in Test wallet')");
+  await page.waitForSelector("text=The wallet didn't send the deposit. Nothing was sent. Try again from Deposit.");
   await page.click("dialog button:has-text('Sign in Test wallet')");
   await page.waitForFunction(() => document.querySelector("dialog")?.textContent?.includes("Deposit confirmed"));
   if (!(await page.locator(".moment").count())) note(`no moment after a deposit ${width} ${scheme}`);

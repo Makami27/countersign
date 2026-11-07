@@ -47,12 +47,18 @@ html { scroll-behavior: smooth; scroll-padding-top: 5rem; }
 .live { font-variant-numeric: tabular-nums; }
 .live-line { padding-top: var(--space-3); border-top: 1.5px solid var(--ink); }
 
-.hero { display: grid; gap: var(--space-5); max-width: var(--page); margin: 0 auto; padding: var(--space-5) var(--gutter) var(--space-7); grid-template-areas: "words" "card" "cta"; }
+.hero { display: grid; gap: var(--space-5); max-width: var(--page); margin: 0 auto; padding: var(--space-5) var(--gutter) var(--space-7); grid-template-areas: "words" "cta" "card"; }
 .hero-words { grid-area: words; display: grid; gap: var(--space-4); }
 .hero h1 { font-size: var(--step-3); line-height: 1.04; letter-spacing: -0.03em; max-width: 16ch; }
 .hero-cta { grid-area: cta; display: flex; flex-wrap: wrap; gap: var(--space-3); }
 .hero-cta .btn { padding-inline: 1.4rem; }
 @media (max-width: 479px) { .hero-cta .btn { flex: 1 1 100%; } }
+@media (max-width: 959px) {
+  .hero .hero-rest { display: none; }
+  .hero .lede { font-size: 0.95rem; }
+  .hero .hero-cta .btn { flex: 1 1 auto; padding-inline: 1rem; }
+  .hero .hero-cta .btn:not(.primary) { order: -1; }
+}
 .hero-card { grid-area: card; margin: 0; display: grid; gap: var(--space-4); padding: var(--space-4); border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--paper-deep); min-width: 0; }
 .hero-card .sigcard-name { font-size: var(--step-2); }
 .hero-card .sigcard-sig .scrawl { height: clamp(5.5rem, 4rem + 4vw, 7.5rem); }

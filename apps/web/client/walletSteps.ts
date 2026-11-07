@@ -1,4 +1,5 @@
 import { h, listen } from "./dom.ts";
+import { SIGN_REFUSED } from "./walletFacts.ts";
 import { EXTENSION_TIP, connectWallet, connectedAs, onWalletsChanged, signMessage, signingWallets, walletLabel, type Connected } from "./signFlow.ts";
 
 export type WalletRole = "current wallet" | "new wallet" | "owner wallet" | "wallet";
@@ -11,6 +12,8 @@ export type StepOptions = {
   readonly status: HTMLElement;
   readonly onSigned: (signature: string) => Promise<void>;
   readonly signLabel?: string;
+  readonly refusedWords?: string;
+  readonly waitingWords?: (walletName: string) => string;
 };
 
 function roleWords(role: WalletRole): string {
@@ -24,10 +27,10 @@ export function walletStep(o: StepOptions): HTMLElement {
     listen(button, "click", async () => {
       const signing = signMessage(by, o.message, o.network);
       button.disabled = true;
-      o.status.textContent = `Waiting for ${by.wallet.name}. Signing moves no money.`;
+      o.status.textContent = o.waitingWords?.(walletLabel(by.wallet)) ?? `Waiting for ${by.wallet.name}. Signing moves no money.`;
       const signed = await signing;
       button.disabled = false;
-      if (!signed.ok) return void (o.status.textContent = signed.message);
+      if (!signed.ok) return void (o.status.textContent = signed.message === SIGN_REFUSED && o.refusedWords ? o.refusedWords : signed.message);
       await o.onSigned(signed.value);
     }, o.status);
     box.replaceChildren(button);

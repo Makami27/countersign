@@ -33,7 +33,7 @@
     <section class="hero band" aria-labelledby="hero-title">
       <div class="hero-words">
         <h1 id="hero-title">Your agent only pays signatures it has on file.</h1>
-        <p class="lede">Countersign pays your regular payees in USDC on Sui. Like a bank comparing a cheque with the signature card, it checks every request against the wallet that signed for that payee, and refuses the rest.</p>
+        <p class="lede">Countersign pays your regular payees in USDC on Sui.<span class="hero-rest"> Like a bank comparing a cheque with the signature card, it checks every request against the wallet that signed for that payee, and refuses the rest.</span></p>
       </div>
 
       <figure class="hero-card" aria-labelledby="hero-card-caption">
@@ -96,7 +96,7 @@
         <div class="how-to-start" id="how-to-start">
           <h2>How to start</h2>
           <!--start-steps-->
-          <p class="note">Signing in creates a free Sui wallet from your Google account (Slush). It signs approvals; it never pays.</p>
+          <p class="note">No crypto wallet needed. Slush makes a free one from your Google account the first time. It only signs approvals. Your agent's own wallet pays the bills.</p>
           <p class="two-wallets"><strong>Agent wallet: pays your bills (fund this one).</strong> <strong>Your wallet: signs approvals (never pays).</strong></p>
         </div>
       </div>
@@ -190,7 +190,7 @@
         <div class="faq">
           <details><summary>What if my landlord loses their old wallet?</summary><p>You confirm the new address yourself in the owner app, signing with your wallet. Check it with your landlord first through contact details you already had, never ones from the message asking for the change. The change then waits 24 hours, during which you can cancel it, and the new wallet still has to sign. The address is checked against known scams and look-alikes when you confirm and again when it takes effect.</p></details>
           <details><summary>Can the AI be tricked into paying?</summary><p>The model only reads messages and suggests what they mean. Code decides, and it pays only addresses whose owner's wallet signed; nothing the model returns can mark an address as verified. In our preregistered measurement, the same model and messages made an agent without these checks pay the attacker 71 times in 90. With Countersign it was 0.</p></details>
-          <details><summary>Do I need a crypto wallet?</summary><p>No, continue with Google. Signing in creates a free Sui wallet from your Google account (Slush). It signs approvals; it never pays. Already have a Sui wallet? Use that instead.</p></details>
+          <details><summary>Do I need a crypto wallet?</summary><p>No, continue with Google. Slush makes a free one from your Google account the first time. It only signs approvals. Your agent's own wallet pays the bills. Already have a Sui wallet? Use that instead.</p></details>
           <details><summary>Which wallet do I fund?</summary><p>There are two. <strong>Agent wallet: pays your bills (fund this one).</strong> <strong>Your wallet: signs approvals (never pays).</strong> Your own wallet only signs: it proves you approved a change, and a deposit is the one transfer it ever sends, when you press the button.</p></details>
           <details><summary>Who holds the money?</summary><p>The agent wallet, which you fund. Its key is kept sealed on this server, so treat it like a hot wallet: keep small amounts in it. Caps limit what it can send per payment and per day.</p></details>
           <details><summary>What is stored on Walrus, and who can read it?</summary><p>Payee addresses with how each was proven, receipts, schedules and your wallet, as records signed by your agent. The blobs on Walrus are encrypted, and this deployment reads them through its Walrus Memory account. Shared scam reports hold only an address, a reason and a receipt id.</p></details>
