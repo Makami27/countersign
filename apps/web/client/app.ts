@@ -175,6 +175,6 @@ document.addEventListener("click", (event) => {
   go(link.getAttribute("href") ?? "/app");
 });
 window.addEventListener("popstate", () => void render());
-startMoments(document.querySelector(".bar"));
+startMoments();
 installPlainCopy();
 void render();

@@ -235,13 +235,16 @@ for (const scheme of schemes) for (const width of widths) {
   });
   await page.waitForTimeout(100);
   if ((await page.evaluate(() => navigator.clipboard.readText())) !== fullAddress) note(`selecting and copying pasted something else ${width} ${scheme}`);
-  const toggle = page.locator(".sound-toggle");
+  if (await page.locator(".bar [data-sound]").count()) note("the header still has a sound toggle");
+  await page.goto(`${s.base}/app/settings`);
+  const toggle = page.locator("[data-sound]");
+  await toggle.waitFor();
   await toggle.click();
-  if ((await toggle.textContent()) !== "Sound off") note("sound toggle didn't switch");
+  if ((await toggle.textContent()) !== "Sounds: off") note("sound toggle didn't switch");
   await page.reload();
-  await page.waitForSelector(".pay-actions");
-  if ((await page.locator(".sound-toggle").textContent()) !== "Sound off") note("mute wasn't remembered");
-  await page.locator(".sound-toggle").click();
+  await toggle.waitFor();
+  if ((await toggle.textContent()) !== "Sounds: off") note("mute wasn't remembered");
+  await toggle.click();
 
   await page.goto(`${s.base}/app/payees/designer`);
   await page.waitForSelector(".pay-actions");

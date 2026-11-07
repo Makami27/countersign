@@ -47,11 +47,11 @@ function armSound(): void {
   document.addEventListener("keydown", arm, { capture: true });
 }
 
-export function soundToggle(): HTMLElement {
-  const button = h("button", { class: "sound-toggle", type: "button" });
+export function soundToggle(look = "sound-toggle"): HTMLElement {
+  const button = h("button", { class: look, type: "button", "data-sound": true });
   const draw = () => {
     const muted = readMuted(store());
-    button.textContent = muted ? "Sound off" : "Sound on";
+    button.textContent = muted ? "Sounds: off" : "Sounds: on";
     button.setAttribute("aria-pressed", muted ? "false" : "true");
   };
   button.addEventListener("click", () => {
@@ -62,7 +62,7 @@ export function soundToggle(): HTMLElement {
   return button;
 }
 
-export function startMoments(header: Element | null): void {
+export function startMoments(header: Element | null = null): void {
   armSound();
   header?.append(soundToggle());
 }

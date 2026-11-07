@@ -4,6 +4,8 @@ html { scroll-behavior: smooth; scroll-padding-top: 5rem; }
 .site-bar { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; gap: var(--space-3); padding: var(--space-2) var(--gutter); background: var(--paper); border-bottom: 1px solid var(--line); }
 .site-bar .wordmark { font-size: 1.4rem; margin-right: auto; }
 .site-links { display: none; gap: var(--space-1); }
+.site-links a { white-space: nowrap; }
+.site-actions .btn { white-space: nowrap; }
 .site-links a, .site-menu nav a { min-height: var(--tap); display: inline-flex; align-items: center; padding: 0 var(--space-2); color: var(--ink-soft); text-decoration: none; font-size: var(--step--1); border-radius: var(--radius); }
 .site-links a:hover, .site-menu nav a:hover { color: var(--ink); text-decoration: underline; }
 .site-actions { display: flex; gap: var(--space-2); }
@@ -19,11 +21,12 @@ html { scroll-behavior: smooth; scroll-padding-top: 5rem; }
   .site-actions .signin { display: inline-flex; }
   .site-menu .menu-signin { display: none; }
 }
-@media (min-width: 1200px) {
+@media (min-width: 960px) {
   .site-links { display: flex; }
   .site-menu { display: none; }
-  .site-bar .wordmark { margin-right: var(--space-3); }
-  .site-links { margin-right: auto; }
+}
+@media (min-width: 960px) and (max-width: 1023px) {
+  .site-links .wide-only { display: none; }
 }
 .landing .wordmark.drawn .counter path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: pen var(--draw-wordmark) cubic-bezier(.45,.05,.35,1) forwards 150ms; }
 .landing .wordmark.drawn .counter .cross { animation-duration: 220ms; animation-delay: calc(var(--draw-wordmark) + 150ms); }
@@ -59,9 +62,7 @@ html { scroll-behavior: smooth; scroll-padding-top: 5rem; }
 .letter blockquote { margin: 0; font-size: var(--step-0); }
 .addr-inline .addr { font-size: 0.82em; }
 @media (min-width: 960px) {
-  .hero { grid-template-columns: minmax(0, 1fr) minmax(0, 32rem); grid-template-areas: "words card" "cta card"; column-gap: var(--space-7); align-items: start; padding-top: var(--space-7); }
-  .hero-words { align-self: end; }
-  .hero-cta { align-self: start; }
+  .hero { grid-template-columns: minmax(0, 1fr) minmax(0, 32rem); grid-template-areas: "words card" "cta card"; grid-template-rows: auto 1fr; column-gap: var(--space-7); align-items: start; padding-top: var(--space-6); }
 }
 
 .replay-head { display: none; }

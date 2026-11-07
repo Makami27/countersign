@@ -7,6 +7,7 @@ import { clockTime } from "../dayGroups.ts";
 import type { ActivityItem, Overview } from "../types.ts";
 import { agentFacts } from "./firstRun.ts";
 import { telegramPanel } from "./telegramPanel.ts";
+import { soundToggle } from "../moment.ts";
 
 const VERDICT_WORDS: Record<string, string> = {
   PAID: "Paid", PAYMENT_FAILED: "Not paid", REFUSED: "Refused", CHANGE_VERIFIED: "Address verified", CHANGE_REJECTED: "Change refused",
@@ -57,6 +58,6 @@ export function settingsPage(overview: Overview, onSaved: () => void): HTMLEleme
   }, status);
   return h("section", { class: "narrow", "aria-labelledby": "settings-title" }, h("h1", { id: "settings-title" }, "Settings"), agentFacts(overview), ownerWalletPanel(overview, onSaved), telegramPanel(), form,
     overview.cooldownSeconds < 24 * 3600 ? h("p", { class: "netlabel" }, `Demo value: changes you confirm yourself wait ${Math.round(overview.cooldownSeconds / 60)} minutes, not 24 hours.`) : null,
-    h("div", { class: "actions" }, signOut));
+    h("div", { class: "actions" }, soundToggle("btn"), signOut));
 }
 
