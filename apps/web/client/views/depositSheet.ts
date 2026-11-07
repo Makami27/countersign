@@ -1,7 +1,7 @@
 import { formatUsdc, usdcToBaseUnits } from "@countersign/core";
 import { api } from "../api.ts";
 import { addressEl, h, listen, liveRegion, networkWords } from "../dom.ts";
-import { EXTENSION_TIP, connectWallet, depositWallets, executeTransaction, rememberedAccount, type Connected } from "../signFlow.ts";
+import { EXTENSION_TIP, connectWallet, depositWallets, executeTransaction, rememberedAccount, walletLabel, type Connected } from "../signFlow.ts";
 import type { Overview } from "../types.ts";
 import { AGENT_WALLET, DEPOSIT_ACTION, FAUCETS, formatSui, suiToBaseUnits } from "../walletFacts.ts";
 import { openSheet } from "./sheets.ts";
@@ -88,7 +88,7 @@ export function depositSheet(overview: Overview, onClosed: () => void): void {
       const known = wallets.map((wallet) => rememberedAccount(wallet, owner)).find((found) => found !== null);
       if (known) return prepare(known, usdcText, suiText);
       const buttons = wallets.map((wallet) => {
-        const button = h("button", { class: "btn primary", type: "button" }, `Connect your wallet (${wallet.name})`);
+        const button = h("button", { class: "btn primary", type: "button" }, `Connect your wallet (${walletLabel(wallet)})`);
         listen(button, "click", async () => {
           const connecting = connectWallet(wallet, null, "wallet");
           button.disabled = true;

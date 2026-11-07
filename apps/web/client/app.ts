@@ -107,7 +107,7 @@ async function renderPage(): Promise<void> {
       signInWhy = null;
       go("/app");
       showMoment({ title: "Signed in", detail: "This wallet opens your agent. It signs approvals and never pays your bills.", address });
-    }, signInWhy));
+    }, signInWhy, new URLSearchParams(location.search).has("other")));
   }
   if (!root?.querySelector(".owner")) show(loading());
   const overview = await api<Overview>("GET", "/api/app/overview");

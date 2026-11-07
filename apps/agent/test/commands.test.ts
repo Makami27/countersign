@@ -11,7 +11,7 @@ const ADDRESS = `0x${"ab".repeat(32)}`;
 test("X10 /help lists every command in plain words, explains paying, forwarding and pasting, links the app and names the network", () => {
   const help = helpText(URL, "testnet");
   for (const c of COMMANDS) assert.ok(help.includes(`/${c.command}: `), c.command);
-  for (const words of ["pay rent 0.10", "forward an email or chat", "paste its text", `${URL}/app`, "Sui testnet: test USDC, no real money", "Agent wallet: pays your bills (fund this one)", "Your wallet: signs approvals (never pays)"]) assert.ok(help.includes(words), words);
+  for (const words of ["pay rent 0.10", "forward an email or chat", "paste its text", `${URL}/app`, "Sui testnet: test USDC, no real money", "Agent wallet: pays your bills (fund this one)", "Your wallet: signs approvals (never pays)", "continue with Google", "creates a free Sui wallet from your Google account"]) assert.ok(help.includes(words), words);
   assert.ok(helpText(URL, "mainnet").includes("Sui mainnet"));
 });
 

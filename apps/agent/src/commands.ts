@@ -1,6 +1,6 @@
 import { formatUsdc } from "@countersign/core";
 import type { BalancesView } from "@countersign/web/ownerContext";
-import { AGENT_WALLET_FULL, YOUR_WALLET } from "@countersign/web/walletFacts";
+import { AGENT_WALLET_FULL, GOOGLE_WORDS, YOUR_WALLET } from "@countersign/web/walletFacts";
 import { escapeHtml, groupedHtml } from "./telegramText.ts";
 
 export type PayeeLine = { readonly name: string; readonly status: "verified" | "change_pending" | "attempt_refused" | "waiting_wallet" | "conflict" | "not_payable"; readonly address: string | null };
@@ -39,6 +39,9 @@ export function helpText(publicUrl: string | null, network: Network): string {
     "",
     "Pay someone: send \"pay rent 0.10\" (the payee's name, then the amount). You confirm with a button before anything is sent.",
     "Check a message: forward an email or chat about a payee here, or paste its text. A new address in it is never paid until the payee's own wallet proves it.",
+    "",
+    "Do you need a crypto wallet? No: continue with Google in the owner app.",
+    GOOGLE_WORDS,
     "",
     "Two wallets:",
     AGENT_WALLET_FULL,

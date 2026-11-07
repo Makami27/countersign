@@ -9,6 +9,9 @@ export const AGENT_WALLET = "Agent wallet: pays your bills";
 export const AGENT_WALLET_FULL = "Agent wallet: pays your bills (fund this one)";
 export const YOUR_WALLET = "Your wallet: signs approvals (never pays)";
 export const DEPOSIT_ACTION = "Deposit from your wallet";
+export const GOOGLE_ACTION = "Continue with Google";
+export const OTHER_WALLET_ACTION = "Use another Sui wallet";
+export const GOOGLE_WORDS = "Signing in creates a free Sui wallet from your Google account (Slush). It signs approvals; it never pays.";
 
 export const FAUCETS = [
   { label: "test SUI (faucet.sui.io)", href: "https://faucet.sui.io/?network=testnet" },

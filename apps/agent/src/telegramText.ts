@@ -1,5 +1,6 @@
 import { REASONS, formatUsdc, type Outcome, type ReceiptRecord, type SeenElsewhere, type SuiAddress } from "@countersign/core";
 import { groupAddress } from "@countersign/web/addressGroups";
+import { GOOGLE_WORDS } from "@countersign/web/walletFacts";
 import { amountQuestion, questionWords, type PaymentQuestion } from "@countersign/web/paymentReading";
 
 export function escapeHtml(text: string): string {
@@ -62,7 +63,7 @@ export function changeStartedHtml(outcome: Extract<Outcome, { verdict: "CHANGE_S
 }
 
 export function signInLinkText(publicUrl: string | null): string {
-  return `Sign in to your owner app with your wallet: ${publicUrl ?? ""}/app/login\nSlush lets you continue with Google. Nothing else changes.`;
+  return `Sign in to your owner app: ${publicUrl ?? ""}/app/login\nContinue with Google. ${GOOGLE_WORDS}`;
 }
 
 export function unlinkedText(publicUrl: string | null): string {

@@ -1,5 +1,5 @@
 import { h, listen } from "./dom.ts";
-import { EXTENSION_TIP, connectWallet, connectedAs, onWalletsChanged, signMessage, signingWallets, type Connected } from "./signFlow.ts";
+import { EXTENSION_TIP, connectWallet, connectedAs, onWalletsChanged, signMessage, signingWallets, walletLabel, type Connected } from "./signFlow.ts";
 
 export type WalletRole = "current wallet" | "new wallet" | "owner wallet" | "wallet";
 
@@ -10,6 +10,7 @@ export type StepOptions = {
   readonly network: "mainnet" | "testnet";
   readonly status: HTMLElement;
   readonly onSigned: (signature: string) => Promise<void>;
+  readonly signLabel?: string;
 };
 
 function roleWords(role: WalletRole): string {
@@ -19,7 +20,7 @@ function roleWords(role: WalletRole): string {
 export function walletStep(o: StepOptions): HTMLElement {
   const box = h("div", { class: "actions" });
   const signButton = (by: Connected) => {
-    const button = h("button", { class: "btn primary", type: "button" }, `Sign with ${roleWords(o.role)}`);
+    const button = h("button", { class: "btn primary", type: "button" }, o.signLabel ?? `Sign with ${roleWords(o.role)}`);
     listen(button, "click", async () => {
       const signing = signMessage(by, o.message, o.network);
       button.disabled = true;
@@ -36,7 +37,7 @@ export function walletStep(o: StepOptions): HTMLElement {
     if (known) return signButton(known);
     const wallets = signingWallets();
     box.replaceChildren(...(wallets.length ? wallets.map((wallet) => {
-      const button = h("button", { class: "btn primary", type: "button" }, `Connect ${roleWords(o.role)} (${wallet.name})`);
+      const button = h("button", { class: "btn primary", type: "button" }, `Connect ${roleWords(o.role)} (${walletLabel(wallet)})`);
       listen(button, "click", async () => {
         const connecting = connectWallet(wallet, o.expected, roleWords(o.role));
         button.disabled = true;

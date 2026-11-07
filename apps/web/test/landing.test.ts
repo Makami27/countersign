@@ -9,6 +9,7 @@ import { monthHtml } from "../src/landingSections.ts";
 import { COMPARED_TRIAL, landingHtml } from "../src/landingPage.ts";
 import { readMeasurement } from "../src/proofPage.ts";
 import { START_STEPS } from "../client/startSteps.ts";
+import { GOOGLE_WORDS } from "../client/walletFacts.ts";
 import { countText, sharedSentence } from "../client/liveCounts.ts";
 
 const LINKS = ["https://www.ic3.gov/AnnualReport/Reports/2025_IC3Report.pdf", "https://cointelegraph.com/news/address-poisoning-copy-paste-mistake-50m-usdt-loss", "/proof", "/status", "/demo"];
@@ -67,7 +68,7 @@ test("V27 the landing cites its sources, keeps live counters honest and leaves t
   const { base, page } = await landing(t);
   for (const href of LINKS) assert.ok(page.includes(`href="${href}"`), href);
   for (const live of ["memories", "sharedReports", "sharedAgents"]) assert.match(page, new RegExp(`data-live="${live}">—<`));
-  assert.equal((page.match(/<details>/g) ?? []).length, 9);
+  assert.equal((page.match(/<details>/g) ?? []).length, 10);
   assert.doesNotMatch(page, /data-claim=|Every claim with its evidence|Status of everything the agent depends on/);
   const proof = (await (await fetch(`${base}/api/proof`)).json()) as { live: Record<string, unknown> };
   assert.deepEqual(proof.live, { memories: null, sharedAgents: null, sharedReports: null });
@@ -101,7 +102,21 @@ test("U06 How to start reads the same on the landing and in the checklist, in or
   const page = landingHtml(readFileSync(new URL("../public/index.html", import.meta.url), "utf8"), await readMeasurement(), await readActs(), await readTrial(COMPARED_TRIAL.attack, COMPARED_TRIAL.trial));
   const section = page.slice(page.indexOf('id="how-to-start"'));
   const steps = [...section.slice(0, section.indexOf("</ol>")).matchAll(/<li>([^<]+)<\/li>/g)].map((m) => m[1]);
-  assert.deepEqual(steps, ["Sign in with your wallet", "Fund your agent wallet (it pays your bills)", "Add a payee and send them the signing link", "They sign once", "Pay or schedule", "Try pasting a scam"]);
+  assert.deepEqual(steps, ["Continue with Google", "Fund your agent wallet (it pays your bills)", "Add a payee and send them the signing link", "They sign once", "Pay or schedule", "Try pasting a scam"]);
   assert.deepEqual(steps, START_STEPS.map((step) => step.label));
   assert.match(readFileSync(new URL("../client/views/dashboard.ts", import.meta.url), "utf8"), /START_STEPS\.map/);
+});
+
+test("G01 the landing's main button is Continue with Google with another wallet under it, and the FAQ says no crypto wallet is needed", () => {
+  const page = readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
+  assert.equal(/Sign in with your wallet/.test(page), false);
+  const hero = page.slice(page.indexOf('class="hero-cta"'));
+  assert.match(hero, /^class="hero-cta"><a class="btn primary" href="\/app\/login">Continue with Google<\/a>/);
+  assert.ok(hero.includes('<a class="cta-other" href="/app/login?other">Use another Sui wallet</a>'));
+  assert.ok(page.includes("<summary>Do I need a crypto wallet?</summary><p>No, continue with Google."));
+  assert.ok(page.includes(GOOGLE_WORDS));
+});
+
+test("G01 the plain words say what signing in does and that the wallet never pays", () => {
+  assert.equal(GOOGLE_WORDS, "Signing in creates a free Sui wallet from your Google account (Slush). It signs approvals; it never pays.");
 });
