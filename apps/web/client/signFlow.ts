@@ -1,5 +1,5 @@
 import { getWallets, type Wallet, type WalletAccount } from "@mysten/wallet-standard";
-import { registerSlushWallet } from "@mysten/slush-wallet";
+import { SLUSH_WALLET_ICON, SLUSH_WALLET_NAME, SlushWallet, registerSlushWallet } from "@mysten/slush-wallet";
 
 export type Connected = { readonly wallet: Wallet; readonly account: WalletAccount };
 export type WalletStep<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly message: string };
@@ -7,12 +7,27 @@ export type WalletStep<T> = { readonly ok: true; readonly value: T } | { readonl
 export const POPUP_BLOCKED = "Your browser blocked the Slush window. Allow pop-ups for this site (icon at the right of the address bar), then click again.";
 export const EXTENSION_TIP = "Tip: the Slush browser extension signs without pop-up windows.";
 
-registerSlushWallet("Countersign");
+const APP_NAME = "Countersign";
+const registered = registerSlushWallet(APP_NAME);
+const webWallet = (registered?.wallet ?? new SlushWallet({ name: APP_NAME, metadata: { id: "com.mystenlabs.suiwallet.web", walletName: SLUSH_WALLET_NAME, icon: SLUSH_WALLET_ICON, enabled: true } })) as unknown as Wallet;
+
+export function slushOnTheWeb(): Wallet {
+  return webWallet;
+}
+
+function withWebWallet(wallets: readonly Wallet[]): readonly Wallet[] {
+  return wallets.includes(webWallet) ? wallets : [...wallets, webWallet];
+}
+
+export function walletLabel(wallet: Wallet): string {
+  const twin = getWallets().get().some((other) => other !== webWallet && other.name === webWallet.name);
+  return wallet === webWallet && twin ? "Slush with Google" : wallet.name;
+}
 
 const connected = new Map<string, Connected>();
 
 export function signingWallets(): readonly Wallet[] {
-  return getWallets().get().filter((w) => "standard:connect" in w.features && "sui:signPersonalMessage" in w.features);
+  return withWebWallet(getWallets().get().filter((w) => "standard:connect" in w.features && "sui:signPersonalMessage" in w.features));
 }
 
 export function onWalletsChanged(listener: () => void): void {
@@ -52,7 +67,7 @@ export async function connectWallet(wallet: Wallet, expected: string | null, rol
 type ExecuteFeature = { signAndExecuteTransaction(input: { transaction: { toJSON(): Promise<string> }; account: WalletAccount; chain: `${string}:${string}` }): Promise<{ digest: string }> };
 
 export function depositWallets(): readonly Wallet[] {
-  return getWallets().get().filter((w) => "standard:connect" in w.features && "sui:signAndExecuteTransaction" in w.features);
+  return withWebWallet(getWallets().get().filter((w) => "standard:connect" in w.features && "sui:signAndExecuteTransaction" in w.features));
 }
 
 export function rememberedAccount(wallet: Wallet, preferred: string | null): Connected | null {

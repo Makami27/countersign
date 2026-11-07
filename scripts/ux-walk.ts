@@ -107,6 +107,21 @@ for (const scheme of schemes) for (const width of widths) {
   const ctx = await context(width, scheme);
   const page = await ctx.newPage();
   page.on("pageerror", (error) => note(`page error ${width} ${scheme}: ${error.message}`));
+  const visitor = await (await browser.newContext({ viewport: { width, height: 900 }, colorScheme: scheme, reducedMotion: "reduce" })).newPage();
+  await visitor.context().exposeFunction("fakeSign", (text: string) => s.me.sign(text));
+  await visitor.addInitScript(FAKE_WALLET, s.me.address);
+  await visitor.goto(`${s.base}/app/login`);
+  await visitor.waitForSelector("button:has-text('Continue with Google')");
+  await shot(visitor, "sign-in", width, scheme);
+  await visitor.click("button:has-text('Use another Sui wallet')");
+  await shot(visitor, "sign-in-other", width, scheme);
+  await visitor.click("button:has-text('Sign in with Test wallet')");
+  await visitor.waitForSelector("button:has-text('Finish signing in')");
+  await shot(visitor, "sign-in-finish", width, scheme);
+  await visitor.click("button:has-text('Finish signing in')");
+  await visitor.waitForSelector(".moment");
+  await visitor.context().close();
+
   await page.goto(`${s.base}/app`);
   await page.waitForSelector(".wallet-panel");
   await page.waitForTimeout(500);

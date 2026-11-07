@@ -1,4 +1,4 @@
-import { EXTENSION_TIP, connectWallet, signingWallets } from "../signFlow.ts";
+import { EXTENSION_TIP, connectWallet, signingWallets, walletLabel } from "../signFlow.ts";
 import { withApprovals } from "../approvals.ts";
 import { addressEl, h, listen, liveRegion, when } from "../dom.ts";
 import { ADDRESS_PROBLEM, attachAddressCleaning, cleanAddress, isSuiAddress } from "../addressInput.ts";
@@ -11,7 +11,7 @@ export function ownerWalletPanel(overview: Overview, onChanged: () => void): HTM
   if (!state.known) return h("section", { class: "card stated" }, h("h2", {}, YOUR_WALLET), h("p", {}, `— (${state.why}) Sensitive changes are blocked until it can be read.`));
   if (!state.current) {
     const buttons = signingWallets().map((wallet) => {
-      const connect = h("button", { class: "btn primary", type: "button" }, `Connect your wallet (${wallet.name})`);
+      const connect = h("button", { class: "btn primary", type: "button" }, `Connect your wallet (${walletLabel(wallet)})`);
       listen(connect, "click", async () => {
         const connecting = connectWallet(wallet, null, "wallet");
         connect.disabled = true;

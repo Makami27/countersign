@@ -39,5 +39,8 @@ test("I01 the icons are real square PNGs at the sizes they claim, served with th
 });
 
 test("I01 Slush is registered with the app's name, the one thing its SDK sends besides the page URL", async () => {
-  assert.match(await readFile(new URL("../client/signFlow.ts", import.meta.url), "utf8"), /registerSlushWallet\("Countersign"\)/);
+  const source = await readFile(new URL("../client/signFlow.ts", import.meta.url), "utf8");
+  assert.match(source, /APP_NAME = "Countersign"/);
+  assert.match(source, /registerSlushWallet\(APP_NAME\)/);
+  assert.match(source, /new SlushWallet\(\{ name: APP_NAME/);
 });

@@ -22,7 +22,7 @@ export const SESSION_COOKIE = "cs_owner";
 export const CSRF_HEADER = "x-countersign";
 const writeLimiter = new WindowLimiter(60, 60 * 1000);
 const READ_DEADLINE_MS = 20_000;
-export const SIGNED_OUT = "You're signed out: your session ended or this browser has none. Sign in with your wallet.";
+export const SIGNED_OUT = "You're signed out: your session ended or this browser has none. Continue with Google to sign in again.";
 
 export function sessionCookie(token: string, maxAgeSeconds: number): Record<string, string> {
   return { "set-cookie": `${SESSION_COOKIE}=${token}; Path=/; HttpOnly; Secure; SameSite=Strict; Max-Age=${maxAgeSeconds}` };
