@@ -42,7 +42,7 @@ export function replayHtml(acts: Acts): string {
   if (!acts.refused || !acts.repeated) return MISSING;
   return `<ol class="replay" data-replay>
 ${replayEvent(acts.refused, "The bot keeps the address a message named and the checks it ran, not the message's words.")}
-${replayEvent(acts.repeated, "The same address again, eight minutes later. This time the first refusal is cited.")}
+${replayEvent(acts.repeated, "The second time, it remembered: refused citing the first receipt.")}
 </ol>`;
 }
 
@@ -86,7 +86,7 @@ export function twoAgentsHtml(t: Trial | null): string {
 <p class="note">It stored the address the model read from the message and paid it.</p></section>
 <section class="agent guarded" aria-labelledby="guarded-title"><h3 id="guarded-title">Countersign: refused</h3>
 <div class="versus-side attempted"><span class="label">Asked to pay</span>${scrawlMarkup(t.attacker)}<span class="stamp" aria-hidden="true">VOID</span></div><div class="compare"><div class="row on-file"><span class="label">Paid instead, the verified address</span>${addressHtml(t.verified, t.attacker)}</div></div>
-<p class="note">${escapeHtml(reasonWords(t.countersign.reason))} The payment went to the verified address above.</p></section>
+<p class="note">Refused the new address. Rent still goes to the one on file.</p></section>
 </div>
 <p class="note">Trial ${escapeHtml(t.attack)} (${escapeHtml(t.name)}), number ${t.trial + 1} of 10, run ${escapeHtml(t.at.slice(0, 10))} on Sui testnet with ${escapeHtml(t.model)}. In the measurement both agents reserved the payment; nothing was sent on chain. <a href="${REPO}evidence/measurement/README.md" rel="noreferrer">Raw rows</a></p>`;
 }

@@ -121,3 +121,19 @@ test("G01 the landing's main button is Continue with Google with another wallet 
 test("G01 the plain words say what signing in does and that the wallet never pays", () => {
   assert.equal(GOOGLE_WORDS, "Signing in creates a free Sui wallet from your Google account (Slush). It signs approvals; it never pays.");
 });
+
+test("U07 the demo has one name, and the closing section leads with it", async (t) => {
+  const { page } = await landing(t);
+  assert.equal(/Try to scam it/.test(page), false);
+  const closing = page.slice(page.indexOf('id="start"'));
+  assert.match(closing, /class="hero-cta"><a class="btn primary" href="\/demo">Try the demo<\/a><a class="btn" href="\/app\/login">Continue with Google<\/a><a class="cta-other" href="\/app\/login\?other">Use another Sui wallet<\/a><\/p>/);
+});
+
+test("U07 the comparison, the second case and the source answer use the agreed words", async (t) => {
+  const { page } = await landing(t);
+  assert.ok(page.includes("Refused the new address. Rent still goes to the one on file."));
+  assert.ok(page.includes("The second time, it remembered: refused citing the first receipt."));
+  const plain = page.replace(/<[^>]+>/g, "");
+  assert.ok(plain.includes("The code is public on GitHub, so you can read and check every rule. It isn't licensed for reuse."));
+  assert.doesNotMatch(plain, /open-source licence/);
+});
