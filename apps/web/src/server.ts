@@ -15,7 +15,8 @@ import { SECURITY_HEADERS, SIGN_PAGE_CSP, problem, send, serveFile } from "./htt
 import { ownerRoute } from "./ownerRoutes.ts";
 import { sessionRoute } from "./signInRoutes.ts";
 import { completedBy, signRoute } from "./signRoutes.ts";
-import { liveCounts, proofPageRoute, statusPageRoute } from "./publicRoutes.ts";
+import { proofPageRoute, statusPageRoute } from "./publicRoutes.ts";
+import { LiveCounter } from "./liveCounter.ts";
 import type { OwnerContext } from "./ownerContext.ts";
 import type { OwnerDirectory } from "./ownerDirectory.ts";
 
@@ -31,8 +32,9 @@ export type WebServerOptions = {
   readonly status?: () => Promise<StatusView>;
 };
 
-async function landing(res: ServerResponse): Promise<void> {
-  const page = landingHtml(await readFile(`${PUBLIC_DIR}index.html`, "utf8"), await readMeasurement(), await readActs(), await readTrial(COMPARED_TRIAL.attack, COMPARED_TRIAL.trial));
+async function landing(res: ServerResponse, live: LiveCounter): Promise<void> {
+  void live.current().catch(() => undefined);
+  const page = landingHtml(await readFile(`${PUBLIC_DIR}index.html`, "utf8"), await readMeasurement(), await readActs(), await readTrial(COMPARED_TRIAL.attack, COMPARED_TRIAL.trial), live.known());
   res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-cache", ...SECURITY_HEADERS });
   res.end(page);
 }
@@ -49,13 +51,15 @@ async function ownerForReceipt(owners: OwnerDirectory | null, id: string): Promi
 
 export function startWebServer(options: WebServerOptions): Server {
   const lab = new LabSessions();
+  const live = new LiveCounter(() => options.owners?.get(options.owners.adminOwnerId) ?? null);
   const server = createServer((req, res) => {
     const path = new URL(req.url ?? "/", "http://localhost").pathname;
     const handle = async (): Promise<void> => {
       if (path === "/api/health" && req.method === "GET") return send(res, 200, { ok: true, network: options.network, version: options.version });
       if (path === "/api/status" && req.method === "GET") return options.status ? send(res, 200, await options.status()) : problem(res, 404, "This server isn't connected to the live agent.");
       if (path === "/api/claims" && req.method === "GET") return send(res, 200, { source: "CLAIMS.md", claims: await readClaims() });
-      if (path === "/api/proof" && req.method === "GET") return send(res, 200, { ...(await readProof(options.proof, options.network)), live: await liveCounts(options.owners?.get(options.owners.adminOwnerId) ?? null) });
+      if (path === "/api/live" && req.method === "GET") return send(res, 200, { live: await live.current() });
+      if (path === "/api/proof" && req.method === "GET") return send(res, 200, { ...(await readProof(options.proof, options.network)), live: await live.current() });
       if (path.startsWith("/api/lab/") && req.method === "POST") return labRoute(lab, req, res, path);
       const owners = options.owners;
       if ((path === "/api/session" || path === "/api/session/challenge") && owners) return sessionRoute(owners, options.network, req, res, path);
@@ -69,7 +73,7 @@ export function startWebServer(options: WebServerOptions): Server {
       if ((path === "/app" || path.startsWith("/app/")) && (await serveFile(res, PUBLIC_DIR, "app.html", 200, "no-cache"))) return;
       if (path === "/demo" && (await serveFile(res, PUBLIC_DIR, "demo.html", 200, "no-cache"))) return;
       if (path.startsWith("/sign/") && (await serveFile(res, PUBLIC_DIR, "sign.html", 200, "no-cache", { "content-security-policy": SIGN_PAGE_CSP }))) return;
-      if ((path === "/" || path === "/index.html") && req.method === "GET") return landing(res);
+      if ((path === "/" || path === "/index.html") && req.method === "GET") return landing(res, live);
       if (await serveFile(res, PUBLIC_DIR, path)) return;
       if (!(await serveFile(res, PUBLIC_DIR, "index.html", 404, "no-cache"))) problem(res, 404, "Not found.");
     };

@@ -1,16 +1,29 @@
 import { countText, sharedSentence, type Live } from "./liveCounts.ts";
 
 const STEP_MS = 380;
+const LIVE_RETRY_MS = [3_000, 10_000, 30_000];
+const LIVE_TIMEOUT_MS = 12_000;
 
-async function fillLive(): Promise<void> {
-  const fields = [...document.querySelectorAll<HTMLElement>("[data-live]")];
-  if (fields.length === 0) return;
-  const response = await fetch("/api/proof", { credentials: "same-origin" });
-  const live = response.ok ? ((await response.json()) as { live?: Live }).live : undefined;
-  for (const field of fields) field.textContent = countText(live?.[field.dataset["live"] as keyof Live]);
+async function readLive(): Promise<Live | undefined> {
+  try {
+    const response = await fetch("/api/live", { signal: AbortSignal.timeout(LIVE_TIMEOUT_MS) });
+    return response.ok ? ((await response.json()) as { live?: Live }).live : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+async function fillLive(attempt = 0): Promise<void> {
+  const live = await readLive();
+  for (const field of document.querySelectorAll<HTMLElement>("[data-live]")) {
+    const value = live?.[field.dataset["live"] as keyof Live];
+    if (typeof value === "number") field.textContent = countText(value);
+  }
   const shared = document.querySelector<HTMLElement>("[data-shared-line]");
   const sentence = sharedSentence(live);
   if (shared && sentence) shared.textContent = sentence;
+  const wait = LIVE_RETRY_MS[attempt];
+  if (wait !== undefined && (typeof live?.memories !== "number" || !sentence)) setTimeout(() => void fillLive(attempt + 1), wait);
 }
 
 function replayOnce(): void {
@@ -28,4 +41,4 @@ function replayOnce(): void {
 }
 
 replayOnce();
-void fillLive().catch(() => undefined);
+void fillLive();

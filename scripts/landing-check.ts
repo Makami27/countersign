@@ -48,6 +48,17 @@ for (const width of SWEEP) {
   if (Math.abs(hero.headline - hero.card) > 4) note(`headline ${Math.round(hero.headline)} and card ${Math.round(hero.card)} don't line up at ${width}`);
 }
 
+const retryPage = await (await browser.newContext()).newPage();
+let liveCalls = 0;
+await retryPage.route("**/api/live", (route) => {
+  liveCalls += 1;
+  return liveCalls === 1 ? route.abort() : route.fulfill({ json: { live: { memories: 16, sharedAgents: 2, sharedReports: 3 } } });
+});
+await retryPage.goto(s.base);
+await retryPage.waitForFunction(() => document.querySelector("[data-live='memories']")?.textContent === "16", undefined, { timeout: 10_000 }).catch(() => note("the counter didn't recover after a failed fetch"));
+if (!(await retryPage.locator("[data-shared-line]").textContent())?.includes("3, from 2 agents")) note("the shared line didn't fill in");
+console.log(`counters filled after ${liveCalls} requests, the first one failing`);
+
 for (const scheme of ["light", "dark"] as const) for (const width of SHOTS) {
   const context = await browser.newContext({ viewport: { width, height: 900 }, colorScheme: scheme, reducedMotion: "reduce" });
   const [name, value] = s.cookie.split("=");

@@ -1,5 +1,6 @@
 import { scrawlMarkup } from "../client/scrawl.ts";
 import { START_STEPS } from "../client/startSteps.ts";
+import { countText, sharedSentence, type Live } from "../client/liveCounts.ts";
 import type { Acts, Trial } from "./landingData.ts";
 import { monthHtml, replayHtml, twoAgentsHtml } from "./landingSections.ts";
 import type { Measurement } from "./proofPage.ts";
@@ -22,7 +23,14 @@ ${line(`${m.benign.messages - m.benign.falseRefusals} of ${m.benign.messages}`, 
 
 export const COMPARED_TRIAL = { attack: "K4", trial: 0 } as const;
 
-export function landingHtml(template: string, measurement: Measurement | null, acts: Acts, trial: Trial | null): string {
+function withLive(page: string, live: Live | null): string {
+  if (!live) return page;
+  const counted = (["memories", "sharedAgents", "sharedReports"] as const).reduce((html, key) => (live[key] === null ? html : html.replace(`data-live="${key}">—<`, `data-live="${key}">${countText(live[key])}<`)), page);
+  const sentence = sharedSentence(live);
+  return sentence ? counted.replace(/(<p class="live-line" data-shared-line>)[\s\S]*?(<\/p>)/, `$1${sentence}$2`) : counted;
+}
+
+export function landingHtml(template: string, measurement: Measurement | null, acts: Acts, trial: Trial | null, live: Live | null = null): string {
   const fill: Record<string, string> = {
     "<!--wordmark-->": wordmarkSvg(),
     "<!--scrawl:file-->": scrawlMarkup(HERO_ON_FILE),
@@ -37,5 +45,5 @@ export function landingHtml(template: string, measurement: Measurement | null, a
     "<!--two-agents-->": twoAgentsHtml(trial),
     "<!--start-steps-->": '<ol class="start-steps">' + START_STEPS.map((step) => "<li>" + step.label + "</li>").join("") + "</ol>",
   };
-  return Object.entries(fill).reduce((page, [mark, html]) => page.replaceAll(mark, html), template);
+  return withLive(Object.entries(fill).reduce((page, [mark, html]) => page.replaceAll(mark, html), template), live);
 }

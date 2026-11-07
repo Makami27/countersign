@@ -72,6 +72,7 @@ test("V27 the landing cites its sources, keeps live counters honest and leaves t
   assert.doesNotMatch(page, /data-claim=|Every claim with its evidence|Status of everything the agent depends on/);
   const proof = (await (await fetch(`${base}/api/proof`)).json()) as { live: Record<string, unknown> };
   assert.deepEqual(proof.live, { memories: null, sharedAgents: null, sharedReports: null });
+  assert.deepEqual(((await (await fetch(`${base}/api/live`)).json()) as { live: unknown }).live, proof.live);
 });
 
 test("V27 the shared counter says \"No shared reports yet\" at zero, counts agents in plain words, and stays \"—\" when unknown", () => {
