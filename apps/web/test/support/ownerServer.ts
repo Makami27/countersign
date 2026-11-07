@@ -17,11 +17,11 @@ import { singleOwner } from "./directory.ts";
 
 export type Challenge = { field: string; nonce: string; message: string; signer: string };
 
-export async function ownerServer(t: TestContext, options: { readonly signIn?: boolean } = {}) {
+export async function ownerServer(t: TestContext, options: { readonly signIn?: boolean; readonly sessionClock?: () => number } = {}) {
   const w = await world(DEFAULT_CAPS, new Date().toISOString());
   let now = Date.now();
   const rows = new SqliteRows(join(mkdtempSync(join(tmpdir(), "countersign-owner-")), "web.sqlite"));
-  const auth = await OwnerAuth.open(rows, "example.test");
+  const auth = await OwnerAuth.open(rows, "example.test", options.sessionClock);
   const extras = await ownerExtras(rows, w, () => now);
   const owner: OwnerContext = {
     ownerId: "owner1", network: "testnet", agentAddress: wallet().address, publicUrl: "https://example.test", engine: w.agent, index: w.index, ledger: w.payments,

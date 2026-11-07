@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { parseSuiAddress } from "@countersign/core";
 import { WindowLimiter, clientAddress, cookie, problem, readJson, send } from "./http.ts";
-import { SESSION_LIFETIME_MS } from "./ownerAuth.ts";
+import { SESSION_COOKIE_LIFETIME_MS } from "./ownerAuth.ts";
 import { CSRF_HEADER, SESSION_COOKIE, sessionCookie } from "./ownerRoutes.ts";
 import type { OwnerDirectory } from "./ownerDirectory.ts";
 
@@ -41,5 +41,5 @@ export async function sessionRoute(owners: OwnerDirectory, network: "mainnet" | 
   const owner = await owners.signIn(address, pending.message, signature, check);
   if (!owner.ok) return problem(res, owner.status, owner.message);
   const session = await auth.startSession(owner.ownerId, address);
-  return send(res, 200, { signedIn: true }, sessionCookie(session.token, Math.floor(SESSION_LIFETIME_MS / 1000)));
+  return send(res, 200, { signedIn: true }, sessionCookie(session.token, Math.floor(SESSION_COOKIE_LIFETIME_MS / 1000)));
 }

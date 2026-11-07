@@ -119,7 +119,7 @@ test("G01 the landing's main button is Continue with Google with another wallet 
 });
 
 test("G01 the plain words say what signing in does and that the wallet never pays", () => {
-  assert.equal(GOOGLE_WORDS, "No crypto wallet needed. Slush makes a free one from your Google account the first time. It only signs approvals. Your agent's own wallet pays the bills.");
+  assert.equal(GOOGLE_WORDS, "No crypto wallet needed. Slush makes a free one from your Google account the first time. It signs your approvals. Your agent's own wallet pays the bills.");
 });
 
 test("U07 the demo has one name, and the closing section leads with it", async (t) => {

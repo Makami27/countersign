@@ -1,5 +1,5 @@
 import { getWallets, type Wallet, type WalletAccount } from "@mysten/wallet-standard";
-import { CONNECT_CLOSED, DEPOSIT_NOT_SENT, SIGN_REFUSED } from "./walletFacts.ts";
+import { CONNECT_FAILED, DEPOSIT_NOT_SENT, SIGN_REFUSED } from "./walletFacts.ts";
 import { SLUSH_WALLET_ICON, SLUSH_WALLET_NAME, SlushWallet, registerSlushWallet } from "@mysten/slush-wallet";
 
 export type Connected = { readonly wallet: Wallet; readonly account: WalletAccount };
@@ -53,7 +53,7 @@ export async function connectWallet(wallet: Wallet, expected: string | null, rol
   try {
     accounts = (await connect.connect()).accounts;
   } catch (error) {
-    return { ok: false, message: blockedOr(error, CONNECT_CLOSED) };
+    return { ok: false, message: blockedOr(error, CONNECT_FAILED) };
   }
   const account = expected === null ? accounts[0] : accounts.find((a) => a.address.toLowerCase() === expected.toLowerCase());
   if (!account) {

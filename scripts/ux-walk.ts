@@ -168,7 +168,7 @@ for (const scheme of schemes) for (const width of widths) {
   if (await visitor.locator("button:has-text('Sign in with Slush')").count()) note("the chooser still offers Slush on the web");
   await visitor.evaluate(() => { (window as unknown as { refuseOnce: string }).refuseOnce = "connect"; });
   await visitor.click("button:has-text('Sign in with Test wallet')");
-  await visitor.waitForSelector("text=The wallet window closed before connecting. Nothing was signed. Try again.");
+  await visitor.waitForSelector("text=Couldn't connect to your wallet. Nothing was signed. Try again.");
   await visitor.click("button:has-text('Sign in with Test wallet')");
   await visitor.waitForSelector("button:has-text('Finish signing in')");
   await shot(visitor, "sign-in-finish", width, scheme);

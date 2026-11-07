@@ -3,6 +3,7 @@ import type { SqlRows } from "@countersign/adapters/sql";
 
 export const SIGN_IN_LIFETIME_MS = 10 * 60 * 1000;
 export const SESSION_LIFETIME_MS = 12 * 60 * 60 * 1000;
+export const SESSION_COOKIE_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
 export const SIGN_IN_VERSION = "Countersign sign-in v1";
 
 const SCHEMA = `

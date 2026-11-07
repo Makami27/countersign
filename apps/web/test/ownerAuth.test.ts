@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { ownerNamespace } from "@countersign/core";
 import { SqliteRows } from "@countersign/adapters/sqlite";
 import { wallet } from "../../../packages/core/test/fixtures.ts";
-import { OwnerAuth, SIGN_IN_LIFETIME_MS } from "../src/ownerAuth.ts";
+import { OwnerAuth, SESSION_COOKIE_LIFETIME_MS, SESSION_LIFETIME_MS, SIGN_IN_LIFETIME_MS } from "../src/ownerAuth.ts";
 import { OwnerSettings } from "../src/ownerSettings.ts";
 import { ownerServer } from "./support/ownerServer.ts";
 import { signInAs } from "./support/signIn.ts";
@@ -99,4 +99,33 @@ test("G03 a session that was ended turns into the notice on its next request", a
   await fetch(`${s.base}/api/session`, { method: "DELETE", headers: { cookie: s.cookie, "x-countersign": "1" } });
   const after = await fetch(`${s.base}/api/app/overview`, { headers: { cookie: s.cookie } });
   assert.equal(((await after.json()) as { notice: string | null }).notice, "Your session ended. Sign in again to continue.");
+});
+
+test("G04 the cookie outlives the 12-hour session, so a timed-out session gets the notice and the server still refuses it", async (t) => {
+  let now = Date.now();
+  const s = await ownerServer(t, { sessionClock: () => now });
+  const live = await fetch(`${s.base}/api/app/overview`, { headers: { cookie: s.cookie } });
+  assert.equal(live.status, 200);
+  now += SESSION_LIFETIME_MS - 1_000;
+  assert.equal((await fetch(`${s.base}/api/app/overview`, { headers: { cookie: s.cookie } })).status, 200);
+  now += 2_000;
+  const ended = await fetch(`${s.base}/api/app/overview`, { headers: { cookie: s.cookie } });
+  assert.equal(ended.status, 401);
+  assert.deepEqual(await ended.json(), { error: "Your session ended. Sign in again to continue.", notice: "Your session ended. Sign in again to continue." });
+  const write = await fetch(`${s.base}/api/app/paste`, { method: "POST", headers: { cookie: s.cookie, "x-countersign": "1", "content-type": "application/json" }, body: JSON.stringify({ text: "pay landlord 1" }) });
+  assert.equal(write.status, 401);
+});
+
+test("G04 signing in sets a seven-day cookie with the same protections", async (t) => {
+  const s = await ownerServer(t, { signIn: false });
+  const signedIn = await signInAs(s.base, s.me);
+  assert.match(signedIn.setCookie, /HttpOnly; Secure; SameSite=Strict; Max-Age=604800$/);
+  assert.equal(SESSION_COOKIE_LIFETIME_MS, 604_800_000);
+  assert.equal(SESSION_LIFETIME_MS, 43_200_000);
+});
+
+test("G04 signing out still clears the cookie at once", async (t) => {
+  const s = await ownerServer(t);
+  const out = await fetch(`${s.base}/api/session`, { method: "DELETE", headers: { cookie: s.cookie, "x-countersign": "1" } });
+  assert.match(out.headers.get("set-cookie") ?? "", /Max-Age=0$/);
 });
