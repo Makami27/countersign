@@ -1,4 +1,4 @@
-import { formatUsdc, usdcToBaseUnits } from "@countersign/core";
+import { REASONS, formatUsdc, usdcToBaseUnits, type ReasonCode } from "@countersign/core";
 import { api } from "../api.ts";
 import { addressEl, h, listen, networkWords, signatureFigure, usdc } from "../dom.ts";
 import { isFinished, payStages, remainingToday, type PayPhase } from "../payStages.ts";
@@ -133,7 +133,7 @@ export function paySheet(target: PayTarget, overview: Overview, onClosed: () => 
         else if (phase === "UNKNOWN") {
           showing(phase, baseUnits, h("div", { class: "outcome stated", role: "status" }, h("p", { class: "money" }, `Not sure yet whether ${usdc(baseUnits)} arrived.`), h("p", {}, `It will not be sent again. The agent keeps checking transaction ${payment.digest ?? "(no digest yet)"} and updates Activity.`)), h("div", { class: "actions" }, h("a", { class: "btn", href: "/app/activity" }, "Open Activity"), done()));
           if (waited > UNKNOWN_WAIT_MS) return;
-        } else showing(phase, baseUnits, h("div", { class: "actions" }, h("button", { class: "btn", type: "button", onclick: close }, "Close (it keeps going)")));
+        } else showing(phase, baseUnits, h("div", { class: "actions" }, h("button", { class: "btn", type: "button", onclick: close }, "Close. The payment continues.")));
         if (isFinished(phase) && (receipt || waited > RECEIPT_WAIT_MS)) return;
         await new Promise((resolve) => setTimeout(resolve, POLL_MS));
       }
@@ -152,7 +152,8 @@ export function paySheet(target: PayTarget, overview: Overview, onClosed: () => 
     const failedStep = (baseUnits: string, payment: PaymentStatus["payment"], receipt: string | null) => {
       const lowOnFunds = payment.reason === "PAYMENT_NOT_BUILT";
       showing("FAILED", baseUnits,
-        h("div", { class: "outcome refused", role: "alert" }, h("p", { class: "money" }, "No USDC moved."), h("p", {}, payment.detail ?? "The transfer didn't go through."), h("p", {}, lowOnFunds ? "Check that the agent wallet holds enough USDC and SUI for fees, then try again." : "You can try again; it won't be paid twice.")),
+        h("div", { class: "outcome refused", role: "alert" }, h("p", { class: "money" }, "No USDC moved."), h("p", {}, payment.reason && payment.reason in REASONS ? REASONS[payment.reason as ReasonCode].message : "The transfer didn't go through."),
+          payment.detail ? h("details", {}, h("summary", {}, "What the chain said"), h("p", { class: "note digest" }, payment.detail)) : null, h("p", {}, lowOnFunds ? "Check that the agent wallet holds enough USDC and SUI for fees, then try again." : "You can try again; it won't be paid twice.")),
         receipt ? h("p", { class: "links" }, h("a", { href: `/r/${receipt}` }, "See the receipt")) : null,
         h("div", { class: "actions" }, lowOnFunds ? h("button", { class: "btn primary", type: "button", onclick: () => { close(); onDeposit(); } }, "Deposit from your wallet") : h("button", { class: "btn primary", type: "button", onclick: () => confirmStep(baseUnits) }, "Try again"), done()));
     };

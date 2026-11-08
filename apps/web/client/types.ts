@@ -53,4 +53,4 @@ export type ActivityItem =
   | { readonly kind: "receipt"; readonly at: string; readonly receipt: string; readonly verdict: string; readonly reason: string | null; readonly payeeId: string | null; readonly address: string | null; readonly amountBaseUnits: string | null; readonly suiDigest: string | null; readonly network: string }
   | { readonly kind: "payment"; readonly at: string; readonly paymentId: string; readonly state: string; readonly payeeId: string; readonly address: string; readonly amountBaseUnits: string; readonly digest: string | null };
 
-export type ScheduleItem = { readonly schedule: { readonly scheduleId: string; readonly payeeId: string }; readonly nextDue: string | null; readonly says: string };
+export type ScheduleItem = { readonly schedule: { readonly scheduleId: string; readonly payeeId: string; readonly amountBaseUnits: string; readonly every: "week" | "two_weeks" | "month" | "year"; readonly day: number; readonly month: number | null }; readonly nextDue: string | null; readonly says: string };

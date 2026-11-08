@@ -8,10 +8,12 @@ function metaLine(payee: PayeeSummary): string {
     case "change_pending": return "A new address was requested and can't be paid yet. Payments still go to the verified one.";
     case "waiting_wallet": return `Added ${when(payee.since)}. Not payable until the payee's wallet signs.`;
     case "not_payable": return "Not payable. The signing link expired; add the payee again.";
-    case "conflict": return "Frozen: two verified records disagree. Nothing will be paid.";
+    case "conflict": return FROZEN_WORDS;
     case "verified": return payee.lastPaid ? `Last paid ${usdc(payee.lastPaid.amountBaseUnits)} on ${when(payee.lastPaid.at)}` : "Verified. Not paid yet.";
   }
 }
+
+export const FROZEN_WORDS = "Frozen: two verified records disagree, so nothing will be paid. Check this payee's address history, then ask the payee to sign again.";
 
 const PAYABLE: ReadonlySet<PayeeSummary["status"]> = new Set(["verified", "attempt_refused", "change_pending"]);
 

@@ -1,6 +1,7 @@
 import { WEEKDAYS, usdcToBaseUnits } from "@countersign/core";
 import { withApprovals } from "../approvals.ts";
-import { h, liveRegion, listen, when } from "../dom.ts";
+import { h, liveRegion, listen, usdc, when } from "../dom.ts";
+import { nextUtcMidnight, runsWords, yourTime } from "../scheduleWords.ts";
 import type { ScheduleItem } from "../types.ts";
 import { showMoment } from "../moment.ts";
 
@@ -14,7 +15,7 @@ function scheduleRow(item: ScheduleItem, network: "mainnet" | "testnet", status:
     status.textContent = result.ok ? "Deleted. It won't run again." : result.error.message;
     if (result.ok) onChanged();
   }, status);
-  return h("li", {}, h("span", { class: "v" }, "Scheduled"), h("span", { class: "what" }, h("span", {}, item.says), h("span", { class: "meta" }, item.nextDue ? `Next run ${when(item.nextDue)}.` : "")), remove);
+  return h("li", {}, h("span", { class: "v" }, "Scheduled"), h("span", { class: "what" }, h("span", {}, `${usdc(item.schedule.amountBaseUnits)}. ${runsWords(item.schedule, item.nextDue, new Date())}.`), h("span", { class: "meta" }, item.nextDue ? `Next run ${when(item.nextDue)} your time.` : "")), remove);
 }
 
 let openFor: string | null = null;
@@ -28,8 +29,9 @@ export function schedulesPanel(payeeId: string, items: readonly ScheduleItem[], 
   const weekday = h("select", { id: "schedule-weekday" }, ...WEEKDAYS.map((name, i) => h("option", { value: String(i + 1) }, name)));
   const day = h("select", { id: "schedule-day" }, ...Array.from({ length: LAST_DAY }, (_, i) => h("option", { value: String(i + 1) }, String(i + 1))));
   const month = h("select", { id: "schedule-month" }, ...MONTHS.map((name, i) => h("option", { value: String(i + 1) }, name)));
-  const weekdayField = h("label", { for: "schedule-weekday" }, "Day of the week (UTC)", weekday);
-  const dayField = h("label", { for: "schedule-day" }, "Day of the month (1 to 28, UTC)", day);
+  const runsAt = `00:00 UTC (${yourTime(nextUtcMidnight(new Date()))})`;
+  const weekdayField = h("label", { for: "schedule-weekday" }, "Day of the week (UTC)", h("span", { class: "hint" }, `Runs at ${runsAt} on that day.`), weekday);
+  const dayField = h("label", { for: "schedule-day" }, "Day of the month (1 to 28, UTC)", h("span", { class: "hint" }, `Runs at ${runsAt} on that day.`), day);
   const monthField = h("label", { for: "schedule-month" }, "Month", month);
   const showFields = () => {
     const weekly = every.value === "week" || every.value === "two_weeks";
@@ -55,7 +57,7 @@ export function schedulesPanel(payeeId: string, items: readonly ScheduleItem[], 
       onChanged();
     }
   }, status);
-  const list = rows.length ? h("ol", { class: "rows" }, ...rows) : h("p", { class: "empty" }, "No scheduled payments yet.");
+  const list = rows.length ? h("ol", { class: "rows" }, ...rows) : h("p", { class: "empty" }, "No scheduled payments yet. Schedule rent or any regular payment from a payee's page.");
   const start = h("button", { class: "btn", type: "button" }, "Schedule a payment");
   const hint = h("p", { class: "hint" }, "Each runs once per period on the day you pick. Creating, changing or deleting one needs your wallet's signature.");
   const panel = h("div", { class: "schedule-panel", id: `schedules-${payeeId}` }, list, hint, start, form);

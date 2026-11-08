@@ -106,7 +106,7 @@ async function renderPage(): Promise<void> {
     return show(signInPage((address) => {
       signInWhy = null;
       go("/app");
-      showMoment({ title: "Signed in", detail: "This wallet opens your agent. It signs approvals and never pays your bills.", address });
+      showMoment({ title: "Signed in", detail: "This wallet opens your agent. It signs approvals and deposits. It never pays bills.", address });
     }, signInWhy, new URLSearchParams(location.search).has("other")));
   }
   if (!root?.querySelector(".owner")) show(loading());

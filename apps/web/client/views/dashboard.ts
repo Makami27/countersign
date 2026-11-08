@@ -61,7 +61,7 @@ export function pasteCard(onChanged: () => void, onPay: PayFromMessage): HTMLEle
   const status = liveRegion();
   const answer = h("div", {});
   const button = h("button", { class: "btn", type: "submit" }, "Check this message");
-  const form = h("form", {}, h("label", { for: "paste-text" }, "Paste a message you received", h("span", { class: "hint" }, "It goes through the same checks as a message forwarded to the bot. Code checks addresses first; the model only reads free text."), text), status, answer, h("div", { class: "actions" }, button));
+  const form = h("form", {}, h("label", { for: "paste-text" }, "Paste a message you received", h("span", { class: "hint" }, "It goes through the same checks as a message forwarded to the bot. Code checks every address. The AI only reads the wording."), text), status, answer, h("div", { class: "actions" }, button));
   listen(form, "submit", async (event) => {
     event.preventDefault();
     button.disabled = true;

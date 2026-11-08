@@ -7,7 +7,7 @@ export type DayGroup<T> = { readonly key: string; readonly heading: string; read
 
 type Part = "weekday" | "day" | "month" | "year";
 
-function isoDay(at: Date, timeZone: string | undefined): string {
+export function isoDay(at: Date, timeZone: string | undefined): string {
   const parts = new Intl.DateTimeFormat("en-CA", { year: "numeric", month: "2-digit", day: "2-digit", ...(timeZone ? { timeZone } : {}) }).formatToParts(at);
   const part = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
   return `${part("year")}-${part("month")}-${part("day")}`;

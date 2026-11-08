@@ -18,7 +18,7 @@ export function agentFacts(overview: Overview, options: { readonly walletShownAb
     h("div", {}, h("dt", {}, "Network"), h("dd", {}, networkWords(overview.network))),
     wallet ? h("div", {}, h("dt", {}, "Balance"), h("dd", {}, balances)) : "",
     wallet && overview.network === "testnet" ? h("div", {}, h("dt", {}, "Fund it"), h("dd", {}, "Paste the agent wallet's address above into a faucet: ", h("a", { href: FAUCETS[0].href, target: "_blank", rel: "noreferrer" }, FAUCETS[0].label), " and ", h("a", { href: FAUCETS[1].href, target: "_blank", rel: "noreferrer" }, FAUCETS[1].label), ". Nothing is granted automatically.")) : "",
-    h("div", {}, h("dt", {}, "Payee memory"), h("dd", {}, memory)),
+    h("div", {}, h("dt", {}, "Walrus Memory"), h("dd", {}, memory)),
     h("div", {}, h("dt", {}, "Caps"), h("dd", {}, `${usdc(overview.caps.perPaymentBaseUnits)} per payment, ${usdc(overview.caps.perDayBaseUnits)} per day (${usdc(overview.caps.usedTodayBaseUnits)} used today)`)));
 }
 

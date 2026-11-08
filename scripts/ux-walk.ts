@@ -59,8 +59,23 @@ function note(problem: string): void {
   console.log(`PROBLEM ${problem}`);
 }
 
+const RAW_CODE = /\b[A-Z]{2,}(?:_[A-Z]+)+\b|\b(?:PAID|FAILED|SETTLED|REFUSED|UNKNOWN|STATED|VERIFIED|RESERVED|SENDING|SENT|CONFIRMED|NOT_FOUND|KNOWN)\b/;
+
 async function shot(page: Page, name: string, width: number, scheme: string): Promise<void> {
   await page.waitForTimeout(250);
+  const raw = await page.evaluate((pattern) => {
+    const skip = ".demo-letter, .message, .stamp, .moment-stamp, script, style, details:not([open])";
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    const found: string[] = [];
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) {
+      const text = node.textContent ?? "";
+      if (node.parentElement?.closest(skip) || !(node.parentElement?.offsetParent ?? node.parentElement?.closest("dialog[open]"))) continue;
+      const match = new RegExp(pattern).exec(text);
+      if (match) found.push(match[0]);
+    }
+    return found;
+  }, RAW_CODE.source);
+  if (raw.length) note(`raw code on screen ${name} ${width} ${scheme}: ${[...new Set(raw)].join(", ")}`);
   const sideways = await page.evaluate(() => {
     const dialog = document.querySelector("dialog[open]");
     const page = document.documentElement.scrollWidth > window.innerWidth;
@@ -252,6 +267,11 @@ for (const scheme of schemes) for (const width of widths) {
   await page.waitForSelector(".schedule-toggle");
   if (await page.locator(".schedule-panel").isVisible()) note("schedules stayed open after creating one");
   await shot(page, "schedule-created", width, scheme);
+  await page.click(".schedule-toggle");
+  const row = (await page.locator(".schedule-panel .rows li").first().textContent()) ?? "";
+  if (!/0.10 USDC. Runs on the 1st of every month at 00:00 UTC (dd:dd( the day (before|after))? your time)./.test(row)) note(`schedule row reads: ${row}`);
+  await shot(page, "schedule-row", width, scheme);
+  await page.click(".schedule-toggle");
 
   const fullAddress = await page.locator(".payto .addr").getAttribute("title");
   await page.click(".payto button:has-text('Copy address')");

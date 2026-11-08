@@ -1,5 +1,6 @@
 import { addressEl, copyButton, h, listen, liveRegion, scrawlEl, signatureFigure, statusPill, usdc, when } from "../dom.ts";
 import type { PayeeDetail } from "../types.ts";
+import { FROZEN_WORDS } from "./payees.ts";
 
 const REFUSAL_FRESH_MS = 7 * 24 * 3600 * 1000;
 
@@ -48,7 +49,7 @@ function paymentsList(detail: PayeeDetail): HTMLElement {
   const items = detail.payments.map((p) => h("li", {}, h("span", { class: "v" }, p.state === "SETTLED" ? "Paid" : p.state === "FAILED" ? "Not paid" : "Open"),
     h("span", { class: "what" }, h("span", {}, usdc(p.amountBaseUnits)), h("span", { class: "meta" }, `${when(p.at)}${p.digest ? `, transaction ${p.digest}` : ""}${p.state === "UNKNOWN" ? ". Outcome not known yet; it will not be sent again." : ""}`))));
   return h("section", { "aria-labelledby": "payments-title" }, h("h3", { id: "payments-title" }, "Payments"),
-    items.length ? h("ol", { class: "rows" }, ...items) : h("p", { class: "empty" }, "No payments yet."));
+    items.length ? h("ol", { class: "rows" }, ...items) : h("p", { class: "empty" }, "No payments yet. Pay a verified payee and it shows here."));
 }
 
 export type DetailActions = { readonly onPay: () => void; readonly onRequestChange: () => void; readonly onConfirm: (nonce: string) => void; readonly onCancel: (nonce: string, status: HTMLElement) => Promise<void> };
@@ -102,7 +103,7 @@ export function payeeDetailView(detail: PayeeDetail, actions: DetailActions): HT
   return h("section", { class: "detail", "aria-labelledby": "payee-title" },
     h("a", { class: "back", href: "/app", "data-link": true }, "All payees"),
     h("header", {}, h("h2", { id: "payee-title" }, detail.summary.name),
-      h("p", { class: "lede" }, verified ? "Payments go to the address below. Nothing anyone sends the agent can change that without proof." : "This payee can't be paid yet.")),
+      h("p", { class: "lede" }, verified ? "Payments go to the address below. Nothing anyone sends the agent can change that without proof." : detail.summary.status === "conflict" ? FROZEN_WORDS : "This payee can't be paid yet.")),
     ...detail.pendingChanges.filter((c) => inCooldown(c, now)).map((c) => cooldownCard(c, detail.summary.name, detail.payTo?.address ?? null, actions.onCancel)),
     detail.payTo ? h("article", { class: `sigcard payto ${verified ? "verified" : "refused"}`, "aria-label": `Signature card for ${detail.summary.name}` },
       h("div", { class: "sigcard-head" }, h("span", { class: "label" }, "Pays to"), statusPill(verified ? "verified" : "conflict")),

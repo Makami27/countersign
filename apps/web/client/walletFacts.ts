@@ -7,7 +7,7 @@ export const LOW_SUI_BASE_UNITS = 50_000_000n;
 
 export const AGENT_WALLET = "Agent wallet: pays your bills";
 export const AGENT_WALLET_FULL = "Agent wallet: pays your bills (fund this one)";
-export const YOUR_WALLET = "Your wallet: signs approvals (never pays)";
+export const YOUR_WALLET = "Your wallet: signs approvals and deposits. It never pays bills.";
 export const DEPOSIT_ACTION = "Deposit from your wallet";
 export const GOOGLE_ACTION = "Continue with Google";
 export const OTHER_WALLET_ACTION = "Use another Sui wallet";

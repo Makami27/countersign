@@ -95,7 +95,7 @@ test("V27 the month shows the two-owner step only when Act 5 holds a real SEEN_B
 
 test("U05 the landing FAQ names the two wallets the same way as the app, and no copy says owner wallet", () => {
   const page = readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-  for (const name of ["Agent wallet: pays your bills (fund this one)", "Your wallet: signs approvals (never pays)"]) assert.ok(page.includes(name), name);
+  for (const name of ["Agent wallet: pays your bills (fund this one)", "Your wallet: signs approvals and deposits. It never pays bills."]) assert.ok(page.includes(name), name);
   assert.equal(/owner wallet/i.test(page), false);
 });
 

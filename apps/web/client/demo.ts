@@ -77,7 +77,7 @@ function refusalCompare(view: View, entry: Entry | undefined): HTMLElement | nul
 }
 
 function activity(view: View): HTMLElement {
-  const rowOf = (e: Entry) => h("li", { class: e.verdict === "REFUSED" ? "refused-row" : "" }, h("span", { class: "v" }, VERDICT_WORDS[e.verdict] ?? e.verdict),
+  const rowOf = (e: Entry) => h("li", { class: e.verdict === "REFUSED" ? "refused-row" : "" }, h("span", { class: "v" }, VERDICT_WORDS[e.verdict] ?? "Recorded"),
     h("span", { class: "what" }, h("span", {}, e.label), h("span", { class: "meta" }, [reasonText(e.reason), e.note ?? "", e.receipt ? `Sandbox receipt ${e.receipt} (kept only in this sandbox).` : "", clockTime(e.at)].filter(Boolean).join(" "))));
   return h("section", { class: "card demo-panel", "data-panel": "activity", "aria-labelledby": "activity-title" }, h("h2", { id: "activity-title" }, "Activity"),
     view.activity.length ? dayGroupsEl(view.activity, (e) => e.at, "h3", rowOf) : h("p", { class: "empty" }, "Nothing yet. Send a letter."));
@@ -100,7 +100,7 @@ void draw();
     status.textContent = "";
     const shown = async (reply: Reply) => {
       const paid = reply.outcome.verdict === "PAY_RESERVED";
-      result.replaceChildren(h("div", { class: `outcome ${paid ? "verified" : "refused"}` }, h("p", { class: "money" }, VERDICT_WORDS[reply.outcome.verdict] ?? reply.outcome.verdict), h("p", {}, paid ? "Sandbox: approved, nothing was sent." : reasonText(reply.outcome.reason ?? null))));
+      result.replaceChildren(h("div", { class: `outcome ${paid ? "verified" : "refused"}` }, h("p", { class: "money" }, VERDICT_WORDS[reply.outcome.verdict] ?? "Recorded"), h("p", {}, paid ? "Sandbox: approved, nothing was sent." : reasonText(reply.outcome.reason ?? null))));
       await draw(reply.view);
     };
     const answer = r.data.answer;
@@ -111,7 +111,7 @@ void draw();
     const verdict = r.data.outcome.verdict;
     const tone = verdict === "REFUSED" ? "refused" : verdict === "CHANGE_STARTED" || verdict === "NONE" ? "stated" : "verified";
     const money = verdict === "REFUSED" ? "Nothing was sent and nothing was changed." : verdict === "PAY_RESERVED" ? "Sandbox: approved, nothing was sent." : "";
-    const headline = r.data.outcome.reason === "LOOKALIKE_ADDRESS" ? "Look-alike refused" : VERDICT_WORDS[verdict] ?? verdict;
+    const headline = r.data.outcome.reason === "LOOKALIKE_ADDRESS" ? "Look-alike refused" : VERDICT_WORDS[verdict] ?? "Recorded";
     result.replaceChildren(h("div", { class: `outcome ${tone}` }, h("p", { class: "money" }, headline), money ? h("p", {}, money) : "", h("p", {}, reasonText(r.data.outcome.reason ?? null)), r.data.note ? h("p", { class: "note" }, r.data.note) : ""),
       verdict === "REFUSED" ? (refusalCompare(r.data.view, r.data.view.activity[0]) ?? "") : "");
     await draw(r.data.view);

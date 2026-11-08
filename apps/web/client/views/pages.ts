@@ -22,7 +22,7 @@ function moneySentence(item: ActivityItem): string {
 
 export function activityPage(items: readonly ActivityItem[]): HTMLElement {
   const rowOf = (item: ActivityItem) => h("li", { class: item.kind === "receipt" && (item.verdict === "REFUSED" || item.verdict === "CHANGE_REJECTED") ? "refused-row" : "" },
-    h("span", { class: "v" }, item.kind === "receipt" ? (VERDICT_WORDS[item.verdict] ?? item.verdict) : "Open"),
+    h("span", { class: "v" }, item.kind === "receipt" ? (VERDICT_WORDS[item.verdict] ?? "Recorded") : "Open"),
     h("span", { class: "what" }, h("span", {}, `${moneySentence(item)} ${item.payeeId ? `Payee ${item.payeeId}.` : ""}`),
       item.address ? addressEl(item.address, { short: true }) : null,
       item.kind === "receipt"
