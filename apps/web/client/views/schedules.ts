@@ -58,7 +58,7 @@ export function schedulesPanel(payeeId: string, items: readonly ScheduleItem[], 
       onChanged();
     }
   }, status);
-  const list = rows.length ? h("ol", { class: "rows" }, ...rows) : h("p", { class: "empty" }, "No scheduled payments yet. Schedule rent or any regular payment from a payee's page.");
+  const list = rows.length ? h("ol", { class: "rows" }, ...rows) : h("p", { class: "empty" }, "No scheduled payments yet. Schedule one below.");
   const start = h("button", { class: "btn", type: "button" }, "Schedule a payment");
   const hint = h("p", { class: "hint" }, "Each runs once per period on the day you pick. Creating, changing or deleting one needs your wallet's signature.");
   const panel = h("div", { class: "schedule-panel", id: `schedules-${payeeId}` }, list, hint, start, form);
