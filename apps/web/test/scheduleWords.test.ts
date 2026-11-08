@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { nextUtcMidnight, ordinal, runsWords } from "../client/scheduleWords.ts";
+import { dayAndTime } from "../client/dayGroups.ts";
 
 const MONTHLY = { every: "month", day: 1, month: null } as const;
 const NOW = new Date("2026-11-08T10:00:00Z");
@@ -29,4 +30,9 @@ test("S02 every period reads in plain words", () => {
 
 test("S02 days of the month read as 1st, 2nd, 3rd, 11th, 21st", () => {
   assert.deepEqual([1, 2, 3, 4, 11, 12, 13, 21, 22, 23, 28].map(ordinal), ["1st", "2nd", "3rd", "4th", "11th", "12th", "13th", "21st", "22nd", "23rd", "28th"]);
+});
+
+test("S03 the next run reads as a day and a 24-hour time in the viewer's time zone", () => {
+  assert.equal(dayAndTime("2026-12-01T00:00:00.000Z", "Africa/Lagos"), "Tue 1 Dec, 01:00");
+  assert.equal(dayAndTime("2026-12-01T00:00:00.000Z", "America/New_York"), "Mon 30 Nov, 19:00");
 });

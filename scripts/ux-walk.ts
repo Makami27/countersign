@@ -269,7 +269,8 @@ for (const scheme of schemes) for (const width of widths) {
   await shot(page, "schedule-created", width, scheme);
   await page.click(".schedule-toggle");
   const row = (await page.locator(".schedule-panel .rows li").first().textContent()) ?? "";
-  if (!/0.10 USDC. Runs on the 1st of every month at 00:00 UTC (dd:dd( the day (before|after))? your time)./.test(row)) note(`schedule row reads: ${row}`);
+  if (!/0\.10 USDC\. Runs on the 1st of every month at 00:00 UTC \(\d\d:\d\d( the day (before|after))? your time\)\./.test(row)) note(`schedule row reads: ${row}`);
+  if (!/Next run [A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2}, \d\d:\d\d your time\./.test(row)) note(`next run isn't a 24-hour local time: ${row}`);
   await shot(page, "schedule-row", width, scheme);
   await page.click(".schedule-toggle");
 

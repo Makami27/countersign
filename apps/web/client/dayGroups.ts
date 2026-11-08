@@ -50,6 +50,12 @@ export function groupByDay<T>(items: readonly T[], atOf: (item: T) => string, no
     }));
 }
 
+export function dayAndTime(iso: string, timeZone?: string): string {
+  const at = new Date(iso);
+  if (Number.isNaN(at.getTime())) return "—";
+  return `${dateWords(at, false, timeZone)}, ${clockTime(iso, timeZone)}`;
+}
+
 export function clockTime(iso: string, timeZone?: string): string {
   const at = new Date(iso);
   if (Number.isNaN(at.getTime())) return "—";

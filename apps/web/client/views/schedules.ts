@@ -1,7 +1,8 @@
 import { WEEKDAYS, usdcToBaseUnits } from "@countersign/core";
 import { withApprovals } from "../approvals.ts";
-import { h, liveRegion, listen, usdc, when } from "../dom.ts";
+import { h, liveRegion, listen, usdc } from "../dom.ts";
 import { nextUtcMidnight, runsWords, yourTime } from "../scheduleWords.ts";
+import { dayAndTime } from "../dayGroups.ts";
 import type { ScheduleItem } from "../types.ts";
 import { showMoment } from "../moment.ts";
 
@@ -15,7 +16,7 @@ function scheduleRow(item: ScheduleItem, network: "mainnet" | "testnet", status:
     status.textContent = result.ok ? "Deleted. It won't run again." : result.error.message;
     if (result.ok) onChanged();
   }, status);
-  return h("li", {}, h("span", { class: "v" }, "Scheduled"), h("span", { class: "what" }, h("span", {}, `${usdc(item.schedule.amountBaseUnits)}. ${runsWords(item.schedule, item.nextDue, new Date())}.`), h("span", { class: "meta" }, item.nextDue ? `Next run ${when(item.nextDue)} your time.` : "")), remove);
+  return h("li", {}, h("span", { class: "v" }, "Scheduled"), h("span", { class: "what" }, h("span", {}, `${usdc(item.schedule.amountBaseUnits)}. ${runsWords(item.schedule, item.nextDue, new Date())}.`), h("span", { class: "meta" }, item.nextDue ? `Next run ${dayAndTime(item.nextDue)} your time.` : "")), remove);
 }
 
 let openFor: string | null = null;
