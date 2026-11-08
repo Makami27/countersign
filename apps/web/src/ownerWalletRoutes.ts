@@ -29,7 +29,7 @@ export async function ownerWalletRoute(ctx: OwnerContext, res: ServerResponse, p
     const granted = await requireApprovals(ctx, res, input, [proof]);
     if (!granted) return;
     if ((await ctx.wallets.record(address, "first_registration", proofsOf(granted), verificationsOf(granted))) !== "WRITTEN") return problem(res, 503, WRITE_FAILED);
-    await ctx.notify(`Owner wallet registered: ${short(address)}. From now on, adding payees, confirming address changes yourself and loosening limits need this wallet's signature.`);
+    await ctx.notify(`Owner wallet registered: ${short(address)}. From now on, adding payees, confirming address changes yourself and raising limits need this wallet's signature.`);
     return send(res, 200, { ownerWallet: ctx.wallets.state() });
   }
   if (input["waitInstead"] === true) {

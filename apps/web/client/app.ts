@@ -125,8 +125,9 @@ async function renderPage(): Promise<void> {
   }
   if (path === "/app/activity") {
     setCurrent("activity");
-    const items = await api<{ items: ActivityItem[] }>("GET", "/api/app/activity");
-    return show(items.ok ? activityPage(items.data.items) : failure(items.error.message));
+    const [items, payees] = await Promise.all([api<{ items: ActivityItem[] }>("GET", "/api/app/activity"), api<{ payees: PayeeSummary[] }>("GET", "/api/app/payees")]);
+    const names = new Map(payees.ok ? payees.data.payees.map((p) => [p.id, p.name] as const) : []);
+    return show(items.ok ? activityPage(items.data.items, names, overview.data.network) : failure(items.error.message));
   }
   if (nav && overview.data.isAdmin && !nav.querySelector("[data-section=admin]")) nav.append(h("a", { href: "/app/admin", "data-link": true, "data-section": "admin" }, "Admin"));
   if (path === "/app/admin") {

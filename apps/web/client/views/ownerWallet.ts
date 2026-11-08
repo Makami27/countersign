@@ -4,10 +4,18 @@ import { addressEl, h, listen, liveRegion, when } from "../dom.ts";
 import { ADDRESS_PROBLEM, attachAddressCleaning, cleanAddress, isSuiAddress } from "../addressInput.ts";
 import type { Overview } from "../types.ts";
 import { YOUR_WALLET } from "../walletFacts.ts";
+import { dayAndTime } from "../dayGroups.ts";
+import { carryNotice, showCarried } from "../carriedNotice.ts";
+
+function replacedWords(state: Overview["ownerWallet"]): string {
+  const waiting = state.known ? state.waiting : null;
+  return waiting ? `Requested. Your wallet changes on ${dayAndTime(waiting.readyAt)} unless you cancel.` : "Replaced. Approvals now need the new wallet.";
+}
 
 export function ownerWalletPanel(overview: Overview, onChanged: () => void): HTMLElement {
   const state = overview.ownerWallet;
   const status = liveRegion();
+  showCarried("owner-wallet", status);
   if (!state.known) return h("section", { class: "card stated" }, h("h2", {}, YOUR_WALLET), h("p", {}, `— (${state.why}) Sensitive changes are blocked until it can be read.`));
   if (!state.current) {
     const buttons = signingWallets().map((wallet) => {
@@ -19,8 +27,9 @@ export function ownerWalletPanel(overview: Overview, onChanged: () => void): HTM
         connect.disabled = false;
         if (!address.ok) return void (status.textContent = address.message);
         const result = await withApprovals("POST", "/api/app/owner/wallet", { address: address.value.account.address }, overview.network, status);
-        status.textContent = result.ok ? "Registered. Adding payees, confirming changes yourself and loosening limits now need this wallet." : result.error.message;
-        if (result.ok) onChanged();
+        if (!result.ok) return void (status.textContent = result.error.message);
+        carryNotice("owner-wallet", "Registered. Adding payees, confirming changes yourself and raising limits now need this wallet.");
+        onChanged();
       }, status);
       return connect;
     });
@@ -32,20 +41,22 @@ export function ownerWalletPanel(overview: Overview, onChanged: () => void): HTM
   attachAddressCleaning(next);
   const noOld = h("input", { id: "no-old", type: "checkbox" });
   const form = h("form", {}, h("label", { for: "next-owner" }, "Replace with this wallet", next),
-    h("label", { for: "no-old", class: "check" }, noOld, " I can't sign with the current wallet: wait 72 hours instead (you get Telegram notices)"), status,
+    h("label", { for: "no-old", class: "check" }, noOld, " I can't sign with the current wallet: wait 72 hours instead (with Telegram notices if connected)"), status,
     h("div", { class: "actions" }, h("button", { class: "btn", type: "submit" }, "Replace your wallet")));
   listen(form, "submit", async (event) => {
     event.preventDefault();
     if (!isSuiAddress(next.value)) return void (status.textContent = ADDRESS_PROBLEM);
-    const result = await withApprovals("POST", "/api/app/owner/wallet", { address: cleanAddress(next.value), waitInstead: noOld.checked }, overview.network, status);
-    status.textContent = result.ok ? "Done." : result.error.message;
-    if (result.ok) onChanged();
+    const result = await withApprovals<{ ownerWallet: Overview["ownerWallet"] }>("POST", "/api/app/owner/wallet", { address: cleanAddress(next.value), waitInstead: noOld.checked }, overview.network, status);
+    if (!result.ok) return void (status.textContent = result.error.message);
+    carryNotice("owner-wallet", replacedWords(result.data.ownerWallet));
+    onChanged();
   }, status);
   const cancel = h("button", { class: "btn", type: "button" }, "Cancel this change");
   listen(cancel, "click", async () => {
     const result = await withApprovals("POST", "/api/app/owner/wallet/cancel", {}, overview.network, status);
-    status.textContent = result.ok ? "Cancelled." : result.error.message;
-    if (result.ok) onChanged();
+    if (!result.ok) return void (status.textContent = result.error.message);
+    carryNotice("owner-wallet", "Cancelled. Your wallet stays the same.");
+    onChanged();
   }, status);
   return h("section", { class: "card" }, h("h2", {}, YOUR_WALLET), addressEl(state.current.address), h("p", { class: "note" }, `Registered ${when(state.current.since)}.`),
     waiting ? h("div", { class: "card stated" }, h("p", {}, `A change to this wallet is waiting until ${when(waiting.readyAt)}:`), addressEl(waiting.address), h("div", { class: "actions" }, cancel)) : "",

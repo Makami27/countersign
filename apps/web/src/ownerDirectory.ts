@@ -122,7 +122,7 @@ export class OwnerDirectory {
   async #register(ctx: OwnerContext, address: SuiAddress, message: string, signature: string, check: Extract<SignatureCheck, { result: "VALID" }>, created: boolean): Promise<SignInOwner> {
     const verification = { role: "control" as const, signer: address, scheme: check.scheme, maxEpoch: check.maxEpoch, checkedAtEpoch: check.checkedAtEpoch };
     if ((await ctx.wallets.record(address, "first_registration", [{ signer: address, message, signature }], [verification])) !== "WRITTEN") return { ok: false, status: 503, message: "Walrus Memory didn't confirm your wallet record, so you're not signed in. Try again in a few minutes." };
-    await ctx.notify(`Owner wallet registered by signing in: ${short(address)}. From now on, signing in, adding payees, confirming address changes yourself and loosening limits need this wallet. If this wasn't you, act now.`);
+    await ctx.notify(`Owner wallet registered by signing in: ${short(address)}. From now on, signing in, adding payees, confirming address changes yourself and raising limits need this wallet. If this wasn't you, act now.`);
     return { ok: true, ownerId: ctx.ownerId, created };
   }
 

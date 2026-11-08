@@ -148,6 +148,11 @@ async function activityChecks(width: number, scheme: "light" | "dark"): Promise<
     const first = (await page.locator(".day-group .meta").first().textContent()) ?? "";
     if (!first.startsWith(want.firstTime)) note(`first time ${timezoneId}: ${first}`);
     if (await page.locator(".day-group .meta a[href^='/r/rcpt_']").count() !== ACTIVITY_ITEMS.length) note("an entry lost its receipt link");
+    const firstRow = (await page.locator(".day-group li").first().textContent()) ?? "";
+    const landlord = ((await (await page.request.get(`${s.base}/api/app/payees`)).json()) as { payees: { id: string; name: string }[] }).payees.find((p) => p.id === "landlord")?.name ?? "";
+    if (!landlord || !firstRow.includes(`Payee: ${landlord}.`)) note(`activity row doesn't name the payee: ${firstRow}`);
+    if (/rcpt_|DIGEST1/.test(firstRow) || !/, Receipt, Transaction, testnet$/.test(firstRow.trim())) note(`activity row shows raw ids or lost its links: ${firstRow}`);
+    if (await page.locator(".day-group .meta a[href='https://suiscan.xyz/testnet/tx/DIGEST1']").count() !== ACTIVITY_ITEMS.length) note("an entry lost its Suiscan link");
     if (timezoneId === "Africa/Lagos") {
       await shot(page, "activity", width, scheme);
       await page.evaluate(() => document.querySelectorAll(".day-group li")[8]?.scrollIntoView({ block: "center" }));
@@ -298,6 +303,8 @@ for (const scheme of schemes) for (const width of widths) {
   await toggle.waitFor();
   if ((await toggle.textContent()) !== "Sounds: off") note("mute wasn't remembered");
   await toggle.click();
+  await page.click("button:has-text('Save settings')");
+  if (!(await page.getByText("Saved. New limits apply from the next payment.").waitFor({ timeout: 3000 }).then(() => true, () => false))) note(`settings saved without saying so ${width} ${scheme}`);
 
   await page.goto(`${s.base}/app/payees/designer`);
   await page.waitForSelector(".pay-actions");
