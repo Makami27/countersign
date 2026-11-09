@@ -1,6 +1,5 @@
 import { addressEl, h, scrawlEl, statusPill, usdc, when } from "../dom.ts";
-import type { Overview, PayeeSummary } from "../types.ts";
-import { firstRun } from "./firstRun.ts";
+import type { PayeeSummary } from "../types.ts";
 
 function metaLine(payee: PayeeSummary): string {
   switch (payee.status) {
@@ -15,22 +14,29 @@ function metaLine(payee: PayeeSummary): string {
 
 export const FROZEN_WORDS = "Frozen: two verified records disagree, so nothing will be paid. Check this payee's address history, then ask the payee to sign again.";
 
-const PAYABLE: ReadonlySet<PayeeSummary["status"]> = new Set(["verified", "attempt_refused", "change_pending"]);
+export const PAYABLE: ReadonlySet<PayeeSummary["status"]> = new Set(["verified", "attempt_refused", "change_pending"]);
 
-export function payeeList(payees: readonly PayeeSummary[], overview: Overview | null, selected: string | null, onAdd: () => void, onChanged: () => void, onPay: (payee: PayeeSummary) => void): HTMLElement {
-  const section = h("section", { class: "list", "aria-labelledby": "payees-title" },
-    h("h1", { id: "payees-title" }, "Payees"),
-    h("p", { class: "sub" }, "Your agent can only pay addresses marked verified."));
-  if (payees.length === 0 && overview) section.append(firstRun(overview, onChanged));
-  for (const payee of payees) {
-    section.append(h("article", { class: `sigcard cheque ${payee.status === "verified" ? "verified" : payee.status === "attempt_refused" || payee.status === "conflict" ? "refused" : "stated"}${payee.id === selected ? " current" : ""}` },
-      h("a", { class: "cheque-link", href: `/app/payees/${encodeURIComponent(payee.id)}`, "data-link": true, "aria-current": payee.id === selected ? "page" : undefined },
-        h("span", { class: "sigcard-head" }, h("span", { class: "sigcard-name" }, payee.name), statusPill(payee.status)),
-        payee.address && payee.status !== "waiting_wallet" && payee.status !== "not_payable" ? h("span", { class: "sigcard-sig small" }, scrawlEl(payee.address)) : null,
-        payee.address ? addressEl(payee.address, { short: true }) : null,
-        h("span", { class: "meta" }, metaLine(payee))),
-      PAYABLE.has(payee.status) ? h("button", { class: "btn primary cheque-pay", type: "button", onclick: () => onPay(payee) }, `Pay ${payee.name}`) : null));
-  }
-  section.append(h("div", { class: "actions" }, h("button", { class: payees.length === 0 ? "btn primary" : "btn", type: "button", onclick: onAdd }, "Add a payee")));
-  return section;
+function tone(status: PayeeSummary["status"]): string {
+  if (status === "verified") return "verified";
+  return status === "attempt_refused" || status === "conflict" ? "refused" : "stated";
+}
+
+function payeeCard(payee: PayeeSummary, selected: string | null, onPay: (payee: PayeeSummary) => void): HTMLElement {
+  const signed = payee.address && payee.status !== "waiting_wallet" && payee.status !== "not_payable";
+  return h("article", { class: `sigcard cheque compact ${tone(payee.status)}${payee.id === selected ? " current" : ""}` },
+    h("a", { class: "cheque-link", href: `/app/payees/${encodeURIComponent(payee.id)}`, "data-link": true, "data-key": `payee-${payee.id}`, "aria-current": payee.id === selected ? "page" : undefined },
+      h("span", { class: "sigcard-head" }, h("span", { class: "sigcard-name" }, payee.name), statusPill(payee.status)),
+      signed && payee.address ? h("span", { class: "sigcard-sig small" }, scrawlEl(payee.address)) : null,
+      payee.address ? addressEl(payee.address, { short: true }) : null,
+      h("span", { class: "meta" }, metaLine(payee))),
+    PAYABLE.has(payee.status) ? h("button", { class: "btn primary cheque-pay", type: "button", onclick: () => onPay(payee) }, `Pay ${payee.name}`) : null);
+}
+
+export function payeeList(payees: readonly PayeeSummary[], selected: string | null, onAdd: () => void, onPay: (payee: PayeeSummary) => void): HTMLElement {
+  return h("section", { class: "side-payees", "aria-labelledby": "payees-title" },
+    h("div", { class: "side-head" },
+      h("h2", { id: "payees-title" }, "Payees"),
+      h("button", { class: payees.length === 0 ? "btn primary small-btn" : "btn small-btn", type: "button", "aria-label": "Add a payee", "data-key": "add-payee", onclick: onAdd }, "+ Add")),
+    h("p", { class: "note" }, payees.length === 0 ? "No payees yet. Your agent can only pay addresses marked verified." : "Your agent can only pay addresses marked verified."),
+    ...payees.map((payee) => payeeCard(payee, selected, onPay)));
 }

@@ -1,15 +1,20 @@
 import { formatUsdc } from "@countersign/core";
 import { addressEl, copyButton, h, usdc } from "../dom.ts";
 import type { Overview } from "../types.ts";
-import { AGENT_WALLET, DEPOSIT_ACTION, YOUR_WALLET, formatSui, lowBalances } from "../walletFacts.ts";
+import { AGENT_WALLET_HEADING, AGENT_WALLET_LINE, DEPOSIT_SHORT, formatSui, lowBalances } from "../walletFacts.ts";
 
-function figures(overview: Overview): HTMLElement {
+function usdcFigure(overview: Overview): HTMLElement {
   const balances = overview.balances;
-  if (balances.status !== "KNOWN") return h("div", { class: "wallet-figures" }, h("p", { class: "wallet-figure" }, h("span", { class: "amount" }, "—"), h("span", { class: "unit" }, "USDC")), h("p", { class: "money" }, `Balance not known right now: ${balances.detail}. Nothing is paid while the chain doesn't answer.`));
   const test = overview.network === "testnet" ? "test " : "";
-  return h("div", { class: "wallet-figures" },
-    h("p", { class: "wallet-figure" }, h("span", { class: "amount" }, formatUsdc(BigInt(balances.usdcBaseUnits))), h("span", { class: "unit" }, `${test}USDC`)),
-    h("p", { class: "wallet-figure small" }, h("span", { class: "amount" }, formatSui(balances.suiBaseUnits)), h("span", { class: "unit" }, `${test}SUI for network fees`)));
+  const amount = balances.status === "KNOWN" ? formatUsdc(BigInt(balances.usdcBaseUnits)) : "—";
+  return h("p", { class: "wallet-figure" }, h("span", { class: "amount" }, amount), h("span", { class: "unit" }, `${test}USDC`));
+}
+
+function suiFigure(overview: Overview): HTMLElement | null {
+  const balances = overview.balances;
+  if (balances.status !== "KNOWN") return h("p", { class: "money wallet-unknown" }, `Balance not known right now: ${balances.detail}. Nothing is paid while the chain doesn't answer.`);
+  const test = overview.network === "testnet" ? "test " : "";
+  return h("p", { class: "wallet-figure small wallet-extra" }, h("span", { class: "amount" }, formatSui(balances.suiBaseUnits)), h("span", { class: "unit" }, `${test}SUI for network fees`));
 }
 
 function warnings(overview: Overview): HTMLElement | null {
@@ -22,21 +27,17 @@ function warnings(overview: Overview): HTMLElement | null {
     : `Low on SUI: below ${formatSui(item.neededBaseUnits)} SUI the agent wallet may not be able to pay network fees.`)));
 }
 
-function yourWallet(overview: Overview): HTMLElement {
-  const state = overview.ownerWallet;
-  return h("p", { class: "wallet-yours note" }, YOUR_WALLET, state.known && state.current ? " " : "", state.known && state.current ? addressEl(state.current.address, { short: true }) : "");
-}
-
-export function agentWalletPanel(overview: Overview, onDeposit: () => void): HTMLElement {
-  return h("section", { class: "wallet-panel", "aria-labelledby": "wallet-title" },
-    h("div", { class: "wallet-main" },
-      h("h2", { id: "wallet-title" }, AGENT_WALLET, h("span", { class: "fund" }, " (fund this one)")),
-      figures(overview)),
-    h("div", { class: "wallet-side" },
-      h("div", { class: "wallet-address" }, h("span", { class: "label" }, "Its address on Sui"), addressEl(overview.agentAddress)),
-      h("div", { class: "actions" },
-        h("button", { class: "btn primary", type: "button", onclick: onDeposit }, DEPOSIT_ACTION),
-        copyButton(overview.agentAddress, "Copy address"))),
-    warnings(overview),
-    yourWallet(overview));
+export function agentWalletBlock(overview: Overview, onDeposit: () => void): HTMLElement {
+  const copy = copyButton(overview.agentAddress, "Copy address");
+  copy.classList.add("wallet-extra");
+  return h("section", { class: "wallet-block", "aria-labelledby": "wallet-title" },
+    h("h2", { id: "wallet-title" }, AGENT_WALLET_HEADING),
+    usdcFigure(overview),
+    h("p", { class: "note wallet-extra wallet-line" }, AGENT_WALLET_LINE),
+    suiFigure(overview),
+    h("p", { class: "wallet-extra wallet-address" }, h("span", { class: "label" }, "Its address "), addressEl(overview.agentAddress, { short: true })),
+    h("div", { class: "actions wallet-actions" },
+      h("button", { class: "btn primary", type: "button", "data-key": "deposit", onclick: onDeposit }, DEPOSIT_SHORT),
+      copy),
+    warnings(overview));
 }

@@ -157,12 +157,36 @@ async function activityChecks(width: number, scheme: "light" | "dark"): Promise<
       await shot(page, "activity", width, scheme);
       await page.evaluate(() => document.querySelectorAll(".day-group li")[8]?.scrollIntoView({ block: "center" }));
       await page.waitForTimeout(100);
-      const stuck = await page.evaluate(() => [...document.querySelectorAll<HTMLElement>(".day-heading")].filter((el) => Math.abs(el.getBoundingClientRect().top) < 1).map((el) => el.textContent));
+      const stuck = await page.evaluate(() => {
+        const top = Math.max(0, document.querySelector("#main-col")?.getBoundingClientRect().top ?? 0);
+        return [...document.querySelectorAll<HTMLElement>(".day-heading")].filter((el) => Math.abs(el.getBoundingClientRect().top - top) < 1).map((el) => el.textContent);
+      });
       if (stuck.length !== 1) note(`sticky heading ${width}: ${stuck.join(", ") || "none at the top"}`);
       await shot(page, "activity-scrolled", width, scheme);
     }
     await ctx.close();
   }
+}
+
+async function shellChecks(page: Page, width: number, scheme: string): Promise<void> {
+  const layout = await page.evaluate(() => {
+    const side = document.querySelector<HTMLElement>(".side");
+    const main = document.querySelector<HTMLElement>("#main-col");
+    const nav = document.querySelector<HTMLElement>("#nav");
+    const scrolls = (el: HTMLElement | null) => (el ? getComputedStyle(el).overflowY === "auto" : false);
+    return { side: scrolls(side), main: scrolls(main), page: document.documentElement.scrollHeight > window.innerHeight + 1, navFixed: nav ? getComputedStyle(nav).position === "fixed" : false, band: Boolean(document.querySelector(".wallet-panel")) };
+  });
+  if (layout.band) note("the full-width wallet band is back");
+  if (width >= 960 && !(layout.side && layout.main && !layout.page)) note(`sidebar and main don't scroll on their own at ${width} ${scheme}`);
+  if (width < 960 && !layout.navFixed) note(`no bottom tab bar at ${width} ${scheme}`);
+  const order = await page.evaluate(() => {
+    const focusables = [...document.querySelectorAll<HTMLElement>("a[href], button, input, select, textarea, summary")].filter((el) => el.offsetParent !== null || el.classList.contains("skip"));
+    const firstMain = focusables.findIndex((el) => el.closest("#main-col"));
+    const lastSide = focusables.map((el) => Boolean(el.closest(".side"))).lastIndexOf(true);
+    return { firstMain, lastSide, second: focusables[1]?.closest(".side-top") ? "wordmark" : (focusables[1]?.textContent ?? "").trim().slice(0, 30) };
+  });
+  if (order.second !== "wordmark") note(`focus after the skip link isn't the wordmark at ${width}: ${order.second}`);
+  if (order.lastSide > order.firstMain && order.firstMain >= 0) note(`main comes before the sidebar in focus order at ${width}`);
 }
 
 const browser = await chromium.launch();
@@ -213,11 +237,12 @@ for (const scheme of schemes) for (const width of widths) {
   await lonely.context().close();
 
   await page.goto(`${s.base}/app`);
-  await page.waitForSelector(".wallet-panel");
+  await page.waitForSelector(".wallet-block");
   await page.waitForTimeout(500);
   await shot(page, "app", width, scheme);
+  await shellChecks(page, width, scheme);
 
-  await page.click("button:has-text('Deposit from your wallet')");
+  await page.click(".wallet-block button:has-text('Deposit')");
   await shot(page, "deposit-amounts", width, scheme);
   await page.fill("#deposit-usdc", "5");
   await page.fill("#deposit-sui", "0.25");
@@ -236,7 +261,7 @@ for (const scheme of schemes) for (const width of widths) {
   await shot(page, "deposit-done", width, scheme);
   await closeSheet(page);
 
-  await page.click(".cheque-pay >> nth=0");
+  await page.locator(".cheque-pay:visible, .pay-actions .btn.primary:visible").first().click();
   await shot(page, "pay-amount", width, scheme);
   await page.fill("#amount", "99");
   await page.click("dialog button[type=submit]");
@@ -293,7 +318,7 @@ for (const scheme of schemes) for (const width of widths) {
   });
   await page.waitForTimeout(100);
   if ((await page.evaluate(() => navigator.clipboard.readText())) !== fullAddress) note(`selecting and copying pasted something else ${width} ${scheme}`);
-  if (await page.locator(".bar [data-sound]").count()) note("the header still has a sound toggle");
+  if (await page.locator(".side-top [data-sound]").count()) note("the header still has a sound toggle");
   await page.goto(`${s.base}/app/settings`);
   const toggle = page.locator("[data-sound]");
   await toggle.waitFor();
@@ -303,7 +328,8 @@ for (const scheme of schemes) for (const width of widths) {
   await toggle.waitFor();
   if ((await toggle.textContent()) !== "Sounds: off") note("mute wasn't remembered");
   await toggle.click();
-  await page.click("button:has-text('Save settings')");
+  await shot(page, "settings", width, scheme);
+  await page.click("button:has-text('Save limits')");
   if (!(await page.getByText("Saved. New limits apply from the next payment.").waitFor({ timeout: 3000 }).then(() => true, () => false))) note(`settings saved without saying so ${width} ${scheme}`);
 
   await page.goto(`${s.base}/app/payees/designer`);
@@ -327,8 +353,7 @@ for (const scheme of schemes) for (const width of widths) {
   await shot(page, "app-waiting", width, scheme);
 
   await page.goto(`${s.base}/app`);
-  await page.waitForSelector("button:has-text('Add a payee')");
-  await page.click("button:has-text('Add a payee')");
+  await page.getByRole("button", { name: "Add a payee" }).click();
   await shot(page, "add-payee", width, scheme);
   await page.fill("#payee-name", `Studio ${width}${scheme}`);
   await page.fill("#payee-address", wallet().address);

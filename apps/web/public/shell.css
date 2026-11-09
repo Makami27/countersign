@@ -1,0 +1,117 @@
+.shell { --tabbar: 3.5rem; }
+.shell .side-top { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-1) var(--space-3); padding: var(--space-2) var(--gutter); border-bottom: 1px solid var(--line); background: var(--paper); }
+.shell .side-top .netlabel { order: 3; flex-basis: 100%; justify-content: flex-start; width: max-content; max-width: 100%; flex: none; }
+.shell .menu-button { margin-left: auto; appearance: none; min-height: var(--tap); padding: 0 var(--space-4); border: 1.5px solid var(--line-strong); border-radius: var(--radius); background: none; color: var(--ink); font: 600 var(--step--1)/1 var(--sans); cursor: pointer; }
+.shell .menu-button:hover { border-color: var(--ink); }
+.shell .main-top { display: none; }
+.shell .side-body { display: none; grid-template-columns: minmax(0, 1fr); align-content: start; gap: var(--space-5); padding: var(--space-4) var(--gutter) var(--space-5); }
+.shell[data-route="home"] .side-body, .shell[data-route="home-empty"] .side-body { display: grid; }
+.shell[data-route="home"] main { display: none; }
+.shell[data-route="home-empty"] main .narrow { padding-top: 0; }
+.shell .side-foot { display: none; }
+
+.shell #nav { position: fixed; z-index: 20; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); padding-bottom: env(safe-area-inset-bottom); background: var(--paper-raised); border-top: 1px solid var(--line-strong); }
+.shell #nav a { min-height: var(--tabbar); display: grid; place-items: center; color: var(--ink-soft); text-decoration: none; font: 600 var(--step--1)/1 var(--sans); }
+.shell #nav a:hover { color: var(--ink); }
+.shell #nav a[aria-current="page"] { color: var(--ink); box-shadow: inset 0 3px 0 var(--ballpoint); }
+.shell #nav [data-section="admin"] { display: none; }
+.shell .main-col { padding-bottom: calc(var(--tabbar) + env(safe-area-inset-bottom)); }
+.shell .moment { bottom: calc(var(--tabbar) + var(--space-3) + env(safe-area-inset-bottom)); }
+.shell[data-route="bare"] #nav, .shell[data-route="bare"] .menu-button, .shell[data-route="bare"] .side-body { display: none; }
+.shell[data-route="bare"] .main-col { padding-bottom: 0; }
+.shell[data-route="bare"] .moment { bottom: max(var(--space-5), env(safe-area-inset-bottom)); }
+
+.shell .side-body h2 { font-size: var(--step-0); letter-spacing: -0.005em; }
+.shell .side-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.shell .btn.small-btn { padding: 0 var(--space-3); font-size: var(--step--1); }
+.shell .side-payees { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-2); }
+.shell .side-payees > .note { margin-bottom: var(--space-1); }
+.shell .cheque.compact .cheque-link { gap: var(--space-1); padding: var(--space-3) var(--space-3) var(--space-2); }
+.shell .cheque.compact .sigcard-sig.small .scrawl { height: 2.4rem; }
+.shell .cheque.compact .cheque-pay { margin: 0 var(--space-3) var(--space-3); justify-self: start; }
+.shell .cheque.compact .meta { line-height: 1.35; }
+
+.shell .wallet-block { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-1) var(--space-3); padding: var(--space-2) var(--space-2) var(--space-2) var(--space-4); background: var(--paper-deep); border: 1px solid var(--line); border-radius: var(--radius-card); }
+.shell .wallet-block .wallet-figure { display: flex; align-items: baseline; gap: 0 var(--space-1); max-width: none; }
+.shell .wallet-block .wallet-figure .amount { font-size: var(--step-1); font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.shell .wallet-block .wallet-figure .unit { font-size: var(--step--1); font-weight: 600; }
+.shell .wallet-block .wallet-figure.small .amount { font-size: var(--step-0); }
+.shell .wallet-block .wallet-figure.small .unit { font-weight: 400; color: var(--ink-soft); }
+.shell .wallet-block .wallet-extra { display: none; }
+.shell .wallet-actions { margin-left: auto; }
+.shell .wallet-low, .shell .wallet-unknown { flex-basis: 100%; }
+.shell .wallet-low { background: var(--paper); margin-bottom: var(--space-2); }
+
+.shell .start { display: grid; gap: var(--space-2); }
+.shell .start summary { justify-content: space-between; gap: var(--space-3); list-style: none; border-radius: var(--radius); }
+.shell .start summary::-webkit-details-marker { display: none; }
+.shell .start summary h2 { display: inline-flex; align-items: center; gap: var(--space-2); }
+.shell .start summary h2::after { content: "▾"; font-size: 0.8em; color: var(--ink-soft); }
+.shell .start[open] summary h2::after { content: "▴"; }
+.shell .start .count { font-size: var(--step--1); font-weight: 600; font-variant-numeric: tabular-nums; color: var(--ink-soft); padding: 0.1rem 0.55rem; border: 1px solid var(--line-strong); border-radius: 999px; white-space: nowrap; }
+.shell .start .steps li { grid-template-columns: 1.7rem minmax(0, 1fr); padding: var(--space-2) 0; font-size: var(--step--1); }
+.shell .start .steps .when { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.shell .start .steps .step-more { grid-column: 2 / -1; }
+.shell .side-check .btn { width: 100%; }
+.shell .side-you { display: grid; gap: 2px; max-width: none; }
+
+.shell main .narrow { margin: 0; max-width: 720px; }
+.shell main .detail { max-width: 880px; }
+.shell .payee-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2) var(--space-3); }
+.shell .payee-head h1 { font-size: var(--step-2); min-width: 0; overflow-wrap: anywhere; }
+.shell .payee-head .pay-actions .btn.primary { min-width: 9rem; }
+.shell .payto .sigcard-sig .scrawl { height: clamp(4.5rem, 3rem + 5vw, 7rem); }
+.shell .payto > .note { padding-top: var(--space-1); }
+@media (min-width: 600px) { .shell .payee-head .pay-actions { margin-left: auto; } }
+
+.shell .settings-group { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); padding-top: var(--space-5); border-top: 1.5px solid var(--ink); }
+.shell .settings-group > h2 { font-size: var(--step-1); }
+.shell .settings-group > .sub { margin-top: calc(-1 * var(--space-2)); }
+.shell .settings-group h3 { font-size: var(--step-0); }
+.shell .settings-group > .card:first-of-type, .shell .settings-group > .facts + .card { margin-top: var(--space-2); }
+.shell .settings > h1 + .settings-group { border-top: 0; padding-top: 0; }
+
+.menu-links { display: grid; margin-bottom: var(--space-4); border-top: 1px solid var(--line); }
+.menu-links a { min-height: var(--tap); display: flex; align-items: center; padding: var(--space-2) 0; border-bottom: 1px solid var(--line); color: var(--ink); text-decoration: none; font-weight: 600; }
+.menu-links a:hover { text-decoration: underline; }
+
+@media (min-width: 960px) {
+  .shell { display: grid; grid-template-columns: 320px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); height: 100vh; height: 100dvh; overflow: hidden; }
+  .shell > .side { grid-column: 1; grid-row: 1 / -1; }
+  .shell > .banner { grid-column: 2; grid-row: 1; }
+  .shell > .main-col { grid-column: 2; grid-row: 2; }
+  .shell .side { position: relative; display: flex; flex-direction: column; min-height: 0; overflow-y: auto; overscroll-behavior: contain; background: var(--paper-deep); border-right: 1px solid var(--line-strong); }
+  .shell .side-top { padding: var(--space-4) var(--space-5) var(--space-3); border: 0; background: none; }
+  .shell .side-top .netlabel, .shell .menu-button { display: none; }
+  .shell #nav { position: static; grid-template-columns: minmax(0, 1fr); gap: 2px; padding: 0 var(--space-4) var(--space-4); background: none; border: 0; }
+  .shell #nav a { min-height: var(--tap); place-items: center start; padding: 0 var(--space-3); border-radius: var(--radius); font-size: var(--step-0); font-weight: 400; }
+  .shell #nav a:hover { background: var(--paper); }
+  .shell #nav a[aria-current="page"] { font-weight: 600; background: var(--paper-raised); box-shadow: inset 3px 0 0 var(--ballpoint); }
+  .shell #nav [data-section="admin"] { display: grid; }
+  .shell .side-body, .shell[data-route] .side-body { display: flex; flex-direction: column; flex: 1 0 auto; gap: var(--space-5); padding: var(--space-4) var(--space-5) var(--space-5); border-top: 1px solid var(--line); }
+  .shell .side-foot { display: grid; gap: var(--space-2); margin-top: auto; padding-top: var(--space-4); border-top: 1px dashed var(--line-strong); }
+  .shell .main-col { position: relative; min-height: 0; overflow-y: auto; padding-bottom: 0; }
+  .shell .main-top { display: flex; padding: var(--space-4) var(--gutter) 0; }
+  .shell[data-route] main { display: block; }
+  .shell[data-route="home-empty"] main .narrow { padding-top: var(--space-5); }
+  .shell .moment { bottom: max(var(--space-5), env(safe-area-inset-bottom)); left: calc(50% + 160px); }
+  .shell .cheque.compact .cheque-pay { display: none; }
+  .shell .wallet-block { display: grid; gap: var(--space-2); padding: 0; background: none; border: 0; border-radius: 0; }
+  .shell .wallet-block .wallet-figure .amount { font-size: clamp(2rem, 1.2rem + 1.4vw, 2.6rem); line-height: 1.05; letter-spacing: -0.03em; }
+  .shell .wallet-block .wallet-figure .unit { font-size: var(--step-0); }
+  .shell .wallet-block .wallet-extra { display: block; }
+  .shell .wallet-block .wallet-figure.wallet-extra { display: flex; }
+  .shell .wallet-block .btn.wallet-extra { display: inline-flex; }
+  .shell .wallet-actions { margin-left: 0; margin-top: var(--space-1); }
+  .shell .wallet-line { margin-top: calc(-1 * var(--space-1)); }
+  .shell .wallet-address { font-size: var(--step--1); }
+  .shell[data-route="bare"] { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr); }
+  .shell[data-route="bare"] > .banner { grid-column: 1; grid-row: 1; }
+  .shell[data-route="bare"] > .side { grid-column: 1; grid-row: 2; }
+  .shell[data-route="bare"] > .main-col { grid-column: 1; grid-row: 3; }
+  .shell[data-route="bare"] .side { overflow: visible; background: var(--paper); border-right: 0; border-bottom: 1px solid var(--line); }
+  .shell[data-route="bare"] .side-top { padding: var(--space-2) var(--gutter); }
+  .shell[data-route="bare"] .main-top { display: none; }
+  .shell[data-route="bare"] .moment { left: 50%; }
+  .shell[data-route="bare"] .side-body { display: none; }
+}

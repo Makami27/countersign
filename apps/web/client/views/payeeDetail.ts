@@ -97,23 +97,39 @@ function pendingChangeCard(c: Pending, current: string | null, actions: DetailAc
     h("div", { class: "actions" }, copyButton(c.signUrl, "Copy signing link"), c.ownerConfirmedAt || c.currentSignedAt ? null : h("button", { class: "btn", type: "button", onclick: () => actions.onConfirm(c.nonce) }, "I confirm this change myself"), cancel), cancelStatus);
 }
 
-export function payeeDetailView(detail: PayeeDetail, actions: DetailActions): HTMLElement {
+function explainer(detail: PayeeDetail, verified: boolean): HTMLElement {
+  if (verified) return h("p", { class: "note" }, "Payments go to this address. Nothing anyone sends the agent can change it without proof.");
+  return detail.summary.status === "conflict" ? h("p", { class: "money" }, FROZEN_WORDS) : h("p", { class: "note" }, "This payee can't be paid yet.");
+}
+
+function payToCard(detail: PayeeDetail, verified: boolean, actions: DetailActions): HTMLElement | null {
+  if (!detail.payTo) return null;
+  return h("article", { class: `sigcard payto ${verified ? "verified" : "refused"}`, "aria-label": `Signature card for ${detail.summary.name}` },
+    h("span", { class: "label" }, "Pays to"),
+    signatureFigure(detail.payTo.address, { drawWhenNew: verified }),
+    addressEl(detail.payTo.address),
+    h("div", { class: "actions" }, copyButton(detail.payTo.address, "Copy address"), verified && detail.pendingChanges.length === 0 ? h("button", { class: "btn", type: "button", onclick: actions.onRequestChange }, "Request an address change") : null),
+    explainer(detail, verified),
+    verifiedLine(detail));
+}
+
+export function payeeDetailView(detail: PayeeDetail, actions: DetailActions, schedules: HTMLElement | null): HTMLElement {
   const now = Date.now();
   const verified = detail.payTo !== null && detail.summary.status !== "conflict";
   return h("section", { class: "detail", "aria-labelledby": "payee-title" },
     h("a", { class: "back", href: "/app", "data-link": true }, "All payees"),
-    h("header", {}, h("h2", { id: "payee-title" }, detail.summary.name),
-      h("p", { class: "lede" }, verified ? "Payments go to the address below. Nothing anyone sends the agent can change that without proof." : detail.summary.status === "conflict" ? FROZEN_WORDS : "This payee can't be paid yet.")),
+    h("header", { class: "payee-head" },
+      h("h1", { id: "payee-title" }, detail.summary.name),
+      statusPill(detail.summary.status),
+      verified ? h("div", { class: "actions pay-actions" }, h("button", { class: "btn primary", type: "button", onclick: actions.onPay }, `Pay ${detail.summary.name}`)) : null),
+    detail.payTo ? null : explainer(detail, verified),
     ...detail.pendingChanges.filter((c) => inCooldown(c, now)).map((c) => cooldownCard(c, detail.summary.name, detail.payTo?.address ?? null, actions.onCancel)),
-    detail.payTo ? h("article", { class: `sigcard payto ${verified ? "verified" : "refused"}`, "aria-label": `Signature card for ${detail.summary.name}` },
-      h("div", { class: "sigcard-head" }, h("span", { class: "label" }, "Pays to"), statusPill(verified ? "verified" : "conflict")),
-      signatureFigure(detail.payTo.address, { drawWhenNew: verified }),
-      addressEl(detail.payTo.address), h("div", { class: "actions" }, copyButton(detail.payTo.address, "Copy address")), verifiedLine(detail)) : null,
-    verified ? h("div", { class: "actions pay-actions" }, h("button", { class: "btn primary", type: "button", onclick: actions.onPay }, `Pay ${detail.summary.name}`), detail.pendingChanges.length === 0 ? h("button", { class: "btn", type: "button", onclick: actions.onRequestChange }, "Request an address change") : null) : null,
+    payToCard(detail, verified, actions),
     waitingCard(detail),
     ...detail.pendingChanges.map((c) => pendingChangeCard(c, detail.payTo?.address ?? null, actions)),
     refusalCard(detail, now),
     detail.latestRefusal ? null : h("p", { class: "empty" }, "Nothing refused for this payee."),
+    schedules,
     historyList(detail),
     paymentsList(detail));
 }

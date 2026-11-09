@@ -3,6 +3,7 @@ import { addressEl, copyButton, h, listen, liveRegion } from "../dom.ts";
 import type { Overview } from "../types.ts";
 import { AGENT_WALLET, DEPOSIT_ACTION, FAUCETS } from "../walletFacts.ts";
 import { START_STEPS } from "../startSteps.ts";
+import { openSheet } from "./sheets.ts";
 
 const STEPS: readonly (readonly [keyof Overview["checklist"] | "signedIn", string])[] = [
   ...START_STEPS.map((step) => [step.key, step.label] as const),
@@ -24,14 +25,22 @@ function fundingHelp(overview: Overview, onDeposit: () => void): HTMLElement {
     overview.network === "testnet" ? h("p", { class: "note" }, h("a", { href: FAUCETS[0].href, target: "_blank", rel: "noreferrer" }, FAUCETS[0].label), " and ", h("a", { href: FAUCETS[1].href, target: "_blank", rel: "noreferrer" }, FAUCETS[1].label), ".") : null);
 }
 
-export function checklistCard(overview: Overview, onDeposit: () => void): HTMLElement {
+let startFolded: boolean | null = null;
+
+export function startCard(overview: Overview, onDeposit: () => void): HTMLElement {
+  const isDone = (key: (typeof STEPS)[number][0]) => key === "signedIn" || overview.checklist[key];
   const items = STEPS.map(([key, label]) => {
-    const done = key === "signedIn" || overview.checklist[key];
-    return h("li", { class: done ? "done" : "" }, h("span", { class: "n", "aria-hidden": "true" }, done ? "✓" : "·"), h("span", {}, label), h("span", { class: "when" }, done ? "Done" : "To do"), key === "funded" && !done ? fundingHelp(overview, onDeposit) : null);
+    const done = isDone(key);
+    return h("li", { class: done ? "done" : "" }, h("span", { class: "n", "aria-hidden": "true" }, done ? "✓" : "·"), h("span", {}, label), h("span", { class: "when" }, done ? "Done" : OPTIONAL.has(key) ? "Optional" : "To do"), key === "funded" && !done ? fundingHelp(overview, onDeposit) : null);
   });
-  const steps = h("ol", { class: "steps" }, ...items);
-  if (checklistDone(overview)) return h("details", { class: "card checklist done" }, h("summary", {}, "How to start: every step done"), steps);
-  return h("section", { class: "card checklist", "aria-labelledby": "checklist-title" }, h("h2", { id: "checklist-title" }, "How to start"), steps);
+  const required = STEPS.filter(([key]) => !OPTIONAL.has(key));
+  const count = `${required.filter(([key]) => isDone(key)).length} of ${required.length}`;
+  const summary = h("summary", {}, h("h2", {}, "How to start"), h("span", { class: "count" }, h("span", { class: "visually-hidden" }, "Steps done: "), count));
+  const details = h("details", { class: "start", open: startFolded === null ? !checklistDone(overview) : !startFolded }, summary, h("ol", { class: "steps" }, ...items));
+  summary.addEventListener("click", () => {
+    startFolded = details.open;
+  });
+  return details;
 }
 
 type PasteAnswer = {
@@ -56,23 +65,29 @@ function answerNodes(r: PasteAnswer, onPay: PayFromMessage): (HTMLElement | stri
   return [h("p", {}, r.says ?? ""), r.signUrl ? h("p", { class: "note" }, "Signing link for the payee:") : "", r.signUrl ? h("p", { class: "link-text" }, r.signUrl) : "", r.signUrl ? h("div", { class: "actions" }, copyButton(r.signUrl, "Copy link")) : ""];
 }
 
-export function pasteCard(onChanged: () => void, onPay: PayFromMessage): HTMLElement {
-  const text = h("textarea", { id: "paste-text", rows: "4", maxlength: "4000", placeholder: "Paste the whole message, for example an email saying a payee changed wallets." });
-  const status = liveRegion();
-  const answer = h("div", {});
-  const button = h("button", { class: "btn", type: "submit" }, "Check this message");
-  const form = h("form", {}, h("label", { for: "paste-text" }, "Paste a message you received", h("span", { class: "hint" }, "It goes through the same checks as a message forwarded to the bot. Code checks every address. The AI only reads the wording."), text), status, answer, h("div", { class: "actions" }, button));
-  listen(form, "submit", async (event) => {
-    event.preventDefault();
-    button.disabled = true;
-    status.textContent = "Checking…";
-    const result = await api<PasteAnswer>("POST", "/api/app/paste", { text: text.value });
-    button.disabled = false;
-    status.textContent = "";
-    if (!result.ok) return void (status.textContent = result.error.message);
-    const r = result.data;
-    answer.replaceChildren(...answerNodes(r, onPay));
-    if (r.refusal || r.signUrl) onChanged();
-  }, status);
-  return h("section", { class: "card", "aria-labelledby": "paste-title" }, h("h2", { id: "paste-title" }, "Check a message"), form);
+export function checkMessageSheet(onChanged: () => void, onPay: PayFromMessage): void {
+  openSheet("Check a message", (close, body) => {
+    const text = h("textarea", { id: "paste-text", rows: "5", maxlength: "4000", placeholder: "Paste the whole message, for example an email saying a payee changed wallets." });
+    const status = liveRegion();
+    const answer = h("div", { class: "outcome-slot" });
+    const button = h("button", { class: "btn primary", type: "submit" }, "Check this message");
+    const form = h("form", {}, h("label", { for: "paste-text" }, "Paste a message you received", h("span", { class: "hint" }, "It goes through the same checks as a message forwarded to the bot. Code checks every address. The AI only reads the wording."), text), status, answer,
+      h("div", { class: "actions" }, button, h("button", { class: "btn", type: "button", onclick: close }, "Close")));
+    const payThenClose: PayFromMessage = (payeeId, amount) => {
+      close();
+      onPay(payeeId, amount);
+    };
+    listen(form, "submit", async (event) => {
+      event.preventDefault();
+      button.disabled = true;
+      status.textContent = "Checking…";
+      const result = await api<PasteAnswer>("POST", "/api/app/paste", { text: text.value });
+      button.disabled = false;
+      status.textContent = "";
+      if (!result.ok) return void (status.textContent = result.error.message);
+      answer.replaceChildren(...answerNodes(result.data, payThenClose));
+      if (result.data.refusal || result.data.signUrl) onChanged();
+    }, status);
+    body.append(form);
+  }, onChanged);
 }

@@ -1,52 +1,31 @@
 import { api } from "./api.ts";
-import { h, networkWords } from "./dom.ts";
+import { h } from "./dom.ts";
 import type { ActivityItem, Overview, PayeeDetail, PayeeSummary, ScheduleItem } from "./types.ts";
-import { payeeList } from "./views/payees.ts";
 import { payeeDetailView } from "./views/payeeDetail.ts";
 import { schedulesPanel } from "./views/schedules.ts";
-import { checklistCard, checklistDone, pasteCard } from "./views/dashboard.ts";
+import { checkMessageSheet } from "./views/dashboard.ts";
 import { adminPage } from "./views/admin.ts";
 import { addPayeeSheet } from "./views/sheets.ts";
 import { paySheet } from "./views/paySheet.ts";
 import { cancelChange, confirmChangeSheet, requestChangeSheet } from "./views/changeSheets.ts";
-import { activityPage, settingsPage } from "./views/pages.ts";
+import { activityPage } from "./views/pages.ts";
+import { settingsPage } from "./views/settings.ts";
 import { signInPage } from "./views/signIn.ts";
-import { agentWalletPanel } from "./views/walletPanel.ts";
+import { firstRun } from "./views/firstRun.ts";
+import { menuSheet, sidebarParts } from "./views/sidebar.ts";
 import { depositSheet } from "./views/depositSheet.ts";
 import { showMoment, startMoments } from "./moment.ts";
-import { notePayees } from "./momentFacts.ts";
+import { payeeMoments } from "./payeeMoments.ts";
 import { installPlainCopy } from "./copyHandler.ts";
+import { scrollToTop, setMenu, setNetwork, setRoute, setSide, showAdminLink } from "./shell.ts";
 
 const root = document.querySelector<HTMLElement>("#app");
-const nav = document.querySelector<HTMLElement>("#nav");
 const banner = document.querySelector<HTMLElement>("#banner");
-const netlabel = document.querySelector<HTMLElement>("#netlabel");
-
-const PAYABLE: ReadonlySet<PayeeSummary["status"]> = new Set(["verified", "attempt_refused", "change_pending"]);
-
-function storage(): Storage | null {
-  try {
-    return window.localStorage;
-  } catch {
-    return null;
-  }
-}
-
-function payeeMoments(payees: readonly PayeeSummary[]): void {
-  for (const event of notePayees(storage(), payees.map((p) => ({ id: p.id, name: p.name, payable: PAYABLE.has(p.status), address: p.address })))) {
-    showMoment(event.kind === "verified"
-      ? { title: `${event.name} is verified`, detail: "Their wallet signed. They can be paid now.", address: event.address }
-      : { title: `${event.name}'s address changed`, detail: "Both proofs checked out. Payments now go to the new address.", address: event.address });
-  }
-}
 
 function go(path: string): void {
   history.pushState(null, "", path);
+  scrollToTop();
   void render();
-}
-
-function setCurrent(section: "payees" | "activity" | "settings" | "admin" | null): void {
-  nav?.querySelectorAll("a").forEach((a) => (a.dataset["section"] === section ? a.setAttribute("aria-current", "page") : a.removeAttribute("aria-current")));
 }
 
 let quietRender = false;
@@ -55,8 +34,11 @@ root?.addEventListener("input", () => {
   edited = true;
 });
 
+let drawn = false;
+
 function show(...children: HTMLElement[]): void {
   root?.replaceChildren(...children);
+  drawn = !children.some((child) => child.dataset["loading"] === "true");
   edited = false;
   if (!quietRender) root?.querySelector<HTMLElement>("h1, h2")?.focus({ preventScroll: true });
 }
@@ -87,7 +69,7 @@ function schedulePoll(path: string): void {
 let signInWhy: string | null = null;
 
 function loading(): HTMLElement {
-  return h("p", { class: "narrow", role: "status" }, "Loading your agent…");
+  return h("p", { class: "narrow", role: "status", "data-loading": "true" }, "Loading your agent…");
 }
 
 async function render(): Promise<void> {
@@ -102,72 +84,84 @@ async function renderPage(): Promise<void> {
   window.clearTimeout(poll);
   const path = location.pathname;
   if (path === "/app/login") {
-    setCurrent(null);
+    setRoute("bare", null);
+    setSide([], false);
     return show(signInPage((address) => {
       signInWhy = null;
       go("/app");
       showMoment({ title: "Signed in", detail: "This wallet opens your agent. It signs approvals and deposits. It never pays bills.", address });
     }, signInWhy, new URLSearchParams(location.search).has("other")));
   }
-  if (!root?.querySelector(".owner")) show(loading());
-  const overview = await api<Overview>("GET", "/api/app/overview");
+  if (!drawn) {
+    setRoute("loading", null);
+    show(loading());
+  }
+  const [overview, payees] = await Promise.all([api<Overview>("GET", "/api/app/overview"), api<{ payees: PayeeSummary[] }>("GET", "/api/app/payees")]);
   if (!overview.ok && overview.error.status === 401) {
     const notice = overview.error.body?.["notice"];
     signInWhy = typeof notice === "string" ? notice : null;
     return go("/app/login");
   }
   if (!overview.ok) return show(failure(overview.error.message));
-  if (netlabel) netlabel.textContent = networkWords(overview.data.network);
+  const o = overview.data;
+  setNetwork(o.network);
   if (banner) {
-    const sandbox = overview.data.memory.relayer.startsWith("sandbox");
-    banner.hidden = overview.data.memory.restored && !sandbox;
-    banner.textContent = sandbox ? "Sandbox memory: nothing on this screen is stored on Walrus Memory. For local screen checks only." : overview.data.memory.restored ? "" : "Walrus Memory couldn't be read completely. Nothing will be paid until it can.";
+    const sandbox = o.memory.relayer.startsWith("sandbox");
+    banner.hidden = o.memory.restored && !sandbox;
+    banner.textContent = sandbox ? "Sandbox memory: nothing on this screen is stored on Walrus Memory. For local screen checks only." : o.memory.restored ? "" : "Walrus Memory couldn't be read completely. Nothing will be paid until it can.";
   }
-  if (path === "/app/activity") {
-    setCurrent("activity");
-    const [items, payees] = await Promise.all([api<{ items: ActivityItem[] }>("GET", "/api/app/activity"), api<{ payees: PayeeSummary[] }>("GET", "/api/app/payees")]);
-    const names = new Map(payees.ok ? payees.data.payees.map((p) => [p.id, p.name] as const) : []);
-    return show(items.ok ? activityPage(items.data.items, names, overview.data.network) : failure(items.error.message));
-  }
-  if (nav && overview.data.isAdmin && !nav.querySelector("[data-section=admin]")) nav.append(h("a", { href: "/app/admin", "data-link": true, "data-section": "admin" }, "Admin"));
-  if (path === "/app/admin") {
-    setCurrent("admin");
-    return show(await adminPage(overview.data.network));
-  }
-  if (path === "/app/settings") {
-    setCurrent("settings");
-    return show(settingsPage(overview.data, () => void render()));
-  }
-  setCurrent("payees");
-  const payees = await api<{ payees: PayeeSummary[] }>("GET", "/api/app/payees");
-  if (!payees.ok) return show(failure(payees.error.message));
-  payeeMoments(payees.data.payees);
+  if (o.isAdmin) showAdminLink();
+  setMenu(() => menuSheet(o));
+  const list = payees.ok ? payees.data.payees : [];
+  if (payees.ok) payeeMoments(list);
   const match = /^\/app\/payees\/([^/]+)$/.exec(path);
-  const selected = match?.[1] ? decodeURIComponent(match[1]) : (payees.data.payees[0]?.id ?? null);
-  const openDeposit = () => depositSheet(overview.data, () => void render());
-  const openPay = (id: string, name: string, address: string, amount: string | null = null) => paySheet({ id, name, address }, overview.data, () => void render(), openDeposit, amount);
+  const home = path === "/app" || path === "/app/";
+  const selected = match?.[1] ? decodeURIComponent(match[1]) : home ? (list[0]?.id ?? null) : null;
+  const openDeposit = () => depositSheet(o, () => void render());
+  const openPay = (id: string, name: string, address: string, amount: string | null = null) => paySheet({ id, name, address }, o, () => void render(), openDeposit, amount);
   const payFromMessage = (payeeId: string, amount: string | null) => void api<PayeeDetail>("GET", `/api/app/payees/${encodeURIComponent(payeeId)}`).then((found) => {
     if (found.ok && found.data.payTo) openPay(found.data.summary.id, found.data.summary.name, found.data.payTo.address, amount);
   });
-  const list = payeeList(payees.data.payees, overview.data, selected, () => addPayeeSheet(overview.data.network, () => void render()), () => void render(), (payee) => {
-    if (payee.address) openPay(payee.id, payee.name, payee.address);
-  });
-  if (checklistDone(overview.data)) list.append(pasteCard(() => void render(), payFromMessage), checklistCard(overview.data, openDeposit));
-  else {
-    list.prepend(checklistCard(overview.data, openDeposit));
-    list.append(pasteCard(() => void render(), payFromMessage));
+  const openAdd = () => addPayeeSheet(o.network, () => void render());
+  setSide(sidebarParts(o, payees.ok ? { ok: true, payees: list } : { ok: false, problem: payees.error.message }, selected, {
+    onDeposit: openDeposit, onAdd: openAdd, onCheck: () => checkMessageSheet(() => void render(), payFromMessage),
+    onPay: (payee) => {
+      if (payee.address) openPay(payee.id, payee.name, payee.address);
+    },
+  }), quietRender);
+  if (path === "/app/activity") {
+    setRoute("activity", "activity");
+    const items = await api<{ items: ActivityItem[] }>("GET", "/api/app/activity");
+    const names = new Map(list.map((p) => [p.id, p.name] as const));
+    return show(items.ok ? activityPage(items.data.items, names, o.network) : failure(items.error.message));
   }
-  const wallet = agentWalletPanel(overview.data, openDeposit);
-  if (!selected) return show(h("div", { class: "owner single at-list" }, wallet, list));
-  const detail = await api<PayeeDetail>("GET", `/api/app/payees/${encodeURIComponent(selected)}`);
+  if (path === "/app/admin") {
+    setRoute("admin", "admin");
+    return show(await adminPage(o.network));
+  }
+  if (path === "/app/settings") {
+    setRoute("settings", "settings");
+    return show(settingsPage(o, () => void render()));
+  }
+  if (!payees.ok) return show(failure(payees.error.message));
+  if (!selected) {
+    setRoute("home-empty", "payees");
+    return show(firstRun(o, () => void render(), openAdd));
+  }
+  setRoute(match ? "payee" : "home", "payees");
   const rerender = () => void render();
-  const detailView = detail.ok ? payeeDetailView(detail.data, { onPay: () => {
-    if (detail.data.payTo) openPay(detail.data.summary.id, detail.data.summary.name, detail.data.payTo.address);
-  }, onRequestChange: () => requestChangeSheet(detail.data, rerender), onConfirm: (nonce) => confirmChangeSheet(nonce, overview.data.cooldownSeconds, overview.data.network, rerender), onCancel: (nonce, status) => cancelChange(nonce, overview.data.network, status, rerender) }) : failure(detail.error.message);
-  const schedules = detail.ok && detail.data.payTo ? await api<{ schedules: ScheduleItem[] }>("GET", "/api/app/schedules") : null;
-  if (detail.ok && schedules?.ok) detailView.querySelector(".pay-actions")?.after(schedulesPanel(selected, schedules.data.schedules, overview.data.network, rerender));
-  if (detail.ok && (detail.data.pendingChanges.length > 0 || detail.data.waiting)) schedulePoll(path);
-  show(h("div", { class: `owner ${match ? "at-detail" : "at-list"}` }, wallet, list, detailView));
+  const [detail, schedules] = await Promise.all([api<PayeeDetail>("GET", `/api/app/payees/${encodeURIComponent(selected)}`), api<{ schedules: ScheduleItem[] }>("GET", "/api/app/schedules")]);
+  if (!detail.ok) return show(failure(detail.error.message));
+  const d = detail.data;
+  const panel = d.payTo && schedules.ok ? schedulesPanel(selected, schedules.data.schedules, o.network, rerender) : null;
+  const view = payeeDetailView(d, {
+    onPay: () => {
+      if (d.payTo) openPay(d.summary.id, d.summary.name, d.payTo.address);
+    },
+    onRequestChange: () => requestChangeSheet(d, rerender), onConfirm: (nonce) => confirmChangeSheet(nonce, o.cooldownSeconds, o.network, rerender), onCancel: (nonce, status) => cancelChange(nonce, o.network, status, rerender),
+  }, panel);
+  if (d.pendingChanges.length > 0 || d.waiting) schedulePoll(path);
+  show(view);
 }
 
 document.addEventListener("click", (event) => {
