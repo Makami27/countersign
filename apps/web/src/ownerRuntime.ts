@@ -35,6 +35,7 @@ export type RuntimeInput = {
   readonly memoryCounts: () => Promise<MemoryCounts>;
   readonly notify: (text: string) => Promise<void>;
   readonly telegram: OwnerContext["telegram"];
+  readonly discord: OwnerContext["discord"];
   readonly reader: ModelReader;
   readonly quota: QuotaMeter;
   readonly isAdmin: boolean;
@@ -102,7 +103,7 @@ export async function buildOwnerRuntime(i: RuntimeInput): Promise<BuiltRuntime> 
     },
     memory: () => memoryView, memoryCounts: i.memoryCounts, steps, cooldownMs: () => settings.values().cooldownSeconds * 1000,
     verifySignature: (message, signature, address) => verifier.verifyPersonalMessage(message, signature, address),
-    wallets, approvals, notify: i.notify, schedules, shared, telegram: i.telegram, quota: i.quota, isAdmin: i.isAdmin,
+    wallets, approvals, notify: i.notify, schedules, shared, telegram: i.telegram, discord: i.discord, quota: i.quota, isAdmin: i.isAdmin,
     read: (text) => readMessage(index, (t, payeeIds) => {
       i.quota.record("model");
       return i.reader(t, payeeIds);

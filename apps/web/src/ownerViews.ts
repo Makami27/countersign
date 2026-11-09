@@ -104,7 +104,7 @@ export async function overview(ctx: OwnerContext, now: number) {
     linkSigned: heads.some((h) => h.kind === "verified"),
     paid: receipts.some((r) => r.verdict === "PAID") || ctx.schedules.active().length > 0,
     scamTried: receipts.some((r) => remembersAttack(r)),
-    telegram: await ctx.telegram.linked(),
+    telegram: (await ctx.telegram.linked()) || (await ctx.discord.linked()),
   };
   return {
     isAdmin: ctx.isAdmin, checklist,
@@ -117,5 +117,6 @@ export async function overview(ctx: OwnerContext, now: number) {
 export async function activity(ctx: OwnerContext) {
   const receipts = (await ctx.index.receiptsFor(null, 60)).map((r) => ({ kind: "receipt" as const, at: r.createdAt, receipt: r.receipt, verdict: r.verdict, reason: r.reason, payeeId: r.payeeId, address: r.address, amountBaseUnits: r.amountBaseUnits, suiDigest: r.suiDigest, network: r.network }));
   const open = (await ctx.ledger.recentPayments(60, null)).filter((p) => p.state !== "SETTLED" && p.state !== "FAILED").map((p) => ({ kind: "payment" as const, at: p.updatedAt, paymentId: p.id, state: p.state, payeeId: p.payeeId, address: p.address, amountBaseUnits: p.amountBaseUnits, digest: p.digest }));
-  return [...receipts, ...open].sort((a, b) => b.at.localeCompare(a.at));
+  const notices = (await ctx.discord.undelivered()).map((n) => ({ kind: "notice" as const, at: n.at, text: n.text }));
+  return [...receipts, ...open, ...notices].sort((a, b) => b.at.localeCompare(a.at));
 }

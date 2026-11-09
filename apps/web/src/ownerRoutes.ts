@@ -66,6 +66,7 @@ async function ownerRequest(ctx: OwnerContext, req: IncomingMessage, res: Server
   if (req.method === "GET" && parts[0] === "activity") return send(res, 200, { items: await activity(ctx) });
   if (req.method === "GET" && parts[0] === "schedules") return send(res, 200, scheduleList(ctx, now));
   if (req.method === "GET" && parts[0] === "telegram") return send(res, 200, { linked: await ctx.telegram.linked() });
+  if (req.method === "GET" && parts[0] === "discord") return send(res, 200, { enabled: ctx.discord.enabled, linked: await ctx.discord.linked(), installs: ctx.discord.installs });
   if (req.method === "GET" && parts[0] === "settings") return send(res, 200, ctx.settings.values());
   if (req.method === "GET" && parts[0] === "payments" && parts[1]) {
     const payment = await ctx.ledger.payment(parts[1]);
@@ -78,6 +79,10 @@ async function ownerRequest(ctx: OwnerContext, req: IncomingMessage, res: Server
   if (req.method === "POST" && parts[0] === "telegram") {
     const link = await ctx.telegram.link();
     return link ? send(res, 200, link) : problem(res, 503, "The Telegram bot isn't running right now. Nothing was changed. Try again shortly.");
+  }
+  if (req.method === "POST" && parts[0] === "discord") {
+    const code = await ctx.discord.code();
+    return code ? send(res, 200, code) : problem(res, 503, ctx.discord.enabled ? "The Discord bot isn't connected right now. Nothing was changed. Try again shortly." : "Discord isn't set up on this agent. Nothing was changed.");
   }
   if (req.method === "POST" && parts[0] === "paste") return pasteRoute(ctx, res, input);
   if (req.method === "POST" && parts[0] === "deposits") return depositRoute(ctx, res, parts[1], input);

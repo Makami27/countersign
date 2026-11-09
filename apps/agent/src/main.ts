@@ -11,7 +11,6 @@ import { recordSignerFromSeed } from "@countersign/adapters/signer";
 import { startWebServer } from "@countersign/web/server";
 import { OwnerAuth } from "@countersign/web/ownerAuth";
 import { OwnerDirectory } from "@countersign/web/ownerDirectory";
-import { TelegramLinks } from "@countersign/web/telegramLinks";
 import { DEFAULT_HOURLY_LIMITS, QuotaMeter } from "@countersign/web/quota";
 import { buildOwnerRuntime, type BuiltRuntime } from "@countersign/web/ownerRuntime";
 import type { BalancesView, MemoryCounts } from "@countersign/web/ownerContext";
@@ -20,9 +19,10 @@ import { startBot } from "./telegram.ts";
 import { dropOwnerStorage, openOwnerStorage, openStorage, type Storage } from "./storage.ts";
 import { statusProbe } from "./statusChecks.ts";
 import { ModelStats } from "./modelStats.ts";
-import { payeeSummary } from "@countersign/web/ownerViews";
-import { scheduleList } from "@countersign/web/scheduleRoutes";
 import { OwnerKeyStore } from "./ownerKeys.ts";
+import { chatOwnerOf } from "./chat/ownerPort.ts";
+import { startDiscordBot } from "./discord/start.ts";
+import { ChatChannels } from "./chatChannels.ts";
 
 const TICK_EVERY_MS = 60_000;
 const BALANCE_CACHE_MS = 30_000;
@@ -39,34 +39,8 @@ const relayerLabel = walrus ? walrus.environment : "sandbox (not Walrus Memory)"
 const auth = await OwnerAuth.open(storage.rows, new URL(config.publicUrl ?? "http://localhost").host);
 const verifier = new TatumSignatureVerifier(grpc);
 const clock = { now: () => new Date() };
-let bot: ReturnType<typeof startBot> | null = null;
-const links = await TelegramLinks.open(storage.rows, { telegramUserId: config.telegram.ownerUserId, ownerId: config.ownerId });
-let botUsername: string | null = null;
-
-async function notifyAdmin(text: string): Promise<void> {
-  await bot?.api.sendMessage(config.telegram.ownerUserId, text).catch((error: Error) => console.error(`Telegram notice not sent: ${error.message.slice(0, 120)}`));
-}
-
-function notifyFor(ownerId: string): (text: string) => Promise<void> {
-  if (ownerId === config.ownerId) return notifyAdmin;
-  return async (text) => {
-    const chat = await links.chatOf(ownerId);
-    if (chat !== null) await bot?.api.sendMessage(chat, text).catch((error: Error) => console.error(`Telegram notice not sent: ${error.message.slice(0, 120)}`));
-  };
-}
-
-function telegramFor(ownerId: string) {
-  return {
-    link: async () => {
-      if (!bot) return null;
-      botUsername ??= (await bot.api.getMe().catch(() => null))?.username ?? null;
-      if (!botUsername) return null;
-      const issued = await links.issue(ownerId);
-      return { url: `https://t.me/${botUsername}?start=${issued.token}`, expires: issued.expires };
-    },
-    linked: async () => (await links.chatOf(ownerId)) !== null,
-  };
-}
+const channels = await ChatChannels.open(storage.rows, config);
+const links = channels.telegramLinks;
 
 const balanceCache = new Map<string, { at: number; view: BalancesView }>();
 function balancesFor(address: SuiAddress): (fresh?: boolean) => Promise<BalancesView> {
@@ -109,7 +83,7 @@ async function runtimeFor(ownerId: string, ownerStorage: Storage, walletKey: str
     signer: recordSignerFromSeed(recordSeed), verifier,
     roundTrips: new TatumRoundTripChecker(graphql, agentAddress, USDC_COIN_TYPE[config.network]),
     runner: new PaymentRunner({ ledger: ownerStorage.ledger, chain: tatumPaymentChain(grpc, wallet, config.network), clock }),
-    balances: balancesFor(agentAddress), memoryCounts: memoryCountsFor(ownerId), notify: notifyFor(ownerId), telegram: telegramFor(ownerId),
+    balances: balancesFor(agentAddress), memoryCounts: memoryCountsFor(ownerId), notify: channels.notifyFor(ownerId), telegram: channels.telegramFor(ownerId), discord: channels.discordFor(ownerId),
     deposits: { prepare: (sender, amounts) => prepareDeposit(grpc, config.network, sender, agentAddress, amounts), sight: (digest) => sightDeposit(grpc, config.network, digest, agentAddress) },
     reader: trackedReader, quota: new QuotaMeter(ownerId === config.ownerId ? null : DEFAULT_HOURLY_LIMITS), isAdmin: ownerId === config.ownerId,
     defaults: { perPaymentBaseUnits: config.caps.perPaymentBaseUnits, perDayBaseUnits: config.caps.perDayBaseUnits, cooldownSeconds: config.cooldownMs / 1000 },
@@ -126,7 +100,7 @@ if (!keyStore) console.log("MASTER_KEY is not set: this agent serves only its ad
 const ownerStorages = new Map<string, Storage>();
 async function destroyOwner(ownerId: string): Promise<void> {
   await keyStore?.forget(ownerId);
-  await links.forget(ownerId);
+  await channels.forget(ownerId);
   await ownerStorages.get(ownerId)?.close();
   ownerStorages.delete(ownerId);
   await dropOwnerStorage(config.database, ownerId);
@@ -143,40 +117,47 @@ async function ownerRuntime(ownerId: string, create: boolean): Promise<BuiltRunt
 
 const owners = await OwnerDirectory.open({
   rows: storage.rows, auth, adminOwnerId: config.ownerId, adminAddress: config.adminAddress, maxOwners: keyStore ? config.maxOwners : 1,
-  create: (ownerId) => ownerRuntime(ownerId, true), notifyAdmin, now: Date.now, destroy: destroyOwner,
+  create: (ownerId) => ownerRuntime(ownerId, true), notifyAdmin: channels.notifyAdmin, now: Date.now, destroy: destroyOwner,
 }, admin, (ownerId) => ownerRuntime(ownerId, false));
 setInterval(() => void owners.tickAll(), TICK_EVERY_MS).unref();
 
 const status = statusProbe({
   network: config.network, version: config.version, database: { label: storage.label, rows: storage.rows }, graphql,
   grpcBalance: () => readAgentBalances(grpc, config.network, admin.ctx.agentAddress), walrus, ownerPrefix: `countersign:${config.ownerId}:`,
-  memory: () => admin.ctx.memory(), telegramPolling: () => bot?.isRunning() ?? false, model: () => modelStats.view(),
+  memory: () => admin.ctx.memory(), telegramPolling: () => channels.bot?.isRunning() ?? false, model: () => modelStats.view(),
 });
 const server = startWebServer({ port: config.port, network: config.network, proof: storage.rows, version: config.version, owners, status });
-bot = startBot({
+channels.bot = startBot({
   token: config.telegram.token, network: config.network, publicUrl: config.publicUrl,
   ownerFor: async (telegramUserId) => {
     const ownerId = await links.ownerOf(telegramUserId);
     const ctx = ownerId ? owners.get(ownerId) : null;
-    return ctx ? {
-      ownerId: ctx.ownerId, engine: ctx.engine, index: ctx.index, sendPayment: ctx.sendPayment, busy: () => ctx.quota.busy(), countModel: () => ctx.quota.record("model"),
-      agentAddress: ctx.agentAddress, balances: ctx.balances, perPaymentCap: () => ctx.settings.values().perPaymentBaseUnits, schedules: () => scheduleList(ctx, Date.now()).schedules,
-      payees: async () => Promise.all((await ctx.index.payeeIds()).map((id) => payeeSummary(ctx, id, Date.now()))),
-    } : null;
+    return ctx ? chatOwnerOf(ctx) : null;
   },
   redeemLink: async (token, telegramUserId) => {
     const linked = await links.redeem(token, telegramUserId);
-    if (linked.ok) await notifyAdmin(`Owner ${linked.ownerId} connected a Telegram chat.`);
+    if (linked.ok) await channels.notifyAdmin(`Owner ${linked.ownerId} connected a Telegram chat.`);
     return linked;
   },
   extract: trackedReader,
   answeredByCode: () => modelStats.answeredByCode(),
 });
+if (config.discord) {
+  channels.discord = startDiscordBot({
+    ...config.discord, network: config.network, publicUrl: config.publicUrl, links: channels.discordLinks, notifyAdmin: channels.notifyAdmin, extract: trackedReader, answeredByCode: () => modelStats.answeredByCode(),
+    ownerFor: (ownerId) => {
+      const ctx = owners.get(ownerId);
+      return ctx ? chatOwnerOf(ctx) : null;
+    },
+  });
+} else {
+  console.log("DISCORD_BOT_TOKEN is not set: Discord is off. Everything else runs.");
+}
 void owners.tickAll();
 
 process.once("SIGTERM", () => {
   console.log("Stopping: Telegram polling ends first so a new instance can take over.");
-  void (bot?.stop() ?? Promise.resolve()).finally(() => {
+  void Promise.all([channels.bot?.stop(), channels.discord?.stop()]).finally(() => {
     server.close();
     void storage.close().finally(() => process.exit(0));
   });

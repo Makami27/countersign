@@ -7,10 +7,11 @@ import { OwnerWallets } from "../../src/ownerWallet.ts";
 import { Schedules } from "../../src/schedules.ts";
 import { QuotaMeter } from "../../src/quota.ts";
 import type { Reading } from "../../src/screen.ts";
+import { DISCORD_OFF, type DiscordPort } from "../../src/discordLinks.ts";
 
 export type DepositCall = { readonly sender: SuiAddress; readonly usdcBaseUnits: bigint; readonly suiBaseUnits: bigint };
 
-export type Extras = { readonly deposits: DepositPort; readonly depositCalls: DepositCall[]; readonly wallets: OwnerWallets; readonly approvals: OwnerApprovals; readonly notify: (text: string) => Promise<void>; readonly notices: string[]; readonly schedules: Schedules; readonly shared: SharedAttackList; readonly quota: QuotaMeter; readonly isAdmin: boolean; readonly read: (text: string) => Promise<Reading>; readonly telegram: { readonly link: () => Promise<{ readonly url: string; readonly expires: string } | null>; readonly linked: () => Promise<boolean> } };
+export type Extras = { readonly deposits: DepositPort; readonly depositCalls: DepositCall[]; readonly wallets: OwnerWallets; readonly approvals: OwnerApprovals; readonly notify: (text: string) => Promise<void>; readonly notices: string[]; readonly schedules: Schedules; readonly shared: SharedAttackList; readonly quota: QuotaMeter; readonly isAdmin: boolean; readonly read: (text: string) => Promise<Reading>; readonly telegram: { readonly link: () => Promise<{ readonly url: string; readonly expires: string } | null>; readonly linked: () => Promise<boolean> }; readonly discord: DiscordPort };
 
 export async function ownerExtras(rows: SqlRows, deps: { readonly memory: MemoryPort; readonly signer: RecordSigner; readonly signatures: SignatureVerifier; readonly shared: SharedAttackList }, now: () => number = Date.now): Promise<Extras> {
   const notices: string[] = [];
@@ -33,6 +34,7 @@ export async function ownerExtras(rows: SqlRows, deps: { readonly memory: Memory
     isAdmin: true,
     read: async () => ({ provider: "groq", status: "UNKNOWN", problem: "UNAVAILABLE", httpStatus: null, attempts: 1 }),
     telegram: { link: async () => ({ url: "https://t.me/countersign_test_bot?start=0123456789abcdef0123456789abcdef", expires: new Date(Date.now() + 600_000).toISOString() }), linked: async () => false },
+    discord: DISCORD_OFF,
     schedules: await Schedules.open({ rows, memory: deps.memory, signer: deps.signer, ownerId: "owner1", now }),
   };
 }

@@ -7,6 +7,7 @@ import type { OwnerWallets } from "./ownerWallet.ts";
 import type { Schedules } from "./schedules.ts";
 import type { QuotaMeter } from "./quota.ts";
 import type { Reading } from "./screen.ts";
+import type { DiscordPort } from "./discordLinks.ts";
 import type { DepositAmounts, DepositSighting, PreparedDeposit } from "@countersign/adapters/tatum";
 
 export type BalancesView =
@@ -54,4 +55,5 @@ export type OwnerContext = {
   readonly isAdmin: boolean;
   readonly read: (text: string) => Promise<Reading>;
   readonly telegram: { readonly link: () => Promise<{ readonly url: string; readonly expires: string } | null>; readonly linked: () => Promise<boolean> };
+  readonly discord: DiscordPort;
 };

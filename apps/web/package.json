@@ -26,6 +26,7 @@
     "./ownerDirectory": "./src/ownerDirectory.ts",
     "./ownerRuntime": "./src/ownerRuntime.ts",
     "./telegramLinks": "./src/telegramLinks.ts",
+    "./discordLinks": "./src/discordLinks.ts",
     "./screen": "./src/screen.ts",
     "./paymentReading": "./src/paymentReading.ts",
     "./walletFacts": "./client/walletFacts.ts",

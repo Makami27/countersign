@@ -7,6 +7,7 @@ import { clockTime } from "../dayGroups.ts";
 import type { ActivityItem, Overview } from "../types.ts";
 import { agentFacts } from "./firstRun.ts";
 import { telegramPanel } from "./telegramPanel.ts";
+import { discordPanel } from "./discordPanel.ts";
 import { soundToggle } from "../moment.ts";
 import { carryNotice, showCarried } from "../carriedNotice.ts";
 
@@ -22,7 +23,10 @@ function suiscan(network: string, digest: string): string {
   return `https://suiscan.xyz/${encodeURIComponent(network)}/tx/${encodeURIComponent(digest)}`;
 }
 
+export const MISSED_NOTICE = "Discord couldn't deliver this notice by DM:";
+
 function moneySentence(item: ActivityItem): string {
+  if (item.kind === "notice") return `${MISSED_NOTICE} ${item.text}`;
   if (item.kind === "payment") return `Sending ${usdc(item.amountBaseUnits)}. Not confirmed yet. It won't be sent twice.`;
   if (item.verdict === "PAID" && item.amountBaseUnits) return `Sent ${usdc(item.amountBaseUnits)}.`;
   if (item.verdict === "CHANGE_VERIFIED") return "Nothing was sent. The payee's address is now verified.";
@@ -33,11 +37,12 @@ export function activityPage(items: readonly ActivityItem[], names: ReadonlyMap<
   const payee = (id: string | null) => (id && names.has(id) ? ` Payee: ${names.get(id) ?? ""}.` : "");
   const transaction = (net: string, digest: string | null) => (digest ? [", ", h("a", { href: suiscan(net, digest), target: "_blank", rel: "noopener" }, "Transaction")] : []);
   const rowOf = (item: ActivityItem) => h("li", { class: item.kind === "receipt" && (item.verdict === "REFUSED" || item.verdict === "CHANGE_REJECTED") ? "refused-row" : "" },
-    h("span", { class: "v" }, item.kind === "receipt" ? (VERDICT_WORDS[item.verdict] ?? "Recorded") : "In progress"),
-    h("span", { class: "what" }, h("span", {}, `${moneySentence(item)}${payee(item.payeeId)}`),
-      item.address ? addressEl(item.address, { short: true }) : null,
+    h("span", { class: "v" }, item.kind === "receipt" ? (VERDICT_WORDS[item.verdict] ?? "Recorded") : item.kind === "notice" ? "Notice" : "In progress"),
+    h("span", { class: "what" }, h("span", {}, `${moneySentence(item)}${item.kind === "notice" ? "" : payee(item.payeeId)}`),
+      item.kind !== "notice" && item.address ? addressEl(item.address, { short: true }) : null,
       item.kind === "receipt"
         ? h("span", { class: "meta" }, `${clockTime(item.at)}, `, h("a", { href: `/r/${encodeURIComponent(item.receipt)}` }, "Receipt"), ...transaction(item.network, item.suiDigest), `, ${item.network}`)
+        : item.kind === "notice" ? h("span", { class: "meta" }, clockTime(item.at))
         : h("span", { class: "meta" }, clockTime(item.at), ...transaction(network, item.digest), `, ${network}`)));
   return h("section", { class: "narrow", "aria-labelledby": "activity-title" }, h("h1", { id: "activity-title" }, "Activity"),
     h("p", { class: "lede" }, "Every payment and every refusal, newest first. Each has a receipt signed by the agent and stored on Walrus Memory."),
@@ -71,7 +76,7 @@ export function settingsPage(overview: Overview, onSaved: () => void): HTMLEleme
     await api("DELETE", "/api/session");
     location.assign("/app/login");
   }, status);
-  return h("section", { class: "narrow", "aria-labelledby": "settings-title" }, h("h1", { id: "settings-title" }, "Settings"), agentFacts(overview), ownerWalletPanel(overview, onSaved), telegramPanel(), form,
+  return h("section", { class: "narrow", "aria-labelledby": "settings-title" }, h("h1", { id: "settings-title" }, "Settings"), agentFacts(overview), ownerWalletPanel(overview, onSaved), telegramPanel(), discordPanel(), form,
     overview.cooldownSeconds < 24 * 3600 ? h("p", { class: "netlabel" }, `Demo value: changes you confirm yourself wait ${Math.round(overview.cooldownSeconds / 60)} minutes, not 24 hours.`) : null,
     h("div", { class: "actions" }, soundToggle("btn"), signOut));
 }

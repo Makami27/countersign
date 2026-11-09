@@ -8,6 +8,7 @@ export type Config = {
   readonly agentWalletKey: string;
   readonly ownerId: string;
   readonly telegram: { readonly token: string; readonly ownerUserId: number };
+  readonly discord: { readonly token: string; readonly applicationId: string } | null;
   readonly gemini: { readonly apiKey: string; readonly model: string };
   readonly groq: { readonly apiKey: string; readonly model: string } | null;
   readonly caps: { readonly perPaymentBaseUnits: bigint; readonly perDayBaseUnits: bigint };
@@ -55,6 +56,9 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
   };
   const ownerUserId = Number(need("TELEGRAM_OWNER_USER_ID"));
   const cooldownSeconds = Number(need("CHANGE_COOLDOWN_SECONDS"));
+  const discordToken = env["DISCORD_BOT_TOKEN"]?.trim() ?? "";
+  const discordApplicationId = env["DISCORD_APPLICATION_ID"]?.trim() ?? "";
+  if (discordToken && !/^\d{5,25}$/.test(discordApplicationId)) problems.push("DISCORD_APPLICATION_ID (numeric, needed with DISCORD_BOT_TOKEN)");
   if (!Number.isInteger(ownerUserId)) problems.push("TELEGRAM_OWNER_USER_ID (integer)");
   if (!Number.isInteger(cooldownSeconds) || cooldownSeconds < 0) problems.push("CHANGE_COOLDOWN_SECONDS (integer ≥ 0)");
   const config: Config = {
@@ -65,6 +69,7 @@ export function loadConfig(env: NodeJS.ProcessEnv): Config {
     agentWalletKey: need("AGENT_WALLET_PRIVATE_KEY"),
     ownerId: need("OWNER_ID"),
     telegram: { token: need("TELEGRAM_BOT_TOKEN"), ownerUserId },
+    discord: discordToken ? { token: discordToken, applicationId: discordApplicationId } : null,
     gemini: { apiKey: need("GEMINI_API_KEY"), model: need("GEMINI_MODEL") },
     groq: env["GROQ_API_KEY"]?.trim() ? { apiKey: env["GROQ_API_KEY"].trim(), model: env["GROQ_MODEL"]?.trim() || GROQ_DEFAULT_MODEL } : null,
     caps: { perPaymentBaseUnits: baseUnits("CAP_PER_PAYMENT_USDC_BASE_UNITS"), perDayBaseUnits: baseUnits("CAP_PER_DAY_USDC_BASE_UNITS") },

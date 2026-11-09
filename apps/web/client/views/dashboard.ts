@@ -6,7 +6,7 @@ import { START_STEPS } from "../startSteps.ts";
 
 const STEPS: readonly (readonly [keyof Overview["checklist"] | "signedIn", string])[] = [
   ...START_STEPS.map((step) => [step.key, step.label] as const),
-  ["telegram", "Connect Telegram (optional, in Settings)"],
+  ["telegram", "Connect Telegram or Discord (optional, in Settings)"],
 ];
 
 const OPTIONAL: ReadonlySet<string> = new Set(["telegram"]);

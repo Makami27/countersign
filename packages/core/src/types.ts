@@ -4,7 +4,7 @@ export type SuiAddress = string & { readonly __brand: "SuiAddress" };
 
 export type InboundMessage = {
   readonly id: string;
-  readonly channel: "telegram" | "web" | "lab" | "cli" | "paste";
+  readonly channel: "telegram" | "discord" | "web" | "lab" | "cli" | "paste";
   readonly from: string;
   readonly text: string;
   readonly receivedAt: string;

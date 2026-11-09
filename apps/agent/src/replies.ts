@@ -1,6 +1,6 @@
 import { REASONS, formatUsdc, type Outcome, type PaymentIntent, type ReceiptWrite, type SuiAddress } from "@countersign/core";
 import { NOTHING_ASKED } from "@countersign/web/paymentReading";
-import { seenWords } from "./telegramText.ts";
+import { seenWords } from "./chat/text.ts";
 
 export const RECEIPT_PENDING_REPLY = "Writing the receipt to Walrus Memory. This takes about 20 seconds; the payment outcome above is already final.";
 
