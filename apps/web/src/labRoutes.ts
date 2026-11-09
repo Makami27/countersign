@@ -35,7 +35,7 @@ export async function labRoute(lab: LabSessions, req: IncomingMessage, res: Serv
     reply = await session.scam(payeeId, text);
   } else if (path === "/api/lab/letter") {
     const letter = input["letter"];
-    if (!isLetter(letter)) return problem(res, 400, "Choose one of the letters. Nothing was changed.", labCookie(id));
+    if (!isLetter(letter)) return problem(res, 400, "Choose one of the messages. Nothing was changed.", labCookie(id));
     reply = await session.letter(letter, payeeId);
   } else if (path === "/api/lab/pay") {
     const amountBaseUnits = usdcToBaseUnits(String(input["amount"] ?? "").trim());

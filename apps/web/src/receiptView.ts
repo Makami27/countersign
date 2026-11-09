@@ -13,19 +13,19 @@ const VERDICT_WORDS: Record<ReceiptRecord["verdict"], { readonly words: string; 
 };
 
 export const CHECK_WORDS: Record<CheckCode, string> = {
-  ADDRESS_IN_MESSAGE: "The address appears word for word in the message",
-  PAYEE_VERIFIED: "The payee has exactly one verified address",
-  NOT_KNOWN_ATTACK: "The address was not refused before",
-  NOT_LOOKALIKE: "The address is not a look-alike of a known address",
-  MEMORY_COMPLETE: "Walrus Memory was read completely",
-  AMOUNT_VALID: "The amount is a valid USDC amount",
-  WITHIN_CAPS: "The payment is within the spending caps",
-  CONTINUITY: "The payee's current wallet signed the change",
-  OWNER_CONFIRMED: "The owner confirmed with a fresh one-time code",
-  COOLDOWN_ELAPSED: "The waiting period had passed",
-  CONTROL: "The new wallet proved it is in control",
-  SETTLED_ON_CHAIN: "The transfer settled on chain",
-  NOT_SEEN_ELSEWHERE: "Other Countersign agents have not refused this address",
+  ADDRESS_IN_MESSAGE: "Address appears word for word in the message",
+  PAYEE_VERIFIED: "Payee has exactly one verified address",
+  NOT_KNOWN_ATTACK: "Never refused before",
+  NOT_LOOKALIKE: "Doesn't imitate an address on file",
+  MEMORY_COMPLETE: "Walrus Memory read completely",
+  AMOUNT_VALID: "Amount is a valid USDC amount",
+  WITHIN_CAPS: "Payment is within the spending caps",
+  CONTINUITY: "Payee's current wallet signed the change",
+  OWNER_CONFIRMED: "Owner confirmed with a fresh one-time code",
+  COOLDOWN_ELAPSED: "Waiting period has passed",
+  CONTROL: "New wallet proved it is in control",
+  SETTLED_ON_CHAIN: "Transfer settled on chain",
+  NOT_SEEN_ELSEWHERE: "Never refused by another Countersign agent",
 };
 
 export type BlobLink = { readonly id: string; readonly raw: string | null; readonly explorer: string | null };

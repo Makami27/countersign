@@ -6,6 +6,13 @@ export type LetterKind = (typeof LETTERS)[number];
 
 export const FORGED_NOTE = "A record claiming a new VERIFIED address was written straight into memory. It isn't signed by this agent, so the restore ignored it, and paying still goes to the address the payee proved.";
 
+export const MESSAGE_LABELS: Record<LetterKind, string> = {
+  genuine: "Message: a genuine payment request",
+  lookalike: "Message: \"my wallet changed\" with a look-alike",
+  history: "Message: a fake payment history",
+  forged: "Message: a forged memory record",
+};
+
 export function isLetter(value: unknown): value is LetterKind {
   return LETTERS.some((l) => l === value);
 }

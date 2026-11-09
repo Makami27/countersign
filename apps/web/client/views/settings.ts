@@ -51,7 +51,7 @@ function limitsForm(overview: Overview, onSaved: () => void): HTMLElement {
 export function settingsPage(overview: Overview, onSaved: () => void): HTMLElement {
   const accountStatus = liveRegion();
   return h("section", { class: "narrow settings", "aria-labelledby": "settings-title" }, h("h1", { id: "settings-title" }, "Settings"),
-    group("settings-wallets", "Wallets", "The agent wallet pays your bills, so fund that one. Your wallet signs approvals and deposits. It never pays bills.",
+    group("settings-wallets", "Wallets", "The agent wallet pays your bills, so fund that one. Your wallet approves changes and sends deposits. It never pays bills.",
       factList(...walletFacts(overview)), asSubsection(ownerWalletPanel(overview, onSaved))),
     group("settings-limits", "Limits", "What the agent may pay, and how long a change you approve yourself waits.",
       limitsForm(overview, onSaved),

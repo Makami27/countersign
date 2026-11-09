@@ -8,7 +8,7 @@ const CHANGE_STEPS: readonly { label: string; failsOn: readonly ReasonCode[] }[]
   { label: "The payee already has a verified address", failsOn: ["PAYEE_NOT_VERIFIED", "CONFLICT"] },
   { label: "Not a repeat of an attempt already refused", failsOn: ["KNOWN_ATTACK_PATTERN"] },
   { label: "Does not imitate a known address", failsOn: ["LOOKALIKE_ADDRESS"] },
-  { label: "Kept as stated, so it can't be paid yet", failsOn: [] },
+  { label: "Kept as unproven, so it can't be paid yet", failsOn: [] },
   { label: "Signed by the payee's current wallet, or confirmed by you", failsOn: ["NO_CONTINUITY", "COOLDOWN_ACTIVE", "EXPIRED", "NONCE_REUSED", "CHAIN_UNKNOWN", "WRONG_WALLET", "SIGNATURE_INVALID"] },
   { label: "The new wallet proves it is in control", failsOn: ["CONTROL_NOT_PROVEN"] },
 ];

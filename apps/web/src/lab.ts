@@ -4,7 +4,7 @@ import { SharedAttackList } from "@countersign/core/shared";
 import { recordSignerFromSeed } from "@countersign/adapters/signer";
 import { traceFor, type TraceStep } from "./trace.ts";
 import { labVerify, newWallet, type Wallet } from "./labWallets.ts";
-import { FORGED_NOTE, letterText, type LetterKind } from "./labLetters.ts";
+import { FORGED_NOTE, MESSAGE_LABELS, letterText, type LetterKind } from "./labLetters.ts";
 import { NOTHING_ASKED, amountQuestion, questionWords, quickAmounts, readPayment, saidNotProvenWords, type KnownPayee } from "./paymentReading.ts";
 
 export const LAB_PAYEES = [
@@ -110,11 +110,11 @@ class LabSession {
     const current = this.current.get(payeeId);
     if (!payee || !current) throw new Error(`unknown lab payee ${payeeId}`);
     const text = letterText(kind, payeeId, payee.name, current.address);
-    if (kind !== "forged") return this.scam(payeeId, text, `Letter: ${kind}`);
+    if (kind !== "forged") return this.scam(payeeId, text, MESSAGE_LABELS[kind]);
     this.memory.plant(`countersign:lab:payee:${payeeId}`, text);
     await this.engine.restore();
     const outcome = await this.engine.handle({ id: `lab:${randomBytes(4).toString("hex")}`, channel: "lab", from: "owner", text: `Pay ${payeeId}`, receivedAt: new Date().toISOString() }, { kind: "pay", payeeId, amountBaseUnits: "1000000", reasonQuote: `Pay ${payeeId}` });
-    this.#log("Letter: forged memory record", outcome, FORGED_NOTE);
+    this.#log(MESSAGE_LABELS.forged, outcome, FORGED_NOTE);
     return { outcome, trace: traceFor("pay", outcome), view: this.view(), note: FORGED_NOTE };
   }
 

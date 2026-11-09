@@ -16,6 +16,8 @@ h1, h2, h3 { line-height: 1.15; letter-spacing: -0.015em; margin: 0; font-weight
 p { margin: 0; max-width: var(--measure); }
 a { color: var(--ballpoint); text-underline-offset: 0.2em; text-decoration-thickness: 1px; }
 a:hover { text-decoration-thickness: 2px; }
+.prose-links :is(p, li, dd, td, figcaption, blockquote) a:not(.btn, .cta-other, nav a) { color: var(--ballpoint); font-weight: 600; text-decoration: none; }
+.prose-links :is(p, li, dd, td, figcaption, blockquote) a:not(.btn, .cta-other, nav a):is(:hover, :focus-visible) { text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 0.2em; }
 code { font-family: var(--mono); font-size: 0.86em; font-stretch: 87.5%; overflow-wrap: anywhere; }
 
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }

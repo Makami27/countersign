@@ -48,7 +48,7 @@ export function publicPage(title: string, body: string, network: "mainnet" | "te
 <body>
 <div class="app">
 <header class="bar"><a class="wordmark" href="/" aria-label="Countersign home">${wordmarkSvg()}<span>sign</span></a>${network === null ? "" : networkLabel(network)}<nav aria-label="Site"><a href="/demo">Demo</a><a href="/proof">Proof</a><a href="/status">Status</a></nav></header>
-<main class="${mainClass}">${body}</main>
+<main class="${mainClass} prose-links">${body}</main>
 </div>
 </body>
 </html>`;

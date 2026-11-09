@@ -2,7 +2,7 @@ import { scrawlMarkup } from "../client/scrawl.ts";
 import { START_STEPS } from "../client/startSteps.ts";
 import { countText, sharedLine, type Live } from "../client/liveCounts.ts";
 import type { Acts, Trial } from "./landingData.ts";
-import { monthHtml, replayHtml, twoAgentsHtml } from "./landingSections.ts";
+import { dayMonthYear, monthHtml, replayHtml, twoAgentsHtml } from "./landingSections.ts";
 import type { Measurement } from "./proofPage.ts";
 import { addressHtml, shortAddressHtml, wordmarkSvg } from "./publicPage.ts";
 
@@ -14,16 +14,16 @@ function measurementHtml(m: Measurement | null): string {
   const line = (n: string, words: string, tone: string) => `<li class="${tone}"><span class="figure">${n}</span><span>${words}</span></li>`;
   const final = m.complete === false ? `<p class="note"><strong>Partial run; these numbers are not final.</strong></p>` : "";
   return `${final}<ul class="figures">
-${line(`${m.countersign.attackerPayments} of ${m.countersign.attempts}`, "attack messages where Countersign paid the attacker.", "refused")}
+${line(`${m.countersign.attackerPayments} of ${m.countersign.attempts}`, "scam messages where Countersign paid the attacker.", "refused")}
 ${line(`${m.baseline.attackerPayments} of ${m.baseline.attempts}`, "where the same agent without the checks did. Same model, same messages.", "plain")}
-${line(`${m.benign.messages - m.benign.falseRefusals} of ${m.benign.messages}`, `ordinary payment requests paid right, with ${m.benign.falseRefusals} false refusals.`, "verified")}
+${line(`${m.benign.messages - m.benign.falseRefusals} of ${m.benign.messages}`, `ordinary payment requests paid correctly, with ${m.benign.falseRefusals} false refusals.`, "verified")}
 </ul>
-<p class="note">Preregistered; run ${m.runAt.slice(0, 10)} on Sui ${m.network} with test USDC; corpus ${m.corpus}.</p>`;
+<p class="note">Preregistered; run ${dayMonthYear(m.runAt)} on Sui ${m.network} with test USDC; corpus ${m.corpus}.</p>`;
 }
 
 function heroProof(m: Measurement | null): string {
   if (!m || m.complete === false) return "";
-  return `<p class="hero-proof"><a href="/proof">${m.countersign.attackerPayments} of ${m.countersign.attempts} scam attempts paid in our preregistered test.</a></p>`;
+  return `<p class="hero-proof"><a href="/proof">${m.countersign.attackerPayments} of ${m.countersign.attempts} scam messages paid in our preregistered test.</a></p>`;
 }
 
 export const COMPARED_TRIAL = { attack: "K4", trial: 0 } as const;

@@ -36,9 +36,9 @@ test("V14 a look-alike refusal's receipt page says no money moved, compares the 
   assert.match(page.text, />VOID</);
   assert.match(page.text, /class="g diff"/);
   assert.match(page.text, /No transaction: nothing was sent\./);
-  const order = ["appears word for word", "exactly one verified address", "was not refused before", "not a look-alike"].map((words) => page.text.indexOf(words));
+  const order = ["Address appears word for word", "Payee has exactly one verified address", "Never refused before", "Doesn&#39;t imitate an address on file"].map((words) => page.text.indexOf(words));
   assert.ok(order.every((i, n) => i > 0 && (n === 0 || i > (order[n - 1] ?? 0))), `checks out of order: ${order.join(",")}`);
-  assert.match(page.text, /Failed<\/span> The address is not a look-alike/);
+  assert.match(page.text, /Failed<\/span> Doesn&#39;t imitate an address on file/);
   assert.match(page.text, /aggregator\.walrus-mainnet\.walrus\.space\/v1\/blobs\//);
   assert.match(page.text, /Sui testnet: test USDC, no real money\./);
   assert.match(page.csp ?? "", /script-src 'self'/);

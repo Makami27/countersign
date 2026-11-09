@@ -84,7 +84,7 @@ test("V28 /link binds the Discord account to the owner who made the code; /payee
   assert.match(texts(await w.run(USER_A, "cancel")), /^There's no payment waiting for your confirmation\./);
   const help = texts(await w.run(USER_A, "help"));
   for (const c of DISCORD_COMMANDS) assert.ok(help.includes(`/${c.command}: `), c.command);
-  for (const words of ["/pay rent 0.10", "/check", "visible only to you", "Telegram and from Discord", "Your wallet: signs approvals and deposits. It never pays bills."]) assert.ok(help.includes(words), words);
+  for (const words of ["/pay rent 0.10", "/check", "visible only to you", "Telegram and from Discord", "Your wallet: approves changes and sends deposits. It never pays bills."]) assert.ok(help.includes(words), words);
 });
 
 test("V28 /pay previews the full grouped verified address with Pay and Cancel; Pay sends once and reports the receipt; B's button can never confirm A's payment", async (t) => {

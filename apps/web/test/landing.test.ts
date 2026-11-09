@@ -102,7 +102,7 @@ test("V27 the month shows the two-owner step only when Act 5 holds a real SEEN_B
 
 test("U05 the landing FAQ names the two wallets the same way as the app, and no copy says owner wallet", () => {
   const page = readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
-  for (const name of ["Agent wallet: pays your bills (fund this one)", "Your wallet: signs approvals and deposits. It never pays bills."]) assert.ok(page.includes(name), name);
+  for (const name of ["Agent wallet: pays your bills (fund this one)", "Your wallet: approves changes and sends deposits. It never pays bills."]) assert.ok(page.includes(name), name);
   assert.equal(/owner wallet/i.test(page), false);
 });
 
@@ -141,7 +141,7 @@ test("U07 the comparison, the second case and the source answer use the agreed w
   assert.ok(page.includes("Refused the new address. Rent still goes to the one on file."));
   assert.ok(page.includes("The second time, it remembered: refused citing the first receipt."));
   const plain = page.replace(/<[^>]+>/g, "");
-  assert.ok(plain.includes("The code is public on GitHub, so you can read and check every rule. It isn't licensed for reuse."));
+  assert.ok(plain.includes("No. The code is public on GitHub, so you can read and check every rule, but it isn't licensed for reuse."));
   assert.doesNotMatch(plain, /open-source licence/);
 });
 
@@ -151,7 +151,7 @@ test("V29 under the hero buttons one quiet line states the preregistered result 
   assert.ok(measurement);
   const page = landingHtml(template, measurement, await readActs(), null);
   const hero = page.slice(page.indexOf(`class="hero-actions"`), page.indexOf("</section>"));
-  assert.ok(hero.includes(`<p class="hero-proof"><a href="/proof">${measurement.countersign.attackerPayments} of ${measurement.countersign.attempts} scam attempts paid in our preregistered test.</a></p>`));
+  assert.ok(hero.includes(`<p class="hero-proof"><a href="/proof">${measurement.countersign.attackerPayments} of ${measurement.countersign.attempts} scam messages paid in our preregistered test.</a></p>`));
   assert.doesNotMatch(landingHtml(template, null, await readActs(), null), /class="hero-proof"/);
 });
 
@@ -160,7 +160,7 @@ test("V29 story text shows no raw receipt or blob ids: they are Receipt links", 
   const story = page.slice(page.indexOf(`id="demo"`), page.indexOf(`id="memory"`)).replace(/<[^>]+>/g, "");
   assert.doesNotMatch(story, /rcpt_|blob [A-Za-z0-9]/);
   const month = page.slice(page.indexOf(`<ol class="month">`), page.indexOf(`id="memory"`));
-  assert.match(month, /<h3><span class="visually-hidden">The 9th: <\/span>A “new wallet” email with a look-alike address arrives\. Refused\. <span class="month-link"><a href="\/r\/rcpt_[0-9a-f]+">Receipt<\/a><\/span><\/h3>/);
+  assert.match(month, /<h3><span class="visually-hidden">The 9th: <\/span>A “new wallet” message with a look-alike address arrives\. Refused\. <span class="month-link"><a href="\/r\/rcpt_[0-9a-f]+">Receipt<\/a><\/span><\/h3>/);
 });
 
 test("V29 the hero keeps one button order at every width and the phone header leaves Try the demo to the menu", () => {

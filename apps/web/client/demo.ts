@@ -40,8 +40,8 @@ function cards(view: View): HTMLElement {
         h("div", { class: "sigcard-head" }, h("h3", { class: "sigcard-name" }, p.name), p.payableAddress ? statusPill("verified") : statusPill("not_payable")),
         p.payableAddress ? signatureFigure(p.payableAddress, { drawWhenNew: true }) : null,
         p.payableAddress ? addressEl(p.payableAddress) : h("p", {}, "Nobody: no verified address"),
-        h("p", { class: "note" }, `${p.versions.filter((v) => v.status === "VERIFIED").length} verified, ${p.versions.filter((v) => v.status === "STATED").length} stated (never payable) in memory.`),
-        stated.length ? h("ul", { class: "rows stated-list", "aria-label": "Stated addresses, never paid" }, ...stated.slice(-3).map((v) => h("li", {}, h("span", { class: "v" }, `v${v.version}`), h("span", { class: "what" }, h("span", {}, h("span", { class: "status stated" }, "Stated"), " ", addressEl(v.address, { short: true })))))) : null);
+        h("p", { class: "note" }, `${p.versions.filter((v) => v.status === "VERIFIED").length} verified, ${p.versions.filter((v) => v.status === "STATED").length} unproven (never payable) in memory.`),
+        stated.length ? h("ul", { class: "rows stated-list", "aria-label": "Unproven addresses, never paid" }, ...stated.slice(-3).map((v) => h("li", {}, h("span", { class: "v" }, `v${v.version}`), h("span", { class: "what" }, h("span", {}, h("span", { class: "status stated" }, "Unproven"), " ", addressEl(v.address, { short: true })))))) : null);
     }));
 }
 
@@ -70,9 +70,9 @@ function refusalCompare(view: View, entry: Entry | undefined): HTMLElement | nul
   return h("div", { class: "compare-block" },
     h("div", { class: "versus" },
       h("div", { class: "versus-side" }, h("span", { class: "label" }, "On file"), scrawlEl(onFile)),
-      h("div", { class: "versus-side attempted" }, h("span", { class: "label" }, "In the letter"), scrawlEl(refusal.address), h("span", { class: "stamp", "aria-hidden": "true" }, "VOID"))),
+      h("div", { class: "versus-side attempted" }, h("span", { class: "label" }, "In the message"), scrawlEl(refusal.address), h("span", { class: "stamp", "aria-hidden": "true" }, "VOID"))),
     h("div", { class: "compare" },
-      h("div", { class: "row" }, h("span", { class: "label" }, "Address in the letter"), addressEl(refusal.address, { against: onFile })),
+      h("div", { class: "row" }, h("span", { class: "label" }, "Address in the message"), addressEl(refusal.address, { against: onFile })),
       h("div", { class: "row on-file" }, h("span", { class: "label" }, "Address on file"), addressEl(onFile, { against: refusal.address }))));
 }
 
@@ -80,11 +80,11 @@ function activity(view: View): HTMLElement {
   const rowOf = (e: Entry) => h("li", { class: e.verdict === "REFUSED" ? "refused-row" : "" }, h("span", { class: "v" }, VERDICT_WORDS[e.verdict] ?? "Recorded"),
     h("span", { class: "what" }, h("span", {}, e.label), h("span", { class: "meta" }, [reasonText(e.reason), e.note ?? "", e.receipt ? `Sandbox receipt ${e.receipt} (kept only in this sandbox).` : "", clockTime(e.at)].filter(Boolean).join(" "))));
   return h("section", { class: "card demo-panel", "data-panel": "activity", "aria-labelledby": "activity-title" }, h("h2", { id: "activity-title" }, "Activity"),
-    view.activity.length ? dayGroupsEl(view.activity, (e) => e.at, "h3", rowOf) : h("p", { class: "empty" }, "Nothing yet. Send a letter."));
+    view.activity.length ? dayGroupsEl(view.activity, (e) => e.at, "h3", rowOf) : h("p", { class: "empty" }, "Nothing yet. Send a message."));
 }
 
 function letters(view: View, result: HTMLElement, status: HTMLElement): HTMLElement {
-  const switcher = h("div", { class: "segmented", role: "radiogroup", "aria-label": "Which payee the letter is about" }, ...view.payees.map((p) => {
+  const switcher = h("div", { class: "segmented", role: "radiogroup", "aria-label": "Which payee the message is about" }, ...view.payees.map((p) => {
     const b = h("button", { type: "button", role: "radio", "aria-checked": p.id === payeeId ? "true" : "false" }, p.name);
     b.addEventListener("click", () => {
       payeeId = p.id;
@@ -127,7 +127,7 @@ void draw();
     event.preventDefault();
     await send("/api/lab/message", { text: own.value });
   }, status);
-  return h("section", { class: "card demo-panel", "data-panel": "letters", "aria-labelledby": "letters-title" }, h("h2", { id: "letters-title" }, "Letters"), switcher, h("div", { class: "demo-letters" }, ...buttons), status, result, form);
+  return h("section", { class: "card demo-panel", "data-panel": "letters", "aria-labelledby": "letters-title" }, h("h2", { id: "letters-title" }, "Messages"), switcher, h("div", { class: "demo-letters" }, ...buttons), status, result, form);
 }
 
 async function draw(known?: View): Promise<void> {
@@ -137,7 +137,7 @@ async function draw(known?: View): Promise<void> {
   const status = root.querySelector<HTMLElement>("[data-status]") ?? liveRegion();
   status.dataset["status"] = "";
   const result = root.querySelector<HTMLElement>("[data-result]") ?? h("div", { "data-result": "" });
-  const tabs = h("div", { class: "demo-tabs", role: "tablist", "aria-label": "Demo areas" }, ...[["letters", "Letters"], ["cards", "Signature cards"], ["activity", "Activity"]].map(([id, label]) => {
+  const tabs = h("div", { class: "demo-tabs", role: "tablist", "aria-label": "Demo areas" }, ...[["letters", "Messages"], ["cards", "Signature cards"], ["activity", "Activity"]].map(([id, label]) => {
     const b = h("button", { type: "button", role: "tab", "aria-selected": id === tab ? "true" : "false" }, label ?? "");
     b.addEventListener("click", () => {
       tab = id ?? "letters";
@@ -152,7 +152,7 @@ async function draw(known?: View): Promise<void> {
   }, status);
   const grid = h("div", { class: "demo-grid", "data-tab": tab }, letters(view, result, status), cards(view), activity(view));
   root.replaceChildren(h("section", { class: "narrow demo-intro" }, h("h1", { tabindex: "-1" }, "Try to scam a payment agent"),
-    h("p", { class: "lede" }, "This sandbox agent has two payees whose own wallets proved their addresses. Every letter runs through the real Countersign engine. Nothing here touches real money, Walrus Memory or anyone's data."), h("div", { class: "actions" }, reset, h("a", { class: "btn primary", href: "/app/login" }, GOOGLE_ACTION))), tabs, grid);
+    h("p", { class: "lede" }, "This sandbox agent has two payees whose own wallets proved their addresses. Every message runs through the real Countersign engine. Nothing here touches real money, Walrus Memory or anyone's data."), h("div", { class: "actions" }, reset, h("a", { class: "btn primary", href: "/app/login" }, GOOGLE_ACTION))), tabs, grid);
 }
 
 void draw();
