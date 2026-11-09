@@ -14,6 +14,7 @@ Built for Walrus × Tatum *Total Recall*, Track 2 (Smart Agents for Real Life).
 | Walrus Memory (signed records, completeness check, restore) | live on the mainnet relayer [claim:CL10]; relayer outage 30 Oct 22:37 → 31 Oct ~06:00 UTC recorded (REALITY_SPIKES R3) |
 | Payments | testnet payments settle through Tatum; Act 1 (model → engine → payment → receipt on Walrus mainnet) and Act 4 (two-wallet address change, then the next payment goes to the new wallet) [claim:CL15] recorded in `evidence/acts/` |
 | Telegram bot (`apps/agent`) | built (preview + confirm, refusals with comparison and a receipt link; /login replies with the wallet sign-in link) |
+| Discord bot (`apps/agent`, optional) | built on the same chat layer as Telegram: slash commands (/link, /pay, /payees, /balance, /schedules, /check, /cancel, /help), ephemeral replies, notices by DM with Activity as the fallback; off when `DISCORD_BOT_TOKEN` is unset. Discord, like Telegram, can only pay verified payees within caps; sensitive actions need your wallet. |
 | Owner web app (`/app`) and signing page (`/sign/:nonce`) | built; sign in with your Sui wallet (one-time message verified through Tatum, V23); tested over HTTP, screen-checked at 390 and 1440 px in light and dark |
 | Public site with attack lab (`/`) | built; lab payees go through the same onboarding rules as the agent |
 | Real use (≥10 mainnet memories) | 12 agent-signed records from the owner's own use on the mainnet relayer [claim:CL07] |
@@ -49,7 +50,7 @@ Live spikes against Tatum and Walrus Memory: see `spikes/README.md`.
 |---|---|
 | `packages/core` | pure engine, no network |
 | `packages/adapters` | SQLite, Walrus Memory, Tatum, Gemini, record signer |
-| `apps/agent` | agent process: engine, payment runner, Telegram bot, web server |
+| `apps/agent` | agent process: engine, payment runner, Telegram bot, Discord bot (optional), web server |
 | `apps/web` | public site and lab, owner app (`/app`), signing page (`/sign/:nonce`) |
 | `briefing/` | research, PRD, plan, decisions, failure modes |
 | `feasibility/` | offline feasibility tests and evidence |

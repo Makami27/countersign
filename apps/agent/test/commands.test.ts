@@ -5,6 +5,7 @@ import type { SuiAddress } from "@countersign/core";
 import { COMMANDS, balanceHtml, cancelText, helpText, payeesHtml, schedulesText } from "../src/commands.ts";
 import { GOOGLE_WORDS } from "@countersign/web/walletFacts";
 import { changeStartedHtml, questionHtml, signInLinkText } from "../src/telegramText.ts";
+import { DISCORD_COMMANDS } from "../src/discord/words.ts";
 
 const URL = "https://countersign.example";
 const ADDRESS = `0x${"ab".repeat(32)}`;
@@ -59,11 +60,11 @@ test("X10 /schedules and /cancel say what happened, including when there was not
   assert.ok(cancelText(0, URL).includes("your wallet's signature"));
 });
 
-test("X10 the landing names only Telegram commands the bot really has", async () => {
+test("X10 V28 the landing names only commands the Telegram or Discord bot really has", async () => {
   const page = await readFile("apps/web/public/index.html", "utf8");
   const features = page.slice(page.indexOf(`id="features"`), page.indexOf(`id="built"`));
   const named = [...features.matchAll(/(?:^|[\s>(])\/([a-z]+)/g)].map((m) => m[1] ?? "");
-  const real = new Set<string>(["start", ...COMMANDS.map((c) => c.command)]);
+  const real = new Set<string>(["start", ...COMMANDS.map((c) => c.command), ...DISCORD_COMMANDS.map((c) => c.command)]);
   assert.ok(named.length > 0);
-  for (const command of named) assert.ok(real.has(command), `/${command} is named on the landing but the bot has no such command`);
+  for (const command of named) assert.ok(real.has(command), `/${command} is named on the landing but neither bot has such a command`);
 });

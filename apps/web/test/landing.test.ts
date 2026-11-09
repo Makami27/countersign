@@ -68,7 +68,7 @@ test("V27 the landing cites its sources, keeps live counters honest and leaves t
   const { base, page } = await landing(t);
   for (const href of LINKS) assert.ok(page.includes(`href="${href}"`), href);
   for (const live of ["memories", "sharedReports", "sharedAgents"]) assert.match(page, new RegExp(`data-live="${live}">—<`));
-  assert.equal((page.match(/<details>/g) ?? []).length, 10);
+  assert.equal((page.match(/<details>/g) ?? []).length, 11);
   assert.doesNotMatch(page, /data-claim=|Every claim with its evidence|Status of everything the agent depends on/);
   const proof = (await (await fetch(`${base}/api/proof`)).json()) as { live: Record<string, unknown> };
   assert.deepEqual(proof.live, { memories: null, sharedAgents: null, sharedReports: null });

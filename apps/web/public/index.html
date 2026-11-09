@@ -160,13 +160,14 @@
       <div class="band-inner">
         <h2 id="features-title">What it does</h2>
         <ul class="feature-list">
-          <li><strong>Pays from Telegram or the app.</strong> Send "pay rent 0.10" to the bot, or press Pay in the owner app.</li>
+          <li><strong>Pays from Telegram, Discord or the app.</strong> Send "pay rent 0.10" to the Telegram bot, use /pay in Discord, or press Pay in the owner app.</li>
           <li><strong>Scheduled payments</strong> every week, every two weeks, every month or every year.</li>
           <li><strong>Look-alike detection.</strong> An address that copies the start and end of a known one is refused.</li>
           <li><strong>A receipt for every decision,</strong> paid or refused, stored on Walrus Memory.</li>
           <li><strong>Approvals with your own wallet.</strong> Adding payees, loosening limits and confirming changes need its signature.</li>
           <li><strong>A lost-wallet path.</strong> You confirm the new address, it waits 24 hours, and you can cancel.</li>
           <li><strong>Telegram.</strong> Forward or paste any message about a payee to have it checked. /payees, /balance, /schedules, /cancel, /login and /help do what they say.</li>
+          <li><strong>Discord.</strong> Slash commands that only you see: /pay, /check, /payees, /balance, /schedules, /cancel and /help. Notices come by DM. Add the app to your account or a server, then connect it in Settings.</li>
           <li><strong>Several owners,</strong> each with their own agent, wallet and memory.</li>
         </ul>
       </div>
@@ -192,6 +193,7 @@
           <details><summary>Can the AI be tricked into paying?</summary><p>The model only reads messages and suggests what they mean. Code decides, and it pays only addresses whose owner's wallet signed; nothing the model returns can mark an address as verified. In our preregistered measurement, the same model and messages made an agent without these checks pay the attacker 71 times in 90. With Countersign it was 0.</p></details>
           <details><summary>Do I need a crypto wallet?</summary><p>No, continue with Google. Slush makes a free one from your Google account the first time. It signs your approvals. Your agent's own wallet pays the bills. Already have a Sui wallet? Use that instead.</p></details>
           <details><summary>Which wallet do I fund?</summary><p>There are two. <strong>Agent wallet: pays your bills (fund this one).</strong> <strong>Your wallet: signs approvals and deposits. It never pays bills.</strong> It proves you approved a change, and it sends a deposit only when you press the button.</p></details>
+          <details><summary>Can I use it from Telegram or Discord?</summary><p>Yes, either or both: connect them in Settings in the owner app. Discord, like Telegram, can only pay verified payees within caps; sensitive actions need your wallet. If Discord won't deliver a DM, the notice is kept in Activity.</p></details>
           <details><summary>Who holds the money?</summary><p>The agent wallet, which you fund. Its key is kept sealed on this server, so treat it like a hot wallet: keep small amounts in it. Caps limit what it can send per payment and per day.</p></details>
           <details><summary>What is stored on Walrus, and who can read it?</summary><p>Payee addresses with how each was proven, receipts, schedules and your wallet, as records signed by your agent. The blobs on Walrus are encrypted, and this deployment reads them through its Walrus Memory account. Shared scam reports hold only an address, a reason and a receipt id.</p></details>
           <details><summary>What happens if Walrus, Tatum or the model is down?</summary><p>Nothing is paid until the agent can check. If memory can't be read completely or Tatum can't give a definite answer, payments wait, and a payment whose outcome is unknown is never sent again. If the model is down, look-alikes and known scams are still refused by code, and plain pay commands still work.</p></details>

@@ -10,7 +10,7 @@ export const DISCORD_NOT_LINKED = "No Discord account is connected.";
 export function discordPanel(): HTMLElement {
   const status = liveRegion();
   const state = h("p", { class: "note" }, "Checking whether a Discord account is connected…");
-  const installs = h("p", { class: "links" });
+  const installs = h("p", {});
   const code = h("p", { class: "link-text", hidden: true });
   const button = h("button", { class: "btn", type: "button" }, "Connect Discord");
   const panel = h("section", { class: "card", "aria-labelledby": "discord-title", hidden: true }, h("h2", { id: "discord-title" }, "Discord (optional)"),
@@ -30,6 +30,7 @@ export function discordPanel(): HTMLElement {
     if (!made.ok) return void (status.textContent = made.error.message);
     code.hidden = false;
     code.textContent = `/link ${made.data.code}`;
+    button.textContent = "Make a new code";
     status.textContent = `In Discord, run the command below. The code works once and expires ${dayAndTime(made.data.expires)}. Connecting another Discord account replaces this one.`;
   }, status);
   return panel;

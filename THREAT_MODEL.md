@@ -2,8 +2,10 @@
 
 What each attacker can and can't do to a Countersign owner's money. "Owner wallet" is the Sui wallet the owner registered in the web app (V20).
 
-## Someone who controls the owner's Telegram account
-They can send the bot messages. Since V23 they can't sign in to the owner app: signing in needs the owner wallet's signature over a one-time message, and /login only replies with the sign-in link.
+## Someone who controls the owner's Telegram or Discord account
+Discord, like Telegram, can only pay verified payees within caps; sensitive actions need your wallet. Everything in this section applies to a linked Discord account exactly as to a linked Telegram chat: both bots run the same code for paying, checking messages and answering commands.
+
+They can send the bot messages (Telegram) or run its slash commands (Discord). Since V23 they can't sign in to the owner app: signing in needs the owner wallet's signature over a one-time message, and /login only replies with the sign-in link.
 
 They **can**:
 - Pay a payee that is already VERIFIED, within the per-payment and daily caps. The money goes only to that payee's verified address.
@@ -18,9 +20,11 @@ And even someone signed in to the owner app can't do these without a fresh owner
 - Raise a cap or shorten the cooldown.
 - Create, change or delete a scheduled payment (V21).
 - Retract a shared scam report (V22).
-- Replace the owner wallet immediately (without the old wallet's signature it waits 72 hours with Telegram notices, and the owner wallet can cancel it).
+- Replace the owner wallet immediately (without the old wallet's signature it waits 72 hours with Telegram and Discord notices, and the owner wallet can cancel it).
 
-Every sensitive action also sends a Telegram notice, so the owner sees it even if the attacker reads the chat.
+Every sensitive action also sends a notice to the linked Telegram chat and Discord DM, so the owner sees it even if the attacker reads one of them. If Discord refuses the DM (for example, the app shares no server with the owner), the notice is kept in Activity in the owner app and the next Discord command reply says so once.
+
+Linking: a Telegram link or Discord code is made only inside a signed-in owner app session, works once, expires after 10 minutes and is stored only hashed. A chat or Discord account is bound to the owner whose session made it, and to one owner at a time. Someone else's Discord account can never act on your agent, and an unlinked one is told to sign in and nothing is stored.
 
 ## What wallets are asked to do
 The owner app and the payee signing page only ever call a wallet's `standard:connect` and `sui:signPersonalMessage`. They never ask a wallet to sign or send a transaction; signing these messages moves no money.
