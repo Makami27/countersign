@@ -4,10 +4,26 @@ import { FROZEN_WORDS } from "./payees.ts";
 
 const REFUSAL_FRESH_MS = 7 * 24 * 3600 * 1000;
 
+const VERIFIED_BY: Record<NonNullable<PayeeDetail["payTo"]>["verifiedBy"], string> = {
+  payee: "Verified by the payee's wallet",
+  previous_and_new: "Verified by the previous wallet and the new wallet",
+  owner_and_new: "Verified by you and the new wallet",
+};
+
 function verifiedLine(detail: PayeeDetail): HTMLElement | null {
   if (!detail.payTo) return null;
-  const signed = detail.payTo.verifications.map((v) => `${v.role === "control" ? "payee's wallet" : "previous wallet"} (${v.scheme === "ZKLOGIN" ? "zkLogin" : "Ed25519"}, checked at epoch ${v.checkedAtEpoch}${v.maxEpoch ? `; zkLogin signatures stop verifying after epoch ${v.maxEpoch}` : ""})`);
-  return h("p", { class: "countersig note" }, `${detail.payTo.why} Since ${when(detail.payTo.since)}.${signed.length ? ` Signed by: ${signed.join("; ")}.` : ""}`);
+  const payTo = detail.payTo;
+  const signed = payTo.verifications.map((v) => h("li", {}, `${v.role === "control" ? "Payee's wallet" : "Previous wallet"}: ${v.scheme === "ZKLOGIN" ? "zkLogin" : "Ed25519"}, checked at epoch ${v.checkedAtEpoch}${v.maxEpoch ? `; zkLogin signatures stop verifying after epoch ${v.maxEpoch}` : ""}.`));
+  return h("div", { class: "countersig" },
+    h("p", { class: "note" }, `${VERIFIED_BY[payTo.verifiedBy]}, ${calendarDay(payTo.since)}.`),
+    h("details", { class: "how-verified" }, h("summary", {}, "How this was verified"),
+      h("p", { class: "note" }, `${payTo.why} Version ${payTo.version}, since ${when(payTo.since)}.`),
+      signed.length ? h("ul", { class: "note" }, ...signed) : null));
+}
+
+function calendarDay(iso: string): string {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? "—" : date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 }
 
 function refusalCard(detail: PayeeDetail, now: number): HTMLElement | null {

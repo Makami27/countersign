@@ -85,7 +85,7 @@ for (const scheme of ["light", "dark"] as const) for (const width of SHOTS) {
   await page.waitForTimeout(500);
   await page.screenshot({ path: `${out}/landing-top-${width}-${scheme}.png` });
   await page.goto(`${s.base}/app`);
-  await page.waitForSelector(".wallet-block");
+  await page.waitForSelector(".balance-band:visible");
   await page.waitForTimeout(500);
   await page.screenshot({ path: `${out}/app-top-${width}-${scheme}.png` });
   await context.close();

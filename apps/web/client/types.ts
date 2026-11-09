@@ -16,7 +16,7 @@ export type Verification = { readonly role: string; readonly scheme: string; rea
 
 export type PayeeDetail = {
   readonly summary: PayeeSummary;
-  readonly payTo: { readonly address: string; readonly version: number; readonly since: string; readonly why: string; readonly verifications: readonly Verification[] } | null;
+  readonly payTo: { readonly address: string; readonly version: number; readonly since: string; readonly why: string; readonly verifiedBy: "payee" | "previous_and_new" | "owner_and_new"; readonly verifications: readonly Verification[] } | null;
   readonly waiting: { readonly address: string; readonly expires: string; readonly signUrl: string; readonly expired: boolean } | null;
   readonly pendingChanges: readonly { readonly nonce: string; readonly toAddress: string; readonly expires: string; readonly signUrl: string; readonly currentSignedAt: string | null; readonly newSignedAt: string | null; readonly ownerConfirmedAt: string | null; readonly readyAt: string | null }[];
   readonly latestRefusal: { readonly receipt: string; readonly at: string; readonly reason: string | null; readonly message: string; readonly address: string | null; readonly against: string | null } | null;

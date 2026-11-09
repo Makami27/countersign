@@ -22,6 +22,13 @@ function scheduleRow(item: ScheduleItem, network: "mainnet" | "testnet", status:
 let openFor: string | null = null;
 let creatingFor: string | null = null;
 
+let focusWhenDrawn: string | null = null;
+
+export function startScheduling(payeeId: string): void {
+  creatingFor = payeeId;
+  focusWhenDrawn = payeeId;
+}
+
 export function schedulesPanel(payeeId: string, items: readonly ScheduleItem[], network: "mainnet" | "testnet", onChanged: () => void): HTMLElement {
   const status = liveRegion();
   const rows = items.filter((item) => item.schedule.payeeId === payeeId).map((item) => scheduleRow(item, network, status, onChanged));
@@ -83,5 +90,12 @@ export function schedulesPanel(payeeId: string, items: readonly ScheduleItem[], 
     amount.focus();
   });
   draw();
+  if (focusWhenDrawn === payeeId) {
+    focusWhenDrawn = null;
+    requestAnimationFrame(() => {
+      amount.scrollIntoView({ block: "center" });
+      amount.focus({ preventScroll: true });
+    });
+  }
   return h("section", { class: "schedules", "aria-label": "Scheduled payments" }, toggle, panel);
 }

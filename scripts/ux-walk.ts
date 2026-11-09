@@ -176,7 +176,10 @@ async function shellChecks(page: Page, width: number, scheme: string): Promise<v
     const scrolls = (el: HTMLElement | null) => (el ? getComputedStyle(el).overflowY === "auto" : false);
     return { side: scrolls(side), main: scrolls(main), page: document.documentElement.scrollHeight > window.innerHeight + 1, navFixed: nav ? getComputedStyle(nav).position === "fixed" : false, band: Boolean(document.querySelector(".wallet-panel")) };
   });
-  if (layout.band) note("the full-width wallet band is back");
+  if (layout.band) note("the old wallet panel is back");
+  const wallet = await page.evaluate(() => ({ inSidebar: Boolean(document.querySelector(".side .balance-band.main, .side .wallet-block")), shown: [...document.querySelectorAll<HTMLElement>(".balance-band")].filter((el) => el.offsetParent !== null).map((el) => (el.closest("#main-col") ? "main" : "side")), bars: getComputedStyle(document.querySelector(".side") as Element).scrollbarWidth }));
+  if (wallet.inSidebar || wallet.shown.length !== 1 || wallet.shown[0] !== (width >= 960 ? "main" : "side")) note(`balance band in the wrong place at ${width}: ${wallet.shown.join(",")}`);
+  if (wallet.bars !== "none") note(`sidebar scrollbar shows at ${width}`);
   if (width >= 960 && !(layout.side && layout.main && !layout.page)) note(`sidebar and main don't scroll on their own at ${width} ${scheme}`);
   if (width < 960 && !layout.navFixed) note(`no bottom tab bar at ${width} ${scheme}`);
   const order = await page.evaluate(() => {
@@ -237,12 +240,12 @@ for (const scheme of schemes) for (const width of widths) {
   await lonely.context().close();
 
   await page.goto(`${s.base}/app`);
-  await page.waitForSelector(".wallet-block");
+  await page.waitForSelector(".balance-band:visible");
   await page.waitForTimeout(500);
   await shot(page, "app", width, scheme);
   await shellChecks(page, width, scheme);
 
-  await page.click(".wallet-block button:has-text('Deposit')");
+  await page.click(".balance-band:visible button:has-text('Deposit')");
   await shot(page, "deposit-amounts", width, scheme);
   await page.fill("#deposit-usdc", "5");
   await page.fill("#deposit-sui", "0.25");

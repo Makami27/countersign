@@ -74,6 +74,15 @@ test("V02 V06 every owner read after sign-in answers with real data, never an em
   assert.ok(Array.isArray(activity.body["items"]) && (activity.body["items"] as unknown[]).length > 0);
 });
 
+test("V31 a payee's address says who verified it in plain words: the payee's own wallet at onboarding", async (t) => {
+  const w = await signedIn(t);
+  const detail = await w.get("/api/app/payees/landlord");
+  const payTo = detail.body["payTo"] as { verifiedBy?: string; why?: string; verifications?: unknown[] };
+  assert.equal(payTo.verifiedBy, "payee");
+  assert.ok(payTo.why?.startsWith("Added by you. The payee's wallet proved control"));
+  assert.ok(Array.isArray(payTo.verifications) && payTo.verifications.length > 0);
+});
+
 test("V02 a balance or memory count that never answers shows a reason within seconds instead of holding the screen", async (t) => {
   const w = await signedIn(t, { balances: never, memoryCounts: never });
   const started = Date.now();

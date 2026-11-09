@@ -1,6 +1,5 @@
 import { addressEl, h, liveRegion } from "../dom.ts";
 import type { Overview, PayeeSummary } from "../types.ts";
-import { agentWalletBlock } from "./walletPanel.ts";
 import { payeeList } from "./payees.ts";
 import { startCard } from "./dashboard.ts";
 import { openSheet } from "./sheets.ts";
@@ -8,6 +7,7 @@ import { signOutButton } from "../signOut.ts";
 import { YOUR_WALLET_SHORT } from "../walletFacts.ts";
 
 export type SideActions = {
+  readonly band: HTMLElement;
   readonly onDeposit: () => void;
   readonly onAdd: () => void;
   readonly onPay: (payee: PayeeSummary) => void;
@@ -29,7 +29,7 @@ function footer(overview: Overview): HTMLElement {
 
 export function sidebarParts(overview: Overview, payees: SidePayees, selected: string | null, actions: SideActions): HTMLElement[] {
   return [
-    agentWalletBlock(overview, actions.onDeposit),
+    actions.band,
     payees.ok ? payeeList(payees.payees, selected, actions.onAdd, actions.onPay) : h("p", { class: "note" }, `Payees couldn't be loaded: ${payees.problem}`),
     startCard(overview, actions.onDeposit),
     h("div", { class: "side-check" }, h("button", { class: "btn", type: "button", "data-key": "check", onclick: actions.onCheck }, "Check a message")),

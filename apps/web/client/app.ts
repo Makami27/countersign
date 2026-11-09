@@ -12,12 +12,13 @@ import { activityPage } from "./views/pages.ts";
 import { settingsPage } from "./views/settings.ts";
 import { signInPage } from "./views/signIn.ts";
 import { firstRun } from "./views/firstRun.ts";
-import { menuSheet, sidebarParts } from "./views/sidebar.ts";
+import { menuSheet } from "./views/sidebar.ts";
+import { drawDesk } from "./desk.ts";
 import { depositSheet } from "./views/depositSheet.ts";
 import { showMoment, startMoments } from "./moment.ts";
 import { payeeMoments } from "./payeeMoments.ts";
 import { installPlainCopy } from "./copyHandler.ts";
-import { scrollToTop, setMenu, setNetwork, setRoute, setSide, showAdminLink } from "./shell.ts";
+import { scrollToTop, setMenu, setNetwork, setRoute, setSide, setWallet, showAdminLink } from "./shell.ts";
 
 const root = document.querySelector<HTMLElement>("#app");
 const banner = document.querySelector<HTMLElement>("#banner");
@@ -86,6 +87,7 @@ async function renderPage(): Promise<void> {
   if (path === "/app/login") {
     setRoute("bare", null);
     setSide([], false);
+    setWallet(null, false);
     return show(signInPage((address) => {
       signInWhy = null;
       go("/app");
@@ -123,12 +125,10 @@ async function renderPage(): Promise<void> {
     if (found.ok && found.data.payTo) openPay(found.data.summary.id, found.data.summary.name, found.data.payTo.address, amount);
   });
   const openAdd = () => addPayeeSheet(o.network, () => void render());
-  setSide(sidebarParts(o, payees.ok ? { ok: true, payees: list } : { ok: false, problem: payees.error.message }, selected, {
-    onDeposit: openDeposit, onAdd: openAdd, onCheck: () => checkMessageSheet(() => void render(), payFromMessage),
-    onPay: (payee) => {
-      if (payee.address) openPay(payee.id, payee.name, payee.address);
-    },
-  }), quietRender);
+  drawDesk({
+    overview: o, payees: payees.ok ? { ok: true, payees: list } : { ok: false, problem: payees.error.message }, selected, onPayeePage: match !== null,
+    openPay, openDeposit, openAdd, openCheck: () => checkMessageSheet(() => void render(), payFromMessage), go, rerender: () => void render(),
+  }, quietRender);
   if (path === "/app/activity") {
     setRoute("activity", "activity");
     const items = await api<{ items: ActivityItem[] }>("GET", "/api/app/activity");

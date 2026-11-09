@@ -54,6 +54,11 @@ function whyVersion(version: PayeeVersionRecord): string {
   }
 }
 
+function verifiedByOf(version: PayeeVersionRecord): "payee" | "previous_and_new" | "owner_and_new" {
+  if (version.evidence.kind === "continuity_signature") return "previous_and_new";
+  return version.evidence.kind === "owner_confirmed_change" ? "owner_and_new" : "payee";
+}
+
 function verificationsOf(version: PayeeVersionRecord): readonly SignatureVerification[] {
   const evidence = version.evidence;
   return evidence.kind === "payee_onboarding" || evidence.kind === "continuity_signature" || evidence.kind === "owner_confirmed_change" ? evidence.verifications : [];
@@ -68,7 +73,7 @@ export async function payeeDetail(ctx: OwnerContext, id: string, now: number) {
   const latest = refusals[0];
   return {
     summary: await payeeSummary(ctx, id, now),
-    payTo: head.kind === "verified" ? { address: head.version.address, version: head.version.version, since: head.version.createdAt, why: whyVersion(head.version), verifications: verificationsOf(head.version) } : null,
+    payTo: head.kind === "verified" ? { address: head.version.address, version: head.version.version, since: head.version.createdAt, why: whyVersion(head.version), verifiedBy: verifiedByOf(head.version), verifications: verificationsOf(head.version) } : null,
     waiting: waiting && head.kind === "none" ? { address: waiting.address, expires: waiting.expires, signUrl: signUrl(ctx, waiting.nonce), expired: Date.parse(waiting.expires) <= now } : null,
     pendingChanges: await Promise.all((await ctx.index.pendingChangesFor(id)).filter((c) => Date.parse(c.expires) > now).map(async (c) => {
       const progress = await ctx.steps.progress(c.nonce);
