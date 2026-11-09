@@ -105,12 +105,13 @@ async function page(live: Parameters<typeof landingHtml>[4]): Promise<string> {
   return landingHtml(await readFile(`${PUBLIC_DIR}index.html`, "utf8"), await readMeasurement(), await readActs(), await readTrial(COMPARED_TRIAL.attack, COMPARED_TRIAL.trial), live);
 }
 
-test("L07 numbers the server knows are in the page itself, so they show even if the page's script never runs", async () => {
+test("L07 V29 numbers the server knows are in the page itself, so they show even if the page's script never runs; a zero shared count is left out", async () => {
   const known = await page({ memories: 16, sharedAgents: 2, sharedReports: 3 });
   assert.ok(known.includes('data-live="memories">16<'));
   assert.ok(known.includes("Shared scam reports right now: 3, from 2 agents."));
   const none = await page({ memories: 16, sharedAgents: 0, sharedReports: 0 });
-  assert.ok(none.includes("No shared reports yet."));
+  assert.ok(none.includes('<p class="live-line" data-shared-line hidden></p>'));
+  assert.ok(!none.includes("No shared reports yet."));
 });
 
 test("L07 unknown numbers stay as a dash in the page", async () => {

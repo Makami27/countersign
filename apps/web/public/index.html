@@ -25,8 +25,8 @@
   <header class="site-bar">
     <a class="wordmark drawn" href="/" aria-label="Countersign home"><!--wordmark--><span>sign</span></a>
     <nav class="site-links" aria-label="Site"><a href="#demo">Demo</a><a href="#how">How it works</a><a href="#memory">Memory</a><a href="#proof">Proof</a><a href="#faq">FAQ</a><a class="wide-only" href="/status">Status</a><a class="wide-only" href="https://github.com/Makami27/countersign" rel="noreferrer">GitHub</a></nav>
-    <div class="site-actions"><a class="btn" href="/demo">Try the demo</a><a class="btn primary signin" href="/app/login">Continue with Google</a></div>
-    <details class="site-menu"><summary>Menu</summary><nav aria-label="Menu"><a href="#demo">Demo</a><a href="#how">How it works</a><a href="#memory">Memory</a><a href="#proof">Proof</a><a href="#faq">FAQ</a><a href="/status">Status</a><a href="https://github.com/Makami27/countersign" rel="noreferrer">GitHub</a><a class="menu-signin" href="/app/login">Continue with Google</a></nav></details>
+    <div class="site-actions"><a class="btn demo" href="/demo">Try the demo</a><a class="btn primary signin" href="/app/login">Continue with Google</a></div>
+    <details class="site-menu"><summary>Menu</summary><nav aria-label="Menu"><a href="#demo">Demo</a><a href="#how">How it works</a><a href="#memory">Memory</a><a href="#proof">Proof</a><a href="#faq">FAQ</a><a href="/status">Status</a><a href="https://github.com/Makami27/countersign" rel="noreferrer">GitHub</a><a class="menu-signin" href="/app/login">Continue with Google</a><a class="menu-demo" href="/demo">Try the demo</a></nav></details>
   </header>
 
   <main id="main">
@@ -40,7 +40,7 @@
         <article class="sigcard verified" aria-label="Signature card for the demo payee Rent">
           <div class="sigcard-head"><h2 class="sigcard-name">Rent</h2><span class="status verified">Verified</span></div>
           <div class="sigcard-sig"><!--scrawl:file--><span class="sigline">Drawn from the address</span></div>
-          <!--addr:card-->
+          <!--short:card-->
         </article>
 
         <div class="letter" aria-label="A letter to the agent">
@@ -60,7 +60,10 @@
         <figcaption id="hero-card-caption" class="note">Example from the demo: the payee Rent and a look-alike address. Sandbox, no money moves. The signatures are drawn from the addresses; the check is the address itself.</figcaption>
       </figure>
 
-      <p class="hero-cta"><a class="btn primary" href="/app/login">Continue with Google</a><a class="btn" href="/demo">Try the demo</a><a class="cta-other" href="/app/login?other">Use another Sui wallet</a></p>
+      <div class="hero-actions">
+        <p class="hero-cta"><a class="btn primary" href="/app/login">Continue with Google</a><a class="btn" href="/demo">Try the demo</a><a class="cta-other" href="/app/login?other">Use another Sui wallet</a></p>
+        <!--hero-proof-->
+      </div>
     </section>
 
 
@@ -76,8 +79,8 @@
     <section id="demo" class="band" aria-labelledby="demo-title">
       <div class="band-inner">
         <div class="section-head">
-          <h2 id="demo-title">Watch it decide</h2>
-          <p>Recorded on 31 Oct 2026 on the live agent: two messages forwarded on Telegram, the checks the code ran, in order, and what it wrote to Walrus Memory. Sui testnet; memory on Walrus Memory mainnet.</p>
+          <h2 id="demo-title">Watch it remember</h2>
+          <p>Recorded on 31 Oct 2026 on the live agent: the same scam forwarded twice on Telegram. The second time, the agent found its first refusal on Walrus Memory and refused at once. Sui testnet; memory on Walrus Memory mainnet.</p>
         </div>
         <div class="replay-head" aria-hidden="true"><span>Messages as they arrived</span><span>What the code checked and kept</span></div>
         <!--replay-->

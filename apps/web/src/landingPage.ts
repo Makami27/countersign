@@ -1,6 +1,6 @@
 import { scrawlMarkup } from "../client/scrawl.ts";
 import { START_STEPS } from "../client/startSteps.ts";
-import { countText, sharedSentence, type Live } from "../client/liveCounts.ts";
+import { countText, sharedLine, type Live } from "../client/liveCounts.ts";
 import type { Acts, Trial } from "./landingData.ts";
 import { monthHtml, replayHtml, twoAgentsHtml } from "./landingSections.ts";
 import type { Measurement } from "./proofPage.ts";
@@ -21,13 +21,19 @@ ${line(`${m.benign.messages - m.benign.falseRefusals} of ${m.benign.messages}`, 
 <p class="note">Preregistered; run ${m.runAt.slice(0, 10)} on Sui ${m.network} with test USDC; corpus ${m.corpus}.</p>`;
 }
 
+function heroProof(m: Measurement | null): string {
+  if (!m || m.complete === false) return "";
+  return `<p class="hero-proof"><a href="/proof">${m.countersign.attackerPayments} of ${m.countersign.attempts} scam attempts paid in our preregistered test.</a></p>`;
+}
+
 export const COMPARED_TRIAL = { attack: "K4", trial: 0 } as const;
 
 function withLive(page: string, live: Live | null): string {
   if (!live) return page;
   const counted = (["memories", "sharedAgents", "sharedReports"] as const).reduce((html, key) => (live[key] === null ? html : html.replace(`data-live="${key}">—<`, `data-live="${key}">${countText(live[key])}<`)), page);
-  const sentence = sharedSentence(live);
-  return sentence ? counted.replace(/(<p class="live-line" data-shared-line>)[\s\S]*?(<\/p>)/, `$1${sentence}$2`) : counted;
+  const line = sharedLine(live);
+  if (!line) return counted;
+  return counted.replace(/<p class="live-line" data-shared-line>[\s\S]*?<\/p>/, line.show ? `<p class="live-line" data-shared-line>${line.text}</p>` : `<p class="live-line" data-shared-line hidden></p>`);
 }
 
 export function landingHtml(template: string, measurement: Measurement | null, acts: Acts, trial: Trial | null, live: Live | null = null): string {
@@ -35,7 +41,8 @@ export function landingHtml(template: string, measurement: Measurement | null, a
     "<!--wordmark-->": wordmarkSvg(),
     "<!--scrawl:file-->": scrawlMarkup(HERO_ON_FILE),
     "<!--scrawl:attempt-->": scrawlMarkup(HERO_ATTEMPT),
-    "<!--addr:card-->": addressHtml(HERO_ON_FILE, null),
+    "<!--short:card-->": shortAddressHtml(HERO_ON_FILE),
+    "<!--hero-proof-->": heroProof(measurement),
     "<!--addr:file-->": addressHtml(HERO_ON_FILE, HERO_ATTEMPT),
     "<!--addr:attempt-->": addressHtml(HERO_ATTEMPT, HERO_ON_FILE),
     "<!--short:attempt-->": shortAddressHtml(HERO_ATTEMPT),

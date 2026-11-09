@@ -10,7 +10,7 @@ import { COMPARED_TRIAL, landingHtml } from "../src/landingPage.ts";
 import { readMeasurement } from "../src/proofPage.ts";
 import { START_STEPS } from "../client/startSteps.ts";
 import { GOOGLE_WORDS } from "../client/walletFacts.ts";
-import { countText, sharedSentence } from "../client/liveCounts.ts";
+import { countText, sharedLine } from "../client/liveCounts.ts";
 
 const LINKS = ["https://www.ic3.gov/AnnualReport/Reports/2025_IC3Report.pdf", "https://cointelegraph.com/news/address-poisoning-copy-paste-mistake-50m-usdt-loss", "/proof", "/status", "/demo"];
 
@@ -25,7 +25,7 @@ async function landing(t: { after: (fn: () => void) => void }) {
   return { base, page: await (await fetch(`${base}/`)).text() };
 }
 
-test("V27 the landing replays Acts 2 and 3 from their evidence files: every check in order, the refusal and the receipt linked to its page", async (t) => {
+test("V27 V29 the landing replays Act 3 from its evidence file, every check in order, after a one-line Act 2, and links both receipts to their pages", async (t) => {
   const { page } = await landing(t);
   const acts = await readActs();
   for (const act of [acts.refused, acts.repeated]) {
@@ -36,8 +36,10 @@ test("V27 the landing replays Acts 2 and 3 from their evidence files: every chec
   assert.equal(acts.refused?.receipt.reason, "LOOKALIKE_ADDRESS");
   assert.equal(acts.repeated?.receipt.reason, "KNOWN_ATTACK_PATTERN");
   const replay = page.slice(page.indexOf("data-replay"), page.indexOf("Try it yourself"));
-  assert.equal((replay.match(/>Failed</g) ?? []).length, 2);
-  assert.equal((replay.match(/>Passed</g) ?? []).length, 5);
+  assert.equal((replay.match(/>Failed</g) ?? []).length, 1);
+  assert.equal((replay.match(/>Passed</g) ?? []).length, 2);
+  assert.ok(replay.indexOf(`/r/${acts.refused?.receipt.receipt}`) < replay.indexOf("replay-event"), "the first refusal is one line before the main beat");
+  assert.ok(replay.includes(`<a href="/r/${acts.refused?.receipt.receipt}">first receipt</a>`));
   assert.ok(page.includes("Recorded on 31 Oct 2026 on the live agent"));
 });
 
@@ -47,7 +49,8 @@ test("V27 the month timeline says its dates are illustrative and links a real re
   assert.ok(page.includes("The dates are illustrative."));
   const month = page.slice(page.indexOf(`<ol class="month">`), page.indexOf(`id="memory"`));
   assert.equal((month.match(/class="month-entry/g) ?? []).length, acts.sharedSecond ? 6 : 5);
-  for (const act of [acts.paid, acts.refused, acts.repeated, acts.changed, acts.paidAfter]) assert.ok(act && month.includes(act.receipt.receipt), act?.source ?? "missing act");
+  for (const act of [acts.refused, acts.repeated, acts.changed, acts.paidAfter]) assert.ok(act && month.includes(`href="/r/${act.receipt.receipt}">Receipt</a>`), act?.source ?? "missing act");
+  assert.ok(acts.paid && month.includes(`${acts.paid.source}" rel="noreferrer">Receipt</a>`), "Act 1 links the evidence file that holds its receipt");
   assert.equal(acts.changed?.receipt.address, acts.paidAfter?.receipt.address);
 });
 
@@ -75,11 +78,15 @@ test("V27 the landing cites its sources, keeps live counters honest and leaves t
   assert.deepEqual(((await (await fetch(`${base}/api/live`)).json()) as { live: unknown }).live, proof.live);
 });
 
-test("V27 the shared counter says \"No shared reports yet\" at zero, counts agents in plain words, and stays \"—\" when unknown", () => {
-  assert.equal(sharedSentence({ memories: 12, sharedAgents: 0, sharedReports: 0 }), "No shared reports yet.");
-  assert.equal(sharedSentence({ memories: 12, sharedAgents: 1, sharedReports: 2 }), "Shared scam reports right now: 2, from 1 agent.");
-  assert.equal(sharedSentence({ memories: 12, sharedAgents: 3, sharedReports: 4 }), "Shared scam reports right now: 4, from 3 agents.");
-  assert.equal(sharedSentence({ memories: null, sharedAgents: null, sharedReports: null }), null);
+test("V27 V29 the shared counter is hidden at zero, counts agents in plain words, and stays \"—\" when unknown", async () => {
+  assert.deepEqual(sharedLine({ memories: 12, sharedAgents: 0, sharedReports: 0 }), { show: false });
+  assert.deepEqual(sharedLine({ memories: 12, sharedAgents: 1, sharedReports: 2 }), { show: true, text: "Shared scam reports right now: 2, from 1 agent." });
+  assert.deepEqual(sharedLine({ memories: 12, sharedAgents: 3, sharedReports: 4 }), { show: true, text: "Shared scam reports right now: 4, from 3 agents." });
+  assert.equal(sharedLine({ memories: null, sharedAgents: null, sharedReports: null }), null);
+  const template = readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
+  const zero = landingHtml(template, null, await readActs(), null, { memories: 12, sharedAgents: 0, sharedReports: 0 });
+  assert.ok(zero.includes(`<p class="live-line" data-shared-line hidden></p>`));
+  assert.ok(zero.includes("A shared report can only stop an address nobody has proven."));
   assert.equal(countText(null), "—");
 });
 
@@ -136,4 +143,30 @@ test("U07 the comparison, the second case and the source answer use the agreed w
   const plain = page.replace(/<[^>]+>/g, "");
   assert.ok(plain.includes("The code is public on GitHub, so you can read and check every rule. It isn't licensed for reuse."));
   assert.doesNotMatch(plain, /open-source licence/);
+});
+
+test("V29 under the hero buttons one quiet line states the preregistered result and links to /proof; with no finished run it says nothing", async () => {
+  const template = readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
+  const measurement = await readMeasurement();
+  assert.ok(measurement);
+  const page = landingHtml(template, measurement, await readActs(), null);
+  const hero = page.slice(page.indexOf(`class="hero-actions"`), page.indexOf("</section>"));
+  assert.ok(hero.includes(`<p class="hero-proof"><a href="/proof">${measurement.countersign.attackerPayments} of ${measurement.countersign.attempts} scam attempts paid in our preregistered test.</a></p>`));
+  assert.doesNotMatch(landingHtml(template, null, await readActs(), null), /class="hero-proof"/);
+});
+
+test("V29 story text shows no raw receipt or blob ids: they are Receipt links", async (t) => {
+  const { page } = await landing(t);
+  const story = page.slice(page.indexOf(`id="demo"`), page.indexOf(`id="memory"`)).replace(/<[^>]+>/g, "");
+  assert.doesNotMatch(story, /rcpt_|blob [A-Za-z0-9]/);
+  const month = page.slice(page.indexOf(`<ol class="month">`), page.indexOf(`id="memory"`));
+  assert.match(month, /<h3><span class="visually-hidden">The 9th: <\/span>A “new wallet” email with a look-alike address arrives\. Refused\. <span class="month-link"><a href="\/r\/rcpt_[0-9a-f]+">Receipt<\/a><\/span><\/h3>/);
+});
+
+test("V29 the hero keeps one button order at every width and the phone header leaves Try the demo to the menu", () => {
+  const css = readFileSync(new URL("../public/landing.css", import.meta.url), "utf8");
+  assert.ok(!css.includes(".hero-cta .btn:not(.primary) { order"));
+  assert.ok(css.includes(".site-actions .signin, .site-actions .demo { display: none; }"));
+  const html = readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
+  assert.ok(html.includes(`<a class="menu-demo" href="/demo">Try the demo</a>`));
 });

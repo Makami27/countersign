@@ -19,30 +19,31 @@ function checkWords(check: string): string {
   return check in CHECK_WORDS ? CHECK_WORDS[check as CheckCode] : check;
 }
 
-function receiptLink(act: RecordedAct): string {
-  return `<a href="/r/${escapeHtml(act.receipt.receipt)}">receipt ${escapeHtml(act.receipt.receipt)}</a>`;
+function receiptLink(act: RecordedAct, label = "Receipt"): string {
+  return `<a href="/r/${escapeHtml(act.receipt.receipt)}">${escapeHtml(label)}</a>`;
 }
 
 function evidenceLink(act: RecordedAct, label: string): string {
   return `<a href="${REPO}${escapeHtml(act.source)}" rel="noreferrer">${escapeHtml(label)}</a>`;
 }
 
-function replayEvent(act: RecordedAct, note: string): string {
+function replayEvent(act: RecordedAct, first: RecordedAct, note: string): string {
   const r = act.receipt;
   const checks = r.checks.map((c) => `<li class="replay-step ${c.result === "PASS" ? "pass" : "fail"}" data-step><span class="status ${c.result === "PASS" ? "verified" : "refused"}">${c.result === "PASS" ? "Passed" : "Failed"}</span> ${escapeHtml(checkWords(c.check))}</li>`).join("");
   return `<li class="replay-event">
-<div class="replay-in replay-step" data-step><p class="label">Forwarded on Telegram at ${utcTime(r.createdAt)}</p><p>A message asking the agent to pay Rent at ${r.address ? shortAddressHtml(r.address) : "an address"}.</p><p class="note">${escapeHtml(note)}</p></div>
+<div class="replay-in replay-step" data-step><p class="label">Forwarded on Telegram at ${utcTime(r.createdAt)}</p><p>The same message again, asking the agent to pay Rent at ${r.address ? shortAddressHtml(r.address) : "an address"}.</p><p class="note">${escapeHtml(note)}</p></div>
 <div class="replay-out"><ol class="replay-checks">${checks}</ol>
 <p class="replay-step outcome refused" data-step><strong>Refused. Nothing was sent and nothing was changed.</strong> ${escapeHtml(reasonWords(r.reason))}</p>
-<p class="replay-step memory-line" data-step>Written to Walrus Memory: a receipt signed by the agent, ${receiptLink(act)}${act.blobId ? `, blob <code>${escapeHtml(act.blobId.slice(0, 10))}…</code>` : ""}.</p></div>
+<p class="replay-step memory-line" data-step>It found the first refusal on Walrus Memory and cited it (${receiptLink(first, "first receipt")}), then wrote its own: ${receiptLink(act)}.</p></div>
 </li>`;
 }
 
 export function replayHtml(acts: Acts): string {
   if (!acts.refused || !acts.repeated) return MISSING;
+  const first = acts.refused.receipt;
   return `<ol class="replay" data-replay>
-${replayEvent(acts.refused, "The bot keeps the address a message named and the checks it ran, not the message's words.")}
-${replayEvent(acts.repeated, "The second time, it remembered: refused citing the first receipt.")}
+<li class="replay-first replay-step" data-step><span class="status refused">Refused</span> <span>At ${utcTime(first.createdAt)} a message asked it to pay Rent at ${first.address ? shortAddressHtml(first.address) : "a new address"}, a look-alike of the address on file. ${receiptLink(acts.refused)}</span></li>
+${replayEvent(acts.repeated, acts.refused, "The second time, it remembered: refused citing the first receipt.")}
 </ol>`;
 }
 
@@ -51,26 +52,27 @@ function stamp(day: string, tone: "ink" | "red"): string {
 }
 
 function entry(day: string, spoken: string, tone: "ink" | "red", title: string, body: string, act: RecordedAct | null, actLabel: string): string {
-  const proof = act ? `<p class="note">Real flow: ${evidenceLink(act, actLabel)}, ${act.source.includes("act1") ? `receipt <code>${escapeHtml(act.receipt.receipt)}</code> (a demo owner, kept in the evidence file)` : receiptLink(act)}.</p>` : MISSING;
+  const proof = act ? `<p class="note">Real flow: ${evidenceLink(act, actLabel)}${act.source.includes("act1") ? ` (a demo owner), ${evidenceLink(act, "Receipt")}` : `, ${receiptLink(act)}`}.</p>` : MISSING;
   return `<li class="month-entry ${tone}">${stamp(day, tone)}<div class="month-body"><h3><span class="visually-hidden">${spoken}: </span>${title}</h3>${body}${proof}</div></li>`;
+}
+
+function lineEntry(day: string, spoken: string, title: string, act: RecordedAct | null): string {
+  const link = act ? ` <span class="month-link">${receiptLink(act)}</span>` : "";
+  return `<li class="month-entry red line">${stamp(day, "red")}<div class="month-body"><h3><span class="visually-hidden">${spoken}: </span>${title}${link}</h3></div></li>`;
 }
 
 function sharedEntry(acts: Acts): string {
   if (!acts.sharedFirst || !acts.sharedSecond || acts.sharedSecond.receipt.reason !== "SEEN_BY_OTHER_AGENT") return "";
-  return `${entry("13th", "The 13th", "red", "Another owner gets the same scam. Refused.", `<p>Their agent has never seen this address, and it imitates nothing in their account. Another agent's signed report is enough: ${receiptLink(acts.sharedFirst)} was the first refusal. Nothing is sent and nothing changes.</p>`, acts.sharedSecond, "Act 5")}\n`;
+  return `${entry("13th", "The 13th", "red", "Another owner gets the same scam. Refused.", `<p>Their agent has never seen this address, and it imitates nothing in their account. Another agent's signed report is enough (${receiptLink(acts.sharedFirst, "the first refusal")}). Nothing is sent and nothing changes.</p>`, acts.sharedSecond, "Act 5")}\n`;
 }
 
 export function monthHtml(acts: Acts): string {
   const usdc = (a: RecordedAct | null) => (a?.receipt.amountBaseUnits ? `${formatUsdc(BigInt(a.receipt.amountBaseUnits))} test USDC` : "Test USDC");
-  const attempt = acts.refused?.receipt.address ?? null;
   const v1Address = acts.paid?.receipt.address ?? null;
-  const versus = v1Address && attempt
-    ? `<div class="versus"><div class="versus-side"><span class="label">On file</span>${scrawlMarkup(v1Address)}</div><div class="versus-side attempted"><span class="label">In the email</span>${scrawlMarkup(attempt)}<span class="stamp month-void" aria-hidden="true">VOID</span></div></div>`
-    : "";
   const v2 = acts.changed?.receipt.address ?? null;
   return `<ol class="month">
 ${entry("1st", "The 1st", "ink", "Rent is paid", `<p>${usdc(acts.paid)} goes to Rent at ${v1Address ? shortAddressHtml(v1Address) : "the verified address"}, the address Rent's own wallet signed for.</p>`, acts.paid, "Act 1")}
-${entry("9th", "The 9th", "red", "A “new wallet” email arrives. Refused.", `<p>It names an address that copies the first and last characters of Rent's. Nothing is sent and nothing changes.</p>${versus}`, acts.refused, "Act 2")}
+${lineEntry("9th", "The 9th", "A “new wallet” email with a look-alike address arrives. Refused.", acts.refused)}
 ${entry("12th", "The 12th", "red", "The same scam again. Refused at once.", `<p>The address was refused before, so the agent refuses it without asking the model and cites the first receipt.</p>`, acts.repeated, "Act 3")}
 ${sharedEntry(acts)}${entry("15th", "The 15th", "ink", "The landlord really changes wallets", `<p>Rent's current wallet signs the change, then the new wallet signs too. Rent's card now holds version 2.</p>${v2 ? `<div class="sigcard verified month-card"><div class="sigcard-head"><span class="sigcard-name">Rent, version 2</span><span class="status verified">Verified</span></div><div class="sigcard-sig">${scrawlMarkup(v2)}<span class="sigline">Drawn from the address</span></div>${addressHtml(v2, null)}</div>` : ""}`, acts.changed, "Act 4")}
 ${entry("1st", "The next 1st", "ink", "Next month's rent goes to version 2", `<p>${usdc(acts.paidAfter)} goes to ${v2 ? shortAddressHtml(v2) : "the new address"} without anyone touching a setting.</p>`, acts.paidAfter, "Act 4")}

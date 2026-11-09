@@ -10,7 +10,7 @@ html { scroll-behavior: smooth; scroll-padding-top: 5rem; }
 .site-links a:hover, .site-menu nav a:hover { color: var(--ink); text-decoration: underline; }
 .site-actions { display: flex; gap: var(--space-2); }
 .site-actions .btn { padding: 0.55rem 1rem; font-size: var(--step--1); }
-.site-actions .signin { display: none; }
+.site-actions .signin, .site-actions .demo { display: none; }
 .site-menu { position: relative; }
 .site-menu summary { list-style: none; min-height: var(--tap); display: inline-flex; align-items: center; padding: 0 var(--space-3); border: 1.5px solid var(--line-strong); border-radius: var(--radius); font-weight: 600; font-size: var(--step--1); cursor: pointer; }
 .site-menu summary::-webkit-details-marker { display: none; }
@@ -18,8 +18,8 @@ html { scroll-behavior: smooth; scroll-padding-top: 5rem; }
 .site-menu nav { position: absolute; right: 0; top: calc(100% + var(--space-2)); display: grid; min-width: 15rem; padding: var(--space-2); background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius-card); }
 .site-menu nav a { color: var(--ink); font-size: var(--step-0); }
 @media (min-width: 768px) {
-  .site-actions .signin { display: inline-flex; }
-  .site-menu .menu-signin { display: none; }
+  .site-actions .signin, .site-actions .demo { display: inline-flex; }
+  .site-menu .menu-signin, .site-menu .menu-demo { display: none; }
 }
 @media (min-width: 960px) {
   .site-links { display: flex; }
@@ -48,20 +48,27 @@ html { scroll-behavior: smooth; scroll-padding-top: 5rem; }
 .live-line { padding-top: var(--space-3); border-top: 1.5px solid var(--ink); }
 
 .hero { display: grid; gap: var(--space-5); max-width: var(--page); margin: 0 auto; padding: var(--space-5) var(--gutter) var(--space-7); grid-template-areas: "words" "cta" "card"; }
+.hero-actions { grid-area: cta; display: grid; gap: var(--space-3); align-content: start; }
+.hero-proof { font-size: var(--step--1); color: var(--ink-soft); }
 .hero-words { grid-area: words; display: grid; gap: var(--space-4); }
 .hero h1 { font-size: var(--step-3); line-height: 1.04; letter-spacing: -0.03em; max-width: 16ch; }
-.hero-cta { grid-area: cta; display: flex; flex-wrap: wrap; gap: var(--space-3); }
+.hero-cta { display: flex; flex-wrap: wrap; gap: var(--space-3); }
 .hero-cta .btn { padding-inline: 1.4rem; }
 @media (max-width: 479px) { .hero-cta .btn { flex: 1 1 100%; } }
 @media (max-width: 959px) {
   .hero .hero-rest { display: none; }
   .hero .lede { font-size: 0.95rem; }
   .hero .hero-cta .btn { flex: 1 1 auto; padding-inline: 1rem; }
-  .hero .hero-cta .btn:not(.primary) { order: -1; }
 }
-.hero-card { grid-area: card; margin: 0; display: grid; gap: var(--space-4); padding: var(--space-4); border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--paper-deep); min-width: 0; }
-.hero-card .sigcard-name { font-size: var(--step-2); }
-.hero-card .sigcard-sig .scrawl { height: clamp(5.5rem, 4rem + 4vw, 7.5rem); }
+.hero-card { grid-area: card; margin: 0; display: grid; gap: var(--space-3); padding: var(--space-4); border: 1px solid var(--line); border-radius: var(--radius-card); background: var(--paper-deep); min-width: 0; }
+.hero-card .sigcard { grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--space-1) var(--space-4); padding: var(--space-3) var(--space-4); }
+.hero-card .sigcard-head { grid-column: 1 / -1; }
+.hero-card .sigcard-name { font-size: var(--step-1); }
+.hero-card .sigcard .sigcard-sig { order: 2; }
+.hero-card .sigcard .sigcard-sig .scrawl { height: 2.8rem; }
+.hero-card .sigcard .sigline { display: none; }
+.hero-card .versus-side .scrawl { height: clamp(3rem, 2.4rem + 2vw, 4.2rem); }
+.hero-card .versus-side { padding: var(--space-2) var(--space-3); }
 .hero-card .stamp { --stamp-delay: 1900ms; }
 .letter { display: grid; gap: var(--space-1); padding-left: var(--space-3); border-left: 2px solid var(--line-strong); }
 .letter-from { font-size: var(--step--1); font-weight: 600; color: var(--ink-soft); }
@@ -74,11 +81,12 @@ html { scroll-behavior: smooth; scroll-padding-top: 5rem; }
 .replay-head { display: none; }
 .replay { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-6); }
 .replay-event { display: grid; gap: var(--space-4); }
-.replay-in { display: grid; gap: var(--space-2); align-content: start; padding: var(--space-4); background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius-card) var(--radius-card) var(--radius-card) 2px; }
+.replay-in { display: grid; gap: var(--space-2); align-content: start; align-self: start; padding: var(--space-4); background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius-card) var(--radius-card) var(--radius-card) 2px; }
 .replay-out { display: grid; gap: var(--space-3); align-content: start; }
 .replay-checks { margin: 0; padding: 0; list-style: none; display: grid; }
 .replay-checks li { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-3); padding: var(--space-2) 0; border-top: 1px solid var(--line); }
 .memory-line { font-size: var(--step--1); color: var(--ink-soft); }
+.replay-first { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--space-1) var(--space-3); padding-bottom: var(--space-4); border-bottom: 1px solid var(--line); color: var(--ink-soft); }
 .replay-step { transition: opacity 260ms ease-out; }
 .replay.pending .replay-step:not(.shown) { opacity: 0; }
 @media (min-width: 960px) {
@@ -106,6 +114,8 @@ html { scroll-behavior: smooth; scroll-padding-top: 5rem; }
 .month-entry { position: relative; display: grid; grid-template-columns: 5.5rem minmax(0, 1fr); gap: var(--space-4); padding: var(--space-5) 0; }
 .month-body { display: grid; gap: var(--space-3); align-content: start; min-width: 0; }
 .month-body h3 { font-size: var(--step-1); }
+.month-entry.line .month-body { align-content: center; }
+.month-link { font-size: var(--step-0); font-weight: 400; white-space: nowrap; }
 .month-body .note, .memory-line { overflow-wrap: anywhere; }
 .month-body .versus { max-width: 36rem; }
 .month-card { max-width: 30rem; }
