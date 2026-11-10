@@ -19,6 +19,7 @@ import { showMoment, startMoments } from "./moment.ts";
 import { payeeMoments } from "./payeeMoments.ts";
 import { installPlainCopy } from "./copyHandler.ts";
 import { scrollToTop, setMenu, setNetwork, setRoute, setSide, setWallet, showAdminLink } from "./shell.ts";
+import { wireThemeToggle } from "./theme.ts";
 
 const root = document.querySelector<HTMLElement>("#app");
 const banner = document.querySelector<HTMLElement>("#banner");
@@ -171,6 +172,7 @@ document.addEventListener("click", (event) => {
   go(link.getAttribute("href") ?? "/app");
 });
 window.addEventListener("popstate", () => void render());
+document.querySelectorAll<HTMLElement>("[data-theme-toggle]").forEach(wireThemeToggle);
 startMoments();
 installPlainCopy();
 void render();

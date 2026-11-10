@@ -1,4 +1,4 @@
-import { THEME_COLOR, rememberTheme, themeCookie, themeLabel, type Theme, type ThemeStore } from "./themeChoice.ts";
+import { THEME_COLOR, rememberTheme, themeAction, themeCookie, type Theme, type ThemeStore } from "./themeChoice.ts";
 
 function store(): ThemeStore | null {
   try {
@@ -20,35 +20,47 @@ function shownTheme(): Theme {
   return document.documentElement.dataset["theme"] === "dark" ? "dark" : "light";
 }
 
-function draw(button: HTMLElement, theme: Theme): void {
-  button.textContent = themeLabel(theme);
-  button.setAttribute("aria-pressed", theme === "dark" ? "true" : "false");
+function draw(control: HTMLElement, theme: Theme): void {
+  const dark = theme === "dark" ? "true" : "false";
+  if (control.getAttribute("role") === "switch") return control.setAttribute("aria-checked", dark);
+  control.setAttribute("aria-pressed", dark);
+  control.setAttribute("aria-label", themeAction(theme));
 }
 
 function show(theme: Theme): void {
   if (theme === "dark") document.documentElement.dataset["theme"] = "dark";
   else delete document.documentElement.dataset["theme"];
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", THEME_COLOR[theme]);
-  for (const button of document.querySelectorAll<HTMLElement>("[data-theme-toggle]")) draw(button, theme);
+  for (const control of document.querySelectorAll<HTMLElement>("[data-theme-toggle]")) draw(control, theme);
 }
 
-export function wireThemeToggle(button: HTMLElement): void {
-  button.addEventListener("click", () => {
+export function wireThemeToggle(control: HTMLElement): void {
+  control.addEventListener("click", () => {
     const next: Theme = shownTheme() === "dark" ? "light" : "dark";
     rememberTheme(store(), next);
     tellServer(next);
     show(next);
-    draw(button, next);
+    draw(control, next);
   });
-  draw(button, shownTheme());
+  draw(control, shownTheme());
   tellServer(shownTheme());
 }
 
-export function themeToggle(look: string): HTMLButtonElement {
-  const button = document.createElement("button");
-  button.className = look;
-  button.type = "button";
-  button.setAttribute("data-theme-toggle", "");
-  wireThemeToggle(button);
-  return button;
+export function themeSwitch(): HTMLButtonElement {
+  const control = document.createElement("button");
+  control.className = "theme-switch";
+  control.type = "button";
+  control.setAttribute("role", "switch");
+  control.setAttribute("data-theme-toggle", "");
+  const label = document.createElement("span");
+  label.textContent = "Dark mode";
+  const track = document.createElement("span");
+  track.className = "track";
+  track.setAttribute("aria-hidden", "true");
+  const knob = document.createElement("span");
+  knob.className = "knob";
+  track.append(knob);
+  control.append(label, track);
+  wireThemeToggle(control);
+  return control;
 }

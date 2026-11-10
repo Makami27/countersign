@@ -25,6 +25,6 @@ export function rememberTheme(storage: ThemeStore | null, theme: Theme): void {
   }
 }
 
-export function themeLabel(theme: Theme): string {
-  return theme === "dark" ? "Dark mode: on" : "Dark mode: off";
+export function themeAction(theme: Theme): string {
+  return theme === "dark" ? "Switch to light mode" : "Switch to dark mode";
 }

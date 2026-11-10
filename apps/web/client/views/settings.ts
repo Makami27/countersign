@@ -9,7 +9,7 @@ import { discordPanel } from "./discordPanel.ts";
 import { soundToggle } from "../moment.ts";
 import { carryNotice, showCarried } from "../carriedNotice.ts";
 import { signOutButton } from "../signOut.ts";
-import { themeToggle } from "../theme.ts";
+import { themeSwitch } from "../theme.ts";
 
 function group(id: string, title: string, description: string, ...children: (HTMLElement | null)[]): HTMLElement {
   return h("section", { class: "settings-group", "aria-labelledby": id }, h("h2", { id }, title), h("p", { class: "sub" }, description), ...children);
@@ -60,7 +60,7 @@ export function settingsPage(overview: Overview, onSaved: () => void): HTMLEleme
     group("settings-apps", "Connected apps", "Optional. Get notices and pay verified payees from a chat app.",
       asSubsection(telegramPanel()), asSubsection(discordPanel())),
     group("settings-preferences", "Preferences", "How the app behaves in this browser.",
-      h("div", { class: "actions" }, soundToggle("btn"), themeToggle("btn"))),
+      h("div", { class: "actions" }, soundToggle("btn"), themeSwitch())),
     group("settings-account", "Account", "Where your agent's records live, and signing out of this browser.",
       factList(memoryFact(overview)), accountStatus, h("div", { class: "actions" }, signOutButton(accountStatus))));
 }

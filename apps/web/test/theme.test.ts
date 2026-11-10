@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import type { AddressInfo } from "node:net";
 import { startWebServer } from "../src/server.ts";
 import { inChosenTheme, publicPage } from "../src/publicPage.ts";
-import { THEME_COLOR, THEME_COOKIE, THEME_KEY, readTheme, rememberTheme, themeCookie, themeLabel } from "../client/themeChoice.ts";
+import { THEME_COLOR, THEME_COOKIE, THEME_KEY, readTheme, rememberTheme, themeAction, themeCookie } from "../client/themeChoice.ts";
 
 const read = (name: string) => readFileSync(new URL(`../public/${name}`, import.meta.url), "utf8");
 
@@ -74,14 +74,22 @@ test("V33 the choice is remembered per browser, and blocked storage means light 
   assert.equal(readTheme(blocked), "light");
   assert.doesNotThrow(() => rememberTheme(blocked, "dark"));
   assert.equal(readTheme(null), "light");
-  assert.deepEqual([themeLabel("light"), themeLabel("dark")], ["Dark mode: off", "Dark mode: on"]);
+  assert.deepEqual([themeAction("light"), themeAction("dark")], ["Switch to dark mode", "Switch to light mode"]);
 });
 
-test("V33 the landing offers the toggle in the header and in the phone menu, labelled in words", () => {
+test("V33 V34 headers carry a round icon button named for what it does, with a moon and a sun drawn inline; the phone menu and Settings use a labelled Dark mode switch", () => {
   const landing = read("index.html");
-  const toggles = landing.match(/<button class="theme-toggle" type="button" data-theme-toggle aria-pressed="false">Dark mode: off<\/button>/g) ?? [];
-  assert.equal(toggles.length, 2);
-  assert.ok(landing.indexOf("data-theme-toggle") < landing.indexOf('class="site-menu"'));
-  assert.ok(landing.lastIndexOf("data-theme-toggle") > landing.indexOf('class="site-menu"'));
-  assert.match(readFileSync(new URL("../client/views/settings.ts", import.meta.url), "utf8"), /soundToggle\("btn"\), themeToggle\("btn"\)/);
+  const app = read("app.html");
+  const icon = /<button class="theme-icon" type="button" data-theme-toggle aria-label="Switch to dark mode" aria-pressed="false"><svg class="moon"[^>]*><path d="[^"]+"\/><\/svg><svg class="sun"[^>]*><circle[^>]*\/><path d="[^"]+"\/><\/svg><\/button>/;
+  const landingIcon = icon.exec(landing)?.[0];
+  assert.ok(landingIcon && landing.includes(`${landingIcon}<a class="btn demo" href="/demo">Try the demo</a>`), "the icon button sits just before Try the demo");
+  assert.equal(icon.exec(app)?.[0], landingIcon, "/app's header uses the same button");
+  assert.ok(app.indexOf("theme-icon") > app.indexOf('class="side-top"') && app.indexOf("theme-icon") < app.indexOf('id="nav"'));
+  const menu = landing.slice(landing.indexOf('class="site-menu"'), landing.indexOf("</details>", landing.indexOf('class="site-menu"')));
+  assert.ok(menu.includes('<button class="theme-switch" type="button" role="switch" aria-checked="false" data-theme-toggle><span>Dark mode</span><span class="track" aria-hidden="true"><span class="knob"></span></span></button>'));
+  assert.equal(/Dark mode: (on|off)/.test(landing + app), false);
+  assert.match(readFileSync(new URL("../client/views/settings.ts", import.meta.url), "utf8"), /soundToggle\("btn"\), themeSwitch\(\)/);
+  const styles = read("styles.css");
+  assert.ok(styles.includes(".theme-icon { appearance: none; flex: none; width: var(--tap); height: var(--tap);") && styles.includes("border: 1px solid var(--line-strong); border-radius: 50%;"));
+  assert.ok(styles.includes(':root[data-theme="dark"] .theme-icon .sun { display: block; }'));
 });

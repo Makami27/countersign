@@ -213,10 +213,21 @@ async function themeChecks(width: number): Promise<void> {
   if ((await paper()) !== LIGHT_PAPER) note(`a dark system setting changed the landing at ${width}`);
   if (width < 960) await page.click(".site-menu summary");
   const toggle = page.locator("[data-theme-toggle]:visible");
-  if ((await toggle.textContent()) !== "Dark mode: off") note(`landing toggle label at ${width}: ${await toggle.textContent()}`);
-  if (((await toggle.boundingBox())?.height ?? 0) < 44) note(`landing theme toggle is under 44px at ${width}`);
+  const stateOf = async (control: typeof toggle) => `${(await control.getAttribute("role")) ?? "button"} ${(await control.getAttribute("aria-pressed")) ?? (await control.getAttribute("aria-checked"))} ${(await control.getAttribute("aria-label")) ?? (await control.textContent())}`;
+  const want = width >= 960 ? ["button false Switch to dark mode", "button true Switch to light mode"] : ["switch false Dark mode", "switch true Dark mode"];
+  if ((await stateOf(toggle)) !== want[0]) note(`landing theme control at ${width}: ${await stateOf(toggle)}`);
+  const box = await toggle.boundingBox();
+  if ((box?.height ?? 0) < 44 || (width >= 960 && Math.round(box?.width ?? 0) !== 44)) note(`landing theme control size at ${width}: ${Math.round(box?.width ?? 0)}x${Math.round(box?.height ?? 0)}`);
+  if (width >= 960) {
+    const shown = await toggle.evaluate((el) => ({ moon: getComputedStyle(el.querySelector(".moon") as Element).display !== "none", sun: getComputedStyle(el.querySelector(".sun") as Element).display !== "none", round: getComputedStyle(el).borderRadius, before: el.nextElementSibling?.textContent }));
+    if (!shown.moon || shown.sun || shown.round !== "50%" || shown.before !== "Try the demo") note(`landing icon button in light at ${width}: ${JSON.stringify(shown)}`);
+  }
+  await page.keyboard.press("Tab");
+  await toggle.focus();
+  if ((await toggle.evaluate((el) => getComputedStyle(el).outlineStyle)) === "none") note(`theme control has no focus ring at ${width}`);
   await toggle.click();
-  if ((await paper()) !== DARK_PAPER || (await toggle.textContent()) !== "Dark mode: on") note(`the landing toggle didn't switch to dark at ${width}`);
+  if ((await paper()) !== DARK_PAPER || (await stateOf(toggle)) !== want[1]) note(`the landing theme control didn't switch to dark at ${width}: ${await stateOf(toggle)}`);
+  if (width >= 960 && !(await toggle.evaluate((el) => getComputedStyle(el.querySelector(".sun") as Element).display !== "none" && getComputedStyle(el.querySelector(".moon") as Element).display === "none"))) note(`no sun icon in dark at ${width}`);
   await page.reload();
   if ((await paper()) !== DARK_PAPER) note(`dark wasn't remembered on the landing at ${width}`);
   for (const path of ["/proof", "/demo"]) {
@@ -226,10 +237,15 @@ async function themeChecks(width: number): Promise<void> {
   await page.goto(`${s.base}/app/settings`);
   const inApp = page.locator("#settings-preferences ~ .actions [data-theme-toggle]");
   await inApp.waitFor();
-  if ((await inApp.textContent()) !== "Dark mode: on" || (await paper()) !== DARK_PAPER) note(`Settings didn't start in the chosen theme at ${width}`);
-  if (((await inApp.boundingBox())?.height ?? 0) < 44) note(`Settings theme toggle is under 44px at ${width}`);
+  if ((await stateOf(inApp)) !== "switch true Dark mode" || (await paper()) !== DARK_PAPER) note(`Settings didn't start in the chosen theme at ${width}: ${await stateOf(inApp)}`);
+  if (((await inApp.boundingBox())?.height ?? 0) < 44) note(`Settings theme switch is under 44px at ${width}`);
+  const header = page.locator(".side-top .theme-icon");
+  if (!(await header.isVisible()) || (await stateOf(header)) !== "button true Switch to light mode") note(`/app header theme button at ${width}: ${await stateOf(header)}`);
   await inApp.click();
-  if ((await paper()) !== LIGHT_PAPER || (await inApp.textContent()) !== "Dark mode: off") note(`the Settings toggle didn't switch back to light at ${width}`);
+  if ((await paper()) !== LIGHT_PAPER || (await stateOf(inApp)) !== "switch false Dark mode" || (await stateOf(header)) !== "button false Switch to dark mode") note(`the Settings switch didn't switch back to light at ${width}`);
+  await header.click();
+  if ((await paper()) !== DARK_PAPER || (await stateOf(inApp)) !== "switch true Dark mode") note(`the /app header button didn't switch to dark at ${width}`);
+  await header.click();
   await page.reload();
   await page.waitForSelector("#settings-title");
   if ((await paper()) !== LIGHT_PAPER) note(`light wasn't remembered in /app at ${width}`);
