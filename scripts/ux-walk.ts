@@ -205,7 +205,9 @@ for (const scheme of schemes) for (const width of widths) {
   await visitor.context().exposeFunction("fakeSign", (text: string) => s.me.sign(text));
   await visitor.addInitScript(FAKE_WALLET, s.me.address);
   await visitor.goto(`${s.base}/app`);
-  await visitor.waitForSelector("button:has-text('Continue with Google')");
+  await visitor.waitForSelector("button:has-text('Continue with Slush')");
+  if (!(await visitor.locator("main").textContent())?.includes("You can use your Google account. No crypto experience needed.")) note("the line under Continue with Slush");
+  if (await visitor.locator("text=×").count()) note("the signing line still shows ×");
   if (await visitor.locator("text=Your session ended").count()) note("a visitor with no cookie was told their session ended");
   if (!(await visitor.locator("h1").textContent())?.includes("Sign in or create your agent")) note("sign-in heading");
   if (!(await visitor.locator("main").textContent())?.includes("Slush not available where you are? Use another Sui wallet.")) note("the line under the buttons");
@@ -235,7 +237,8 @@ for (const scheme of schemes) for (const width of widths) {
 
   const lonely = await (await browser.newContext({ viewport: { width, height: 900 }, reducedMotion: "reduce" })).newPage();
   await lonely.goto(`${s.base}/app/login?other`);
-  await lonely.waitForSelector("text=No other Sui wallet found in this browser. Install a Sui wallet extension, or continue with Google.");
+  await lonely.waitForSelector("text=No other Sui wallet found in this browser. Install one, for example Phantom or Suiet, then reload.");
+  if (await lonely.locator(".no-other-wallet a[href='https://phantom.com/'], .no-other-wallet a[href='https://suiet.app/']").count() !== 2) note("the no-wallet line lost its links");
   await shot(lonely, "sign-in-no-wallet", width, scheme);
   await lonely.context().close();
 

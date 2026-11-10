@@ -2,8 +2,9 @@ import { createHash, randomBytes } from "node:crypto";
 import type { SqlRows } from "@countersign/adapters/sql";
 
 export const SIGN_IN_LIFETIME_MS = 10 * 60 * 1000;
-export const SESSION_LIFETIME_MS = 12 * 60 * 60 * 1000;
-export const SESSION_COOKIE_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
+export const SESSION_LIFETIME_MS = 7 * 24 * 60 * 60 * 1000;
+export const SESSION_COOKIE_LIFETIME_MS = SESSION_LIFETIME_MS;
+const SESSION_RENEW_AFTER_MS = 60_000;
 export const SIGN_IN_VERSION = "Countersign sign-in v1";
 
 const SCHEMA = `
@@ -71,8 +72,11 @@ export class OwnerAuth {
 
   async session(token: string | null): Promise<Session | null> {
     if (!token) return null;
-    const row = await this.#rows.get("SELECT owner_id, address FROM wallet_sessions WHERE hash = ? AND expires_at > ?", [hash(token), this.#now()]);
-    return row ? { ownerId: String(row["owner_id"]), address: String(row["address"]) } : null;
+    const now = this.#now();
+    const row = await this.#rows.get("SELECT owner_id, address, expires_at FROM wallet_sessions WHERE hash = ? AND expires_at > ?", [hash(token), now]);
+    if (!row) return null;
+    if (Number(row["expires_at"]) < now + SESSION_LIFETIME_MS - SESSION_RENEW_AFTER_MS) await this.#rows.run("UPDATE wallet_sessions SET expires_at = ? WHERE hash = ? AND expires_at > ?", [now + SESSION_LIFETIME_MS, hash(token), now]);
+    return { ownerId: String(row["owner_id"]), address: String(row["address"]) };
   }
 
   async sessionValid(token: string | null): Promise<boolean> {

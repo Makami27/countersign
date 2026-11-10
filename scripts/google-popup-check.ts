@@ -10,7 +10,7 @@ for (const width of [390, 1440]) {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto(`${base}/app/login`);
-  const button = page.locator("button:has-text('Continue with Google')");
+  const button = page.locator("button:has-text('Continue with Slush')");
   await button.waitFor();
   await page.screenshot({ path: `${out}/sign-in-live-${width}.png` });
   const opened = context.waitForEvent("page", { timeout: 15_000 });

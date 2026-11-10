@@ -1,5 +1,5 @@
 export const START_STEPS = [
-  { key: "signedIn", label: "Continue with Google" },
+  { key: "signedIn", label: "Continue with Slush" },
   { key: "funded", label: "Fund your agent wallet (it pays your bills)" },
   { key: "payeeAdded", label: "Add a payee and send them the signing link" },
   { key: "linkSigned", label: "They sign once" },

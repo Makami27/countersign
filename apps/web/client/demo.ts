@@ -3,7 +3,7 @@ import { api } from "./api.ts";
 import { addressEl, dayGroupsEl, h, listen, liveRegion, scrawlEl, signatureFigure, statusPill } from "./dom.ts";
 import { clockTime } from "./dayGroups.ts";
 import { installPlainCopy } from "./copyHandler.ts";
-import { GOOGLE_ACTION } from "./walletFacts.ts";
+import { SLUSH_ACTION } from "./walletFacts.ts";
 
 type Version = { readonly version: number; readonly status: string; readonly address: string };
 type Payee = { readonly id: string; readonly name: string; readonly payableAddress: string | null; readonly versions: readonly Version[] };
@@ -152,7 +152,7 @@ async function draw(known?: View): Promise<void> {
   }, status);
   const grid = h("div", { class: "demo-grid", "data-tab": tab }, letters(view, result, status), cards(view), activity(view));
   root.replaceChildren(h("section", { class: "narrow demo-intro" }, h("h1", { tabindex: "-1" }, "Try to scam a payment agent"),
-    h("p", { class: "lede" }, "This sandbox agent has two payees whose own wallets proved their addresses. Every message runs through the real Countersign engine. Nothing here touches real money, Walrus Memory or anyone's data."), h("div", { class: "actions" }, reset, h("a", { class: "btn primary", href: "/app/login" }, GOOGLE_ACTION))), tabs, grid);
+    h("p", { class: "lede" }, "This sandbox agent has two payees whose own wallets proved their addresses. Every message runs through the real Countersign engine. Nothing here touches real money, Walrus Memory or anyone's data."), h("div", { class: "actions" }, reset, h("a", { class: "btn primary", href: "/app/login" }, SLUSH_ACTION))), tabs, grid);
 }
 
 void draw();

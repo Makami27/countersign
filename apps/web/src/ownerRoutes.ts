@@ -3,7 +3,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { REASONS, formatUsdc, headOf, parseSuiAddress, payeeIdFor, type Outcome } from "@countersign/core";
 import { usdcToBaseUnits } from "@countersign/core";
 import { WindowLimiter, clientAddress, cookie, problem, readJson, send } from "./http.ts";
-import { SESSION_LIFETIME_MS } from "./ownerAuth.ts";
+import { SESSION_COOKIE_LIFETIME_MS } from "./ownerAuth.ts";
 import type { OwnerContext } from "./ownerContext.ts";
 import type { OwnerDirectory } from "./ownerDirectory.ts";
 import { activity, overview, payeeDetail, payeeSummary } from "./ownerViews.ts";
@@ -22,7 +22,7 @@ export const SESSION_COOKIE = "cs_owner";
 export const CSRF_HEADER = "x-countersign";
 const writeLimiter = new WindowLimiter(60, 60 * 1000);
 const READ_DEADLINE_MS = 20_000;
-export const SIGNED_OUT = "You're signed out. Continue with Google to sign in.";
+export const SIGNED_OUT = "You're signed out. Continue with Slush to sign in.";
 export const SESSION_ENDED = "Your session ended. Sign in again to continue.";
 
 export function sessionCookie(token: string, maxAgeSeconds: number): Record<string, string> {
@@ -37,7 +37,8 @@ function refusalBody(outcome: Outcome) {
 export async function ownerRoute(owners: OwnerDirectory, req: IncomingMessage, res: ServerResponse, path: string): Promise<void> {
   const token = cookie(req, SESSION_COOKIE);
   const ctx = await owners.forSession(token);
-  if (!ctx) return send(res, 401, token ? { error: SESSION_ENDED, notice: SESSION_ENDED } : { error: SIGNED_OUT, notice: null });
+  if (!ctx || !token) return send(res, 401, token ? { error: SESSION_ENDED, notice: SESSION_ENDED } : { error: SIGNED_OUT, notice: null });
+  res.setHeader("set-cookie", sessionCookie(token, Math.floor(SESSION_COOKIE_LIFETIME_MS / 1000))["set-cookie"] ?? "");
   if (req.method !== "GET" && ctx.quota.busy()) return problem(res, 429, BUSY);
   const parts = path.split("/").slice(3);
   if (parts[0] === "admin") return adminRoute(owners, ctx, res, req.method ?? "", parts, req.method === "GET" ? null : await readJson(req));

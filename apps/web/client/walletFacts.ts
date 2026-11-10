@@ -13,9 +13,10 @@ export const YOUR_WALLET_SHORT = "Your wallet (signs approvals)";
 export const DEPOSIT_SHORT = "Deposit";
 export const YOUR_WALLET = "Your wallet: approves changes and sends deposits. It never pays bills.";
 export const DEPOSIT_ACTION = "Deposit from your wallet";
-export const GOOGLE_ACTION = "Continue with Google";
+export const SLUSH_ACTION = "Continue with Slush";
 export const OTHER_WALLET_ACTION = "Use another Sui wallet";
-export const GOOGLE_WORDS = "No crypto wallet needed. Slush makes a free one from your Google account the first time. It signs your approvals. Your agent's own wallet pays the bills.";
+export const SLUSH_WORDS = "You can use your Google account. No crypto experience needed.";
+export const WALLET_ROLE_WORDS = "Slush makes a free wallet the first time. It signs your approvals. Your agent's own wallet pays the bills.";
 export const SIGN_IN_HEADING = "Sign in or create your agent";
 export const SLUSH_UNAVAILABLE = "Slush not available where you are? ";
 export const PREPARING_SIGN_IN = "Preparing your sign-in message…";
@@ -23,7 +24,11 @@ export const CONNECT_FAILED = "Couldn't connect to your wallet. Nothing was sign
 export const SIGN_REFUSED = "The wallet didn't sign. Nothing was signed or changed.";
 export const SIGN_IN_REFUSED = "You didn't approve the sign-in, so nothing changed. Click Finish signing in to try again.";
 export const DEPOSIT_NOT_SENT = "The wallet didn't send the deposit. Nothing was sent. Try again from Deposit.";
-export const NO_OTHER_WALLET = "No other Sui wallet found in this browser. Install a Sui wallet extension, or continue with Google.";
+export const NO_OTHER_WALLET = "No other Sui wallet found in this browser. Install one, for example Phantom or Suiet, then reload.";
+export const WALLET_SITES = [
+  { name: "Phantom", href: "https://phantom.com/" },
+  { name: "Suiet", href: "https://suiet.app/" },
+] as const;
 
 export function signInWaiting(walletName: string): string {
   return `Waiting for ${walletName}… Nothing has been signed yet.`;

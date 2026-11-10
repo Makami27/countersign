@@ -1,6 +1,6 @@
 import type { Outcome, ReceiptRecord, SuiAddress } from "@countersign/core";
 import type { PaymentQuestion } from "@countersign/web/paymentReading";
-import { GOOGLE_WORDS } from "@countersign/web/walletFacts";
+import { SLUSH_WORDS } from "@countersign/web/walletFacts";
 import { HTML_FORMAT, grouped } from "./chat/format.ts";
 import { changeStartedText, confirmPaymentText, questionText, refusalText } from "./chat/text.ts";
 import { TELEGRAM_WORDS } from "./commands.ts";
@@ -30,7 +30,7 @@ export function changeStartedHtml(outcome: Extract<Outcome, { verdict: "CHANGE_S
 }
 
 export function signInLinkText(publicUrl: string | null): string {
-  return `Sign in to your owner app: ${publicUrl ?? ""}/app/login\nContinue with Google. ${GOOGLE_WORDS}`;
+  return `Sign in to your owner app: ${publicUrl ?? ""}/app/login\nContinue with Slush. ${SLUSH_WORDS}`;
 }
 
 export function unlinkedText(publicUrl: string | null): string {

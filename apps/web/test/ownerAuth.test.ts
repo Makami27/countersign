@@ -88,7 +88,7 @@ test("G03 a visitor with no session cookie gets no notice", async (t) => {
   assert.equal(response.status, 401);
   const body = (await response.json()) as { error: string; notice: string | null };
   assert.equal(body.notice, null);
-  assert.equal(body.error, "You're signed out. Continue with Google to sign in.");
+  assert.equal(body.error, "You're signed out. Continue with Slush to sign in.");
   const empty = await fetch(`${s.base}/api/app/overview`, { headers: { cookie: "cs_owner=" } });
   assert.equal(((await empty.json()) as { notice: string | null }).notice, null);
 });
@@ -101,14 +101,17 @@ test("G03 a session that was ended turns into the notice on its next request", a
   assert.equal(((await after.json()) as { notice: string | null }).notice, "Your session ended. Sign in again to continue.");
 });
 
-test("G04 the cookie outlives the 12-hour session, so a timed-out session gets the notice and the server still refuses it", async (t) => {
+test("G04 V32 a session lasts seven days from the last visit: each visit renews it and the cookie, and seven idle days end it with the notice", async (t) => {
   let now = Date.now();
   const s = await ownerServer(t, { sessionClock: () => now });
   const live = await fetch(`${s.base}/api/app/overview`, { headers: { cookie: s.cookie } });
   assert.equal(live.status, 200);
-  now += SESSION_LIFETIME_MS - 1_000;
-  assert.equal((await fetch(`${s.base}/api/app/overview`, { headers: { cookie: s.cookie } })).status, 200);
-  now += 2_000;
+  assert.match(live.headers.get("set-cookie") ?? "", /^cs_owner=[^;]+; Path=\/; HttpOnly; Secure; SameSite=Strict; Max-Age=604800$/);
+  for (let day = 0; day < 3; day += 1) {
+    now += SESSION_LIFETIME_MS - 60 * 60 * 1000;
+    assert.equal((await fetch(`${s.base}/api/app/overview`, { headers: { cookie: s.cookie } })).status, 200, `visit after ${day + 1} near-full idle periods`);
+  }
+  now += SESSION_LIFETIME_MS + 1_000;
   const ended = await fetch(`${s.base}/api/app/overview`, { headers: { cookie: s.cookie } });
   assert.equal(ended.status, 401);
   assert.deepEqual(await ended.json(), { error: "Your session ended. Sign in again to continue.", notice: "Your session ended. Sign in again to continue." });
@@ -121,7 +124,7 @@ test("G04 signing in sets a seven-day cookie with the same protections", async (
   const signedIn = await signInAs(s.base, s.me);
   assert.match(signedIn.setCookie, /HttpOnly; Secure; SameSite=Strict; Max-Age=604800$/);
   assert.equal(SESSION_COOKIE_LIFETIME_MS, 604_800_000);
-  assert.equal(SESSION_LIFETIME_MS, 43_200_000);
+  assert.equal(SESSION_LIFETIME_MS, 604_800_000);
 });
 
 test("G04 signing out still clears the cookie at once", async (t) => {

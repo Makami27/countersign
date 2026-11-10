@@ -50,6 +50,8 @@ html { scroll-behavior: smooth; scroll-padding-top: 5rem; }
 .hero { display: grid; gap: var(--space-5); max-width: var(--page); margin: 0 auto; padding: var(--space-5) var(--gutter) var(--space-7); grid-template-areas: "words" "cta" "card"; }
 .hero-actions { grid-area: cta; display: grid; gap: var(--space-3); align-content: start; }
 .hero-proof { font-size: var(--step--1); color: var(--ink-soft); }
+.hero-reassure { font-size: var(--step--1); color: var(--ink-soft); }
+.hero-reassure .cta-other { display: inline-flex; align-items: center; min-height: var(--tap); }
 .hero .lede-phone { display: none; }
 .hero-words { grid-area: words; display: grid; gap: var(--space-4); }
 .hero h1 { font-size: var(--step-3); line-height: 1.04; letter-spacing: -0.03em; max-width: 16ch; }

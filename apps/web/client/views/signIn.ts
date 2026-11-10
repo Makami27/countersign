@@ -2,10 +2,16 @@ import type { Wallet } from "@mysten/wallet-standard";
 import { api } from "../api.ts";
 import { h, listen, liveRegion } from "../dom.ts";
 import { EXTENSION_TIP, connectWallet, slushOnTheWeb, signingWallets, walletLabel } from "../signFlow.ts";
-import { GOOGLE_ACTION, GOOGLE_WORDS, NO_OTHER_WALLET, OTHER_WALLET_ACTION, PREPARING_SIGN_IN, SIGN_IN_HEADING, SIGN_IN_REFUSED, SLUSH_UNAVAILABLE, signInWaiting } from "../walletFacts.ts";
+import { NO_OTHER_WALLET, OTHER_WALLET_ACTION, SLUSH_ACTION, SLUSH_WORDS, WALLET_ROLE_WORDS, WALLET_SITES, PREPARING_SIGN_IN, SIGN_IN_HEADING, SIGN_IN_REFUSED, SLUSH_UNAVAILABLE, signInWaiting } from "../walletFacts.ts";
 import { walletStep } from "../walletSteps.ts";
 
 type Challenge = { readonly nonce: string; readonly message: string; readonly expires: string; readonly network: "mainnet" | "testnet" };
+
+function noOtherWallet(): HTMLElement {
+  const link = (site: (typeof WALLET_SITES)[number]) => h("a", { href: site.href, target: "_blank", rel: "noreferrer" }, site.name);
+  const parts = NO_OTHER_WALLET.split(/(Phantom|Suiet)/);
+  return h("p", { class: "note no-other-wallet" }, ...parts.map((part) => WALLET_SITES.find((site) => site.name === part) ?? part).map((part) => (typeof part === "string" ? part : link(part))));
+}
 
 export function signInPage(onSignedIn: (address: string) => void, why: string | null, startWithChooser: boolean): HTMLElement {
   const status = liveRegion();
@@ -42,13 +48,14 @@ export function signInPage(onSignedIn: (address: string) => void, why: string | 
     box.replaceChildren(
       ...(wallets.length
         ? [h("div", { class: "actions" }, ...wallets.map((wallet) => connectingButton(wallet, `Sign in with ${walletLabel(wallet)}`, false))), h("p", { class: "note" }, EXTENSION_TIP)]
-        : [h("p", { class: "note" }, NO_OTHER_WALLET)]),
-      h("button", { class: "link-button", type: "button", onclick: main }, GOOGLE_ACTION));
+        : [noOtherWallet()]),
+      h("button", { class: "link-button", type: "button", onclick: main }, SLUSH_ACTION));
   };
 
   const main = () => {
     box.replaceChildren(
-      connectingButton(slushOnTheWeb(), GOOGLE_ACTION, true),
+      connectingButton(slushOnTheWeb(), SLUSH_ACTION, true),
+      h("p", { class: "sign-in-reassure" }, SLUSH_WORDS),
       h("p", { class: "note" }, SLUSH_UNAVAILABLE, h("button", { class: "link-button", type: "button", onclick: chooser }, OTHER_WALLET_ACTION), "."));
   };
 
@@ -56,5 +63,5 @@ export function signInPage(onSignedIn: (address: string) => void, why: string | 
   else main();
   const notice = why ? h("p", { class: "note", role: "status" }, why) : "";
   return h("section", { class: "narrow", "aria-labelledby": "login-title" }, h("h1", { id: "login-title" }, SIGN_IN_HEADING),
-    h("div", { class: "signing-line" }, h("span", { class: "line", "aria-hidden": "true" }), h("span", {}, GOOGLE_WORDS)), notice, status, box);
+    h("div", { class: "signing-line" }, h("span", { class: "line", "aria-hidden": "true" }), h("span", {}, WALLET_ROLE_WORDS)), notice, status, box);
 }

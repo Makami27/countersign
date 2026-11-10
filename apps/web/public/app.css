@@ -89,7 +89,8 @@
 .app dialog h2 { margin-bottom: var(--space-3); }
 .app .signing-line { display: grid; gap: var(--space-1); padding: var(--space-5) var(--space-4) var(--space-3); border: 1px dashed var(--line-strong); border-radius: var(--radius-card); }
 .app .signing-line .line { display: block; height: 2.5rem; border-bottom: 1.5px solid var(--ink); position: relative; }
-.app .signing-line .line::before { content: "×"; position: absolute; left: 0; bottom: 0.2rem; font-size: var(--step-1); color: var(--ink-soft); }
+.app .signing-line .line::before { content: "Sign here"; position: absolute; left: 0; bottom: 0.3rem; font-size: var(--step--1); font-weight: 600; color: var(--ink-soft); }
+.app .sign-in-reassure { font-size: var(--step--1); color: var(--ink-soft); margin-top: calc(-1 * var(--space-1)); }
 
 .app .narrow { max-width: 640px; width: 100%; margin: 0 auto; padding: var(--space-5) var(--gutter) var(--space-6); display: grid; grid-template-columns: minmax(0, 1fr); align-content: start; gap: var(--space-5); }
 .app .narrow h1 { font-size: var(--step-2); }

@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import type { SuiAddress } from "@countersign/core";
 import { COMMANDS, balanceHtml, cancelText, helpText, payeesHtml, schedulesText } from "../src/commands.ts";
-import { GOOGLE_WORDS } from "@countersign/web/walletFacts";
+import { SLUSH_WORDS } from "@countersign/web/walletFacts";
 import { changeStartedHtml, questionHtml, signInLinkText } from "../src/telegramText.ts";
 import { DISCORD_COMMANDS } from "../src/discord/words.ts";
 
@@ -13,7 +13,7 @@ const ADDRESS = `0x${"ab".repeat(32)}`;
 test("X10 /help lists every command in plain words, explains paying, forwarding and pasting, links the app and names the network", () => {
   const help = helpText(URL, "testnet");
   for (const c of COMMANDS) assert.ok(help.includes(`/${c.command}: `), c.command);
-  for (const words of ["pay rent 0.10", "forward an email or chat", "paste its text", `${URL}/app`, "Sui testnet: test USDC, no real money", "Agent wallet: pays your bills (fund this one)", "Your wallet: approves changes and sends deposits. It never pays bills.", "continue with Google", "Slush makes a free one from your Google account the first time"]) assert.ok(help.includes(words), words);
+  for (const words of ["pay rent 0.10", "forward an email or chat", "paste its text", `${URL}/app`, "Sui testnet: test USDC, no real money", "Agent wallet: pays your bills (fund this one)", "Your wallet: approves changes and sends deposits. It never pays bills.", "continue with Slush", "You can use your Google account. No crypto experience needed.", "Slush makes a free wallet the first time"]) assert.ok(help.includes(words), words);
   assert.ok(helpText(URL, "mainnet").includes("Sui mainnet"));
 });
 
@@ -34,8 +34,8 @@ test("U04 a new address over Telegram is reported as saved as said, not proven",
 test("G02 the bot's /login reply carries the same words as the sign-in screen", () => {
   const reply = signInLinkText(URL);
   assert.ok(reply.includes(`${URL}/app/login`));
-  assert.ok(reply.includes(GOOGLE_WORDS));
-  assert.ok(reply.includes("Continue with Google."));
+  assert.ok(reply.includes(SLUSH_WORDS));
+  assert.ok(reply.includes("Continue with Slush."));
 });
 
 test("X10 /payees says which payees can be paid and shows the grouped address only where it will pay", () => {

@@ -14,6 +14,8 @@ They **can**:
 They **can't**:
 - Sign in to the owner app, see it, or change any setting there (V23).
 
+Someone with your unlocked browser can pay verified payees within caps for up to 7 days; sign out on shared computers. A session lasts 7 days from your last visit (each visit renews it), and signing out ends it on the server at once.
+
 And even someone signed in to the owner app can't do these without a fresh owner-wallet signature over the exact action, checked through Tatum:
 - Add a payee.
 - Confirm an address change on the owner path.

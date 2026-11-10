@@ -1,6 +1,6 @@
 import { formatUsdc } from "@countersign/core";
 import type { BalancesView } from "@countersign/web/ownerContext";
-import { AGENT_WALLET_FULL, GOOGLE_WORDS, YOUR_WALLET } from "@countersign/web/walletFacts";
+import { AGENT_WALLET_FULL, SLUSH_WORDS, WALLET_ROLE_WORDS, YOUR_WALLET } from "@countersign/web/walletFacts";
 import { grouped, type Format } from "./format.ts";
 
 export type PayeeLine = { readonly name: string; readonly status: "verified" | "change_pending" | "attempt_refused" | "waiting_wallet" | "conflict" | "not_payable"; readonly address: string | null };
@@ -44,8 +44,8 @@ export function helpLines(words: ChannelWords, publicUrl: string | null, network
     words.checkHow,
     ...words.extra,
     "",
-    "Do you need a crypto wallet? No: continue with Google in the owner app.",
-    GOOGLE_WORDS,
+    "Do you need a crypto wallet? No: continue with Slush in the owner app.",
+    `${SLUSH_WORDS} ${WALLET_ROLE_WORDS}`,
     "",
     "Two wallets:",
     AGENT_WALLET_FULL,
