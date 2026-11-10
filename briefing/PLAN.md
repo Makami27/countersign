@@ -7,11 +7,11 @@ No feature commits after 17:00 UTC on 10 Nov unless organisers confirm it's allo
 Revised 2026-10-30 (owner review of the phase plan): skeleton deploy moved to Phase 2, real mainnet use starts in Phase 2, Phase 3 gets an extra half day from Phase 4, submission deliverables added.
 
 ## Where we are (2026-11-01, ~16:30 UTC)
-**Phase:** Phase 4 plus V20–V25 (team decision 1 Nov), all deployed. Gate: `pnpm gate`, 146 tests green at `31579d2`.
+**Phase:** Phase 4 plus V20–V25 (team decision 1 Nov), all deployed. Gate: `pnpm gate`, 146 tests green at `4685186`.
 
 **Deployed vs committed — read this first**
 - Render runs `main` at https://countersign.nittings.xyz (custom domain, HTTPS; `PUBLIC_BASE_URL` points at it). `/api/health` reports the deployed commit (`RENDER_GIT_COMMIT`). **Render auto-deploys every push to `main`.** The old onrender.com host still answers.
-- Live now: everything through V25 plus the measurement results (`b7a150a`, redeployed 16:25 UTC with MASTER_KEY, ADMIN_WALLET and MAX_OWNERS=8 set on Render). Multi-user (V24) is open: up to 8 owners.
+- Live now: everything through V25 plus the measurement results (`006159d`, redeployed 16:25 UTC with MASTER_KEY, ADMIN_WALLET and MAX_OWNERS=8 set on Render). Multi-user (V24) is open: up to 8 owners.
 - Owner wallet (admin): `0xb2d3c105022325393f44d66927510729bc82eb7675d2fe45368dfb6e96bd6475`, registered on the custom domain.
 
 **Done since V22 (newest last)**
