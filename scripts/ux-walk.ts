@@ -155,6 +155,8 @@ async function activityChecks(width: number, scheme: "light" | "dark"): Promise<
     if (await page.locator(".day-group .meta a[href='https://suiscan.xyz/testnet/tx/DIGEST1']").count() !== ACTIVITY_ITEMS.length) note("an entry lost its Suiscan link");
     if (timezoneId === "Africa/Lagos") {
       await shot(page, "activity", width, scheme);
+      if (await page.locator(".balance-band:visible").count()) note(`balance card on Activity at ${width}`);
+      if (width >= 960 && !(await page.locator(".main-top .netlabel").isVisible())) note(`no network label above Activity at ${width}`);
       await page.evaluate(() => document.querySelectorAll(".day-group li")[8]?.scrollIntoView({ block: "center" }));
       await page.waitForTimeout(100);
       const stuck = await page.evaluate(() => {
@@ -287,6 +289,8 @@ for (const scheme of schemes) for (const width of widths) {
   await page.waitForSelector(".pay-actions");
   await page.waitForTimeout(400);
   await shot(page, "app-payee", width, scheme);
+  if (width >= 960 && (await page.locator(".balance-band:visible").count()) !== 1) note(`no balance card on a payee page at ${width}`);
+  if (await page.locator(".balance-band:visible .band-actions button:text-is('Pay')").count()) note(`the card repeats Pay on a payee page at ${width}`);
 
   if (await page.locator(".schedule-panel").isVisible()) note("schedules open by default");
   await page.click(".schedule-toggle");
@@ -326,6 +330,9 @@ for (const scheme of schemes) for (const width of widths) {
   if ((await page.evaluate(() => navigator.clipboard.readText())) !== fullAddress) note(`selecting and copying pasted something else ${width} ${scheme}`);
   if (await page.locator(".side-top [data-sound]").count()) note("the header still has a sound toggle");
   await page.goto(`${s.base}/app/settings`);
+  await page.waitForSelector("#settings-title");
+  if (await page.locator(".balance-band:visible").count()) note(`balance card on Settings at ${width}`);
+  if (width >= 960 && !(await page.locator(".main-top .netlabel").isVisible())) note(`no network label above Settings at ${width}`);
   const toggle = page.locator("[data-sound]");
   await toggle.waitFor();
   await toggle.click();

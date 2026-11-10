@@ -126,7 +126,7 @@ async function renderPage(): Promise<void> {
   });
   const openAdd = () => addPayeeSheet(o.network, () => void render());
   drawDesk({
-    overview: o, payees: payees.ok ? { ok: true, payees: list } : { ok: false, problem: payees.error.message }, selected, onPayeePage: match !== null,
+    overview: o, payees: payees.ok ? { ok: true, payees: list } : { ok: false, problem: payees.error.message }, selected, onPayeePage: match !== null, onPayeesPages: home || match !== null,
     openPay, openDeposit, openAdd, openCheck: () => checkMessageSheet(() => void render(), payFromMessage), go, rerender: () => void render(),
   }, quietRender);
   if (path === "/app/activity") {

@@ -11,6 +11,7 @@ export type DeskDeps = {
   readonly payees: SidePayees;
   readonly selected: string | null;
   readonly onPayeePage: boolean;
+  readonly onPayeesPages: boolean;
   readonly openPay: (id: string, name: string, address: string) => void;
   readonly openDeposit: () => void;
   readonly openAdd: () => void;
@@ -43,9 +44,9 @@ function walletActions(d: DeskDeps): WalletActions {
 
 export function drawDesk(d: DeskDeps, quiet: boolean): void {
   const actions = walletActions(d);
-  setWallet(balanceBand(d.overview, actions, "main"), quiet);
+  setWallet(d.onPayeesPages ? balanceBand(d.overview, actions, "main", !d.onPayeePage) : null, quiet);
   setSide(sidebarParts(d.overview, d.payees, d.selected, {
-    band: balanceBand(d.overview, actions, "phone"),
+    band: balanceBand(d.overview, actions, "phone", true),
     onDeposit: d.openDeposit, onAdd: d.openAdd, onCheck: d.openCheck,
     onPay: (payee) => {
       if (payee.address) d.openPay(payee.id, payee.name, payee.address);

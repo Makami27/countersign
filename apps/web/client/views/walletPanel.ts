@@ -33,7 +33,7 @@ function warnings(overview: Overview): HTMLElement | null {
     : `Low on SUI: below ${formatSui(item.neededBaseUnits)} SUI the agent wallet may not be able to pay network fees.`)));
 }
 
-export function balanceBand(overview: Overview, actions: WalletActions, place: "main" | "phone"): HTMLElement {
+export function balanceBand(overview: Overview, actions: WalletActions, place: "main" | "phone", withPay: boolean): HTMLElement {
   const titleId = `wallet-title-${place}`;
   return h("section", { class: `balance-band ${place}`, "aria-labelledby": titleId },
     h("div", { class: "band-head" }, h("h2", { id: titleId }, AGENT_WALLET_HEADING), addressEl(overview.agentAddress, { short: true }), place === "main" ? h("span", { class: "band-net" }, networkWords(overview.network)) : null),
@@ -42,7 +42,7 @@ export function balanceBand(overview: Overview, actions: WalletActions, place: "
     h("div", { class: "band-actions" },
       h("button", { class: "btn primary", type: "button", "data-key": `deposit-${place}`, onclick: actions.onDeposit }, DEPOSIT_SHORT),
       copyButton(overview.agentAddress, "Copy address"),
-      h("button", { class: "btn", type: "button", "data-key": `pay-${place}`, onclick: actions.onPay }, "Pay"),
+      withPay ? h("button", { class: "btn", type: "button", "data-key": `pay-${place}`, onclick: actions.onPay }, "Pay") : null,
       h("button", { class: "btn", type: "button", "data-key": `schedule-${place}`, onclick: actions.onSchedule }, "Schedule")),
     warnings(overview));
 }

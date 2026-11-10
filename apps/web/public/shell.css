@@ -95,6 +95,7 @@
   .shell[data-route="bare"] .side { overflow: visible; background: var(--paper); border-right: 0; border-bottom: 1px solid var(--line); }
   .shell[data-route="bare"] .side-top { padding: var(--space-2) var(--gutter); }
   .shell[data-route="bare"] .main-top { display: none; }
+  .shell:not([data-route="bare"]) .wallet-slot:empty + .main-top { display: flex; padding: var(--space-4) var(--gutter) 0; }
   .shell[data-route="bare"] .moment { left: 50%; }
   .shell[data-route="bare"] .side-body { display: none; }
 }
@@ -117,7 +118,7 @@
 .shell .band-actions { grid-area: actions; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-2); margin-top: var(--space-1); }
 .shell .band-actions .btn { min-height: var(--tap); padding-inline: var(--space-2); white-space: nowrap; }
 .shell .band-warning { grid-area: warn; background: var(--paper); }
-@container (min-width: 34rem) { .shell .band-actions { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@container (min-width: 34rem) { .shell .band-actions { grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); } }
 @container (min-width: 52rem) {
   .shell .balance-band { grid-template-columns: minmax(0, 1fr) minmax(30rem, 36rem); grid-template-areas: "head head" "figure actions" "line actions" "warn warn"; column-gap: var(--space-6); row-gap: var(--space-2); }
   .shell .band-actions { align-self: center; margin-top: 0; }
