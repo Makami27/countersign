@@ -9,3 +9,5 @@ npm-shrinkwrap.json
 yarn.lock
 apps/web/dist/
 apps/web/design/hero-reference.md
+demo-video/
+video assets/
