@@ -29,4 +29,5 @@ Copy of BUILD_CONTRACT.md "Never fabricate" and "No silent fallback". Label test
 - Tests named as behaviour, with acceptance IDs (`A0x`, `C0x`) in titles.
 - Never pipe test output through `tail` in a way that hides failures. Run `pnpm gate` from a clean clone before claiming done.
 - Commit as you go with behavioural messages; no history rewriting. No feature commits after 2026-11-10 17:00 UTC unless the organisers confirm it's allowed.
+- Commits carry one author: the repo owner. No co-author, generated-by or tool-attribution trailers in commit messages or PR descriptions.
 - New ideas go to `ROADMAP.md`, not into the build.
