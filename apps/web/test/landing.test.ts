@@ -166,7 +166,7 @@ test("V29 story text shows no raw receipt or blob ids: they are Receipt links", 
 test("V29 the hero keeps one button order at every width and the phone header leaves Try the demo to the menu", () => {
   const css = readFileSync(new URL("../public/landing.css", import.meta.url), "utf8");
   assert.ok(!css.includes(".hero-cta .btn:not(.primary) { order"));
-  assert.ok(css.includes(".site-actions .signin, .site-actions .demo { display: none; }"));
+  assert.ok(css.includes(".site-actions .signin, .site-actions .demo, .site-actions .theme-toggle { display: none; }"));
   const html = readFileSync(new URL("../public/index.html", import.meta.url), "utf8");
   assert.ok(html.includes(`<a class="menu-demo" href="/demo">Try the demo</a>`));
 });

@@ -1,4 +1,5 @@
 import { countText, sharedLine, type Live } from "./liveCounts.ts";
+import { wireThemeToggle } from "./theme.ts";
 
 const STEP_MS = 160;
 const LIVE_RETRY_MS = [3_000, 10_000, 30_000];
@@ -51,5 +52,6 @@ function replayOnce(): void {
   watcher.observe(replay);
 }
 
+document.querySelectorAll<HTMLElement>("[data-theme-toggle]").forEach(wireThemeToggle);
 replayOnce();
 void fillLive();

@@ -1,3 +1,4 @@
+import { themed } from "./themed.ts";
 import { mkdirSync } from "node:fs";
 import type { TestContext } from "node:test";
 import { chromium } from "playwright";
@@ -77,7 +78,7 @@ if (!(await retryPage.locator("[data-shared-line]").textContent())?.includes("3,
 console.log(`counters filled after ${liveCalls} requests, the first one failing`);
 
 for (const scheme of ["light", "dark"] as const) for (const width of SHOTS) {
-  const context = await browser.newContext({ viewport: { width, height: 900 }, colorScheme: scheme, reducedMotion: "reduce" });
+  const context = await themed(await browser.newContext({ viewport: { width, height: 900 }, colorScheme: scheme, reducedMotion: "reduce" }), scheme, s.base);
   const [name, value] = s.cookie.split("=");
   await context.addCookies([{ name: name ?? "", value: value ?? "", domain: "127.0.0.1", path: "/" }]);
   const page = await context.newPage();

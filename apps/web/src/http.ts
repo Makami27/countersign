@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { readFile } from "node:fs/promises";
 import { extname, join, normalize, sep } from "node:path";
+import { THEME_COOKIE } from "../client/themeChoice.ts";
 
 export const MAX_BODY_BYTES = 8 * 1024;
 export const TYPES: Record<string, string> = { ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".svg": "image/svg+xml", ".ico": "image/x-icon", ".woff2": "font/woff2", ".png": "image/png", ".webmanifest": "application/manifest+json", ".txt": "text/plain; charset=utf-8" };
@@ -40,6 +41,10 @@ export async function readJson(req: IncomingMessage): Promise<Record<string, unk
   } catch {
     return null;
   }
+}
+
+export function darkChosen(req: IncomingMessage): boolean {
+  return cookie(req, THEME_COOKIE) === "dark";
 }
 
 export function cookie(req: IncomingMessage, name: string): string | null {

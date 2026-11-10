@@ -1,3 +1,4 @@
+import { themed } from "./themed.ts";
 import { mkdirSync } from "node:fs";
 import type { TestContext } from "node:test";
 import { chromium } from "playwright";
@@ -44,10 +45,10 @@ const browser = await chromium.launch();
 const host = new URL(s.base).hostname;
 const [name, value] = s.cookie.split("=");
 for (const scheme of ["light", "dark"] as const) for (const width of widths) {
-  const context = await browser.newContext({ viewport: { width, height: 900 }, colorScheme: scheme, reducedMotion: "reduce", bypassCSP: Boolean(process.env["AXE"]) });
+  const context = await themed(await browser.newContext({ viewport: { width, height: 900 }, colorScheme: scheme, reducedMotion: "reduce", bypassCSP: Boolean(process.env["AXE"]) }), scheme, s.base);
   await context.addCookies([{ name: name ?? "", value: value ?? "", domain: host, path: "/" }]);
   const signedIn = await context.newPage();
-  const anonymous = await (await browser.newContext({ viewport: { width, height: 900 }, colorScheme: scheme, reducedMotion: "reduce", bypassCSP: Boolean(process.env["AXE"]) })).newPage();
+  const anonymous = await (await themed(await browser.newContext({ viewport: { width, height: 900 }, colorScheme: scheme, reducedMotion: "reduce", bypassCSP: Boolean(process.env["AXE"]) }), scheme, s.base)).newPage();
   for (const [label, path, click] of routes) {
     if (only && !only.includes(label)) continue;
     const page = label === "sign-in" ? anonymous : signedIn;

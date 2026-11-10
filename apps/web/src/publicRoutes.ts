@@ -6,14 +6,15 @@ import { within } from "./deadline.ts";
 import { readProof } from "./proof.ts";
 import { proofPageHtml, readMeasurement } from "./proofPage.ts";
 import { statusPageHtml } from "./statusPage.ts";
+import { inChosenTheme } from "./publicPage.ts";
 import type { OwnerContext } from "./ownerContext.ts";
 import type { StatusView } from "./status.ts";
 
 const MEMORY_DEADLINE_MS = 8_000;
 
-function html(res: ServerResponse, body: string): void {
-  res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-cache", ...SECURITY_HEADERS });
-  res.end(body);
+function html(res: ServerResponse, body: string, dark: boolean): void {
+  res.writeHead(200, { "content-type": "text/html; charset=utf-8", "cache-control": "no-cache", vary: "cookie", ...SECURITY_HEADERS });
+  res.end(inChosenTheme(body, dark));
 }
 
 async function memoryCounts(owner: OwnerContext | null) {
@@ -26,11 +27,11 @@ async function memoryCounts(owner: OwnerContext | null) {
   }
 }
 
-export async function proofPageRoute(res: ServerResponse, rows: SqlRows | undefined, network: "mainnet" | "testnet", owner: OwnerContext | null): Promise<void> {
+export async function proofPageRoute(res: ServerResponse, rows: SqlRows | undefined, network: "mainnet" | "testnet", owner: OwnerContext | null, dark: boolean): Promise<void> {
   const [proof, memory, claims, measurement] = await Promise.all([readProof(rows, network), memoryCounts(owner), readClaims(), readMeasurement()]);
-  html(res, proofPageHtml({ proof, memory, claims, measurement }));
+  html(res, proofPageHtml({ proof, memory, claims, measurement }), dark);
 }
 
-export async function statusPageRoute(res: ServerResponse, status: (() => Promise<StatusView>) | undefined): Promise<void> {
-  html(res, statusPageHtml(status ? await status() : null));
+export async function statusPageRoute(res: ServerResponse, status: (() => Promise<StatusView>) | undefined, dark: boolean): Promise<void> {
+  html(res, statusPageHtml(status ? await status() : null), dark);
 }

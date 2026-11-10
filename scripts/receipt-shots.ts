@@ -1,3 +1,4 @@
+import { themed } from "./themed.ts";
 import { chromium } from "playwright";
 import type { AddressInfo } from "node:net";
 import { ONE_USDC, lookalikeOf, message, world } from "../packages/core/test/fixtures.ts";
@@ -23,7 +24,7 @@ const paid = await w.agent.recordPaymentOutcome(settled);
 const browser = await chromium.launch();
 const pages: [string, string][] = [["refused", first.receipt], ["repeat", repeat.receipt], ["paid", paid?.receipt ?? ""]];
 for (const scheme of ["dark", "light"] as const) for (const width of [360, 1440]) {
-  const page = await browser.newPage({ viewport: { width, height: 900 }, colorScheme: scheme });
+  const page = await themed(await browser.newPage({ viewport: { width, height: 900 }, colorScheme: scheme }), scheme, base);
   for (const [name, id] of pages) {
     await page.goto(`${base}/r/${id}`);
     await page.waitForTimeout(700);

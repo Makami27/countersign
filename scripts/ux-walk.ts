@@ -1,4 +1,5 @@
-import { mkdirSync } from "node:fs";
+import { themed } from "./themed.ts";
+import { mkdirSync, readFileSync } from "node:fs";
 import type { TestContext } from "node:test";
 import { chromium, type BrowserContext, type Page } from "playwright";
 import { PaymentRunner } from "../packages/adapters/src/payments/runner.ts";
@@ -93,7 +94,7 @@ async function closeSheet(page: Page): Promise<void> {
 }
 
 async function context(width: number, scheme: "light" | "dark"): Promise<BrowserContext> {
-  const ctx = await browser.newContext({ viewport: { width, height: 900 }, colorScheme: scheme, reducedMotion: "reduce", permissions: ["clipboard-read", "clipboard-write"] });
+  const ctx = await themed(await browser.newContext({ viewport: { width, height: 900 }, colorScheme: scheme, reducedMotion: "reduce", permissions: ["clipboard-read", "clipboard-write"] }), scheme, s.base);
   const [name, value] = s.cookie.split("=");
   await ctx.addCookies([{ name: name ?? "", value: value ?? "", domain: "127.0.0.1", path: "/" }]);
   await ctx.exposeFunction("fakeSign", (text: string) => s.me.sign(text));
@@ -135,7 +136,7 @@ async function activityChecks(width: number, scheme: "light" | "dark"): Promise<
     "Pacific/Auckland": { headings: ["Today", "Yesterday", "Wed 4 Nov", "Tue 3 Nov", "Tue 30 Dec 2025"], firstTime: "12:15" },
   };
   for (const [timezoneId, want] of Object.entries(expected)) {
-    const ctx = await browser.newContext({ viewport: { width, height: 700 }, colorScheme: scheme, reducedMotion: "reduce", timezoneId });
+    const ctx = await themed(await browser.newContext({ viewport: { width, height: 700 }, colorScheme: scheme, reducedMotion: "reduce", timezoneId }), scheme, s.base);
     const [name, value] = s.cookie.split("=");
     await ctx.addCookies([{ name: name ?? "", value: value ?? "", domain: "127.0.0.1", path: "/" }]);
     const page = await ctx.newPage();
@@ -194,6 +195,47 @@ async function shellChecks(page: Page, width: number, scheme: string): Promise<v
   if (order.lastSide > order.firstMain && order.firstMain >= 0) note(`main comes before the sidebar in focus order at ${width}`);
 }
 
+const TOKENS = readFileSync("apps/web/public/tokens.css", "utf8");
+function paperRgb(block: string): string {
+  const hex = /--paper: #([0-9A-Fa-f]{6});/.exec(block)?.[1] ?? "000000";
+  return `rgb(${[0, 2, 4].map((i) => parseInt(hex.slice(i, i + 2), 16)).join(", ")})`;
+}
+const LIGHT_PAPER = paperRgb(TOKENS);
+const DARK_PAPER = paperRgb(TOKENS.slice(TOKENS.indexOf("[data-theme=\"dark\"]")));
+
+async function themeChecks(width: number): Promise<void> {
+  const ctx = await browser.newContext({ viewport: { width, height: 900 }, colorScheme: "dark", reducedMotion: "reduce" });
+  const [name, value] = s.cookie.split("=");
+  await ctx.addCookies([{ name: name ?? "", value: value ?? "", domain: "127.0.0.1", path: "/" }]);
+  const page = await ctx.newPage();
+  const paper = () => page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  await page.goto(s.base);
+  if ((await paper()) !== LIGHT_PAPER) note(`a dark system setting changed the landing at ${width}`);
+  if (width < 960) await page.click(".site-menu summary");
+  const toggle = page.locator("[data-theme-toggle]:visible");
+  if ((await toggle.textContent()) !== "Dark mode: off") note(`landing toggle label at ${width}: ${await toggle.textContent()}`);
+  if (((await toggle.boundingBox())?.height ?? 0) < 44) note(`landing theme toggle is under 44px at ${width}`);
+  await toggle.click();
+  if ((await paper()) !== DARK_PAPER || (await toggle.textContent()) !== "Dark mode: on") note(`the landing toggle didn't switch to dark at ${width}`);
+  await page.reload();
+  if ((await paper()) !== DARK_PAPER) note(`dark wasn't remembered on the landing at ${width}`);
+  for (const path of ["/proof", "/demo"]) {
+    await page.goto(`${s.base}${path}`);
+    if ((await paper()) !== DARK_PAPER) note(`${path} ignored the chosen theme at ${width}`);
+  }
+  await page.goto(`${s.base}/app/settings`);
+  const inApp = page.locator("#settings-preferences ~ .actions [data-theme-toggle]");
+  await inApp.waitFor();
+  if ((await inApp.textContent()) !== "Dark mode: on" || (await paper()) !== DARK_PAPER) note(`Settings didn't start in the chosen theme at ${width}`);
+  if (((await inApp.boundingBox())?.height ?? 0) < 44) note(`Settings theme toggle is under 44px at ${width}`);
+  await inApp.click();
+  if ((await paper()) !== LIGHT_PAPER || (await inApp.textContent()) !== "Dark mode: off") note(`the Settings toggle didn't switch back to light at ${width}`);
+  await page.reload();
+  await page.waitForSelector("#settings-title");
+  if ((await paper()) !== LIGHT_PAPER) note(`light wasn't remembered in /app at ${width}`);
+  await ctx.close();
+}
+
 const browser = await chromium.launch();
 const sweep = await context(1440, "light");
 await sweepColumns(sweep);
@@ -203,7 +245,8 @@ for (const scheme of schemes) for (const width of widths) {
   const ctx = await context(width, scheme);
   const page = await ctx.newPage();
   page.on("pageerror", (error) => note(`page error ${width} ${scheme}: ${error.message}`));
-  const visitor = await (await browser.newContext({ viewport: { width, height: 900 }, colorScheme: scheme, reducedMotion: "reduce" })).newPage();
+  if (scheme === "light") await themeChecks(width);
+  const visitor = await (await themed(await browser.newContext({ viewport: { width, height: 900 }, colorScheme: scheme, reducedMotion: "reduce" }), scheme, s.base)).newPage();
   await visitor.context().exposeFunction("fakeSign", (text: string) => s.me.sign(text));
   await visitor.addInitScript(FAKE_WALLET, s.me.address);
   await visitor.goto(`${s.base}/app`);

@@ -1,3 +1,4 @@
+import { themed } from "./themed.ts";
 import type { TestContext } from "node:test";
 import { chromium } from "playwright";
 import { multiOwnerServer } from "../apps/web/test/support/multiOwner.ts";
@@ -11,7 +12,7 @@ const { cookie } = await signInAs(s.base, s.admin);
 await s.discordLinks.dmRefused("admin1", "Owner wallet change requested.");
 const browser = await chromium.launch();
 for (const [width, scheme] of [[390, "light"], [1440, "dark"]] as const) {
-  const ctx = await browser.newContext({ viewport: { width, height: 900 }, colorScheme: scheme, reducedMotion: "reduce" });
+  const ctx = await themed(await browser.newContext({ viewport: { width, height: 900 }, colorScheme: scheme, reducedMotion: "reduce" }), scheme, s.base);
   const [name, value] = cookie.split("=");
   await ctx.addCookies([{ name: name ?? "", value: value ?? "", domain: "127.0.0.1", path: "/" }]);
   const page = await ctx.newPage();

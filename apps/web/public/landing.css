@@ -10,7 +10,10 @@ html { scroll-behavior: smooth; scroll-padding-top: 5rem; }
 .site-links a:hover, .site-menu nav a:hover { color: var(--ink); text-decoration: underline; }
 .site-actions { display: flex; gap: var(--space-2); }
 .site-actions .btn { padding: 0.55rem 1rem; font-size: var(--step--1); }
-.site-actions .signin, .site-actions .demo { display: none; }
+.site-actions .signin, .site-actions .demo, .site-actions .theme-toggle { display: none; }
+.theme-toggle { appearance: none; min-height: var(--tap); padding: 0 var(--space-2); border: 0; border-radius: var(--radius); background: none; color: var(--ink-soft); font: 400 var(--step--1)/1 var(--sans); white-space: nowrap; cursor: pointer; }
+.theme-toggle:hover { color: var(--ink); text-decoration: underline; }
+.site-menu nav .theme-toggle { justify-self: start; color: var(--ink); font-size: var(--step-0); }
 .site-menu { position: relative; }
 .site-menu summary { list-style: none; min-height: var(--tap); display: inline-flex; align-items: center; padding: 0 var(--space-3); border: 1.5px solid var(--line-strong); border-radius: var(--radius); font-weight: 600; font-size: var(--step--1); cursor: pointer; }
 .site-menu summary::-webkit-details-marker { display: none; }
@@ -24,8 +27,9 @@ html { scroll-behavior: smooth; scroll-padding-top: 5rem; }
 @media (min-width: 960px) {
   .site-links { display: flex; }
   .site-menu { display: none; }
+  .site-actions .theme-toggle { display: inline-flex; align-items: center; }
 }
-@media (min-width: 960px) and (max-width: 1023px) {
+@media (min-width: 960px) and (max-width: 1199px) {
   .site-links .wide-only { display: none; }
 }
 .landing .wordmark.drawn .counter path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: pen var(--draw-wordmark) cubic-bezier(.45,.05,.35,1) forwards 150ms; }

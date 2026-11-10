@@ -1,4 +1,5 @@
 import { groupAddress } from "../client/addressGroups.ts";
+import { THEME_COLOR } from "../client/themeChoice.ts";
 import { COUNTER_CROSS, COUNTER_STROKE, COUNTER_VIEWBOX } from "../client/wordmark.ts";
 
 export function escapeHtml(text: string): string {
@@ -24,6 +25,11 @@ export function networkLabel(network: "mainnet" | "testnet"): string {
   return `<span class="netlabel">${network === "mainnet" ? "Sui mainnet" : "Sui testnet · test USDC"}</span>`;
 }
 
+export function inChosenTheme(html: string, dark: boolean): string {
+  if (!dark) return html;
+  return html.replace('<html lang="en">', '<html lang="en" data-theme="dark">').replace(`<meta name="theme-color" content="${THEME_COLOR.light}">`, `<meta name="theme-color" content="${THEME_COLOR.dark}">`);
+}
+
 export function publicPage(title: string, body: string, network: "mainnet" | "testnet" | null, mainClass = "detail receipt"): string {
   return `<!doctype html>
 <html lang="en">
@@ -32,8 +38,7 @@ export function publicPage(title: string, body: string, network: "mainnet" | "te
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
 <title>${escapeHtml(title)} · Countersign</title>
-<meta name="theme-color" content="#F6F8FD" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0F1A3A" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F6F8FD">
 <meta name="application-name" content="Countersign">
 <link rel="icon" href="/favicon.ico" sizes="48x48">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
